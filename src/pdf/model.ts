@@ -36,14 +36,7 @@ export interface RenderItem {
 }
 
 export type TotalKind =
-  | 'subtotal'
-  | 'discount'
-  | 'charge'
-  | 'tax'
-  | 'total'
-  | 'included-tax'
-  | 'paid'
-  | 'balance';
+  'subtotal' | 'discount' | 'charge' | 'tax' | 'total' | 'included-tax' | 'paid' | 'balance';
 
 export interface RenderTotal {
   kind: TotalKind;
@@ -243,7 +236,11 @@ export function buildRenderModel(
       totals.push({ kind: 'tax', label: taxLabel(t.name, t.rate), value: money(t.amount) }),
     );
   }
-  const grandTotal: RenderTotal = { kind: 'total', label: labels.total, value: money(result.total) };
+  const grandTotal: RenderTotal = {
+    kind: 'total',
+    label: labels.total,
+    value: money(result.total),
+  };
   totals.push(grandTotal);
   if (doc.pricesIncludeTax) {
     result.taxes.forEach((t) =>
@@ -346,11 +343,15 @@ export function buildRenderModel(
       phone: unbreakable(company.phone),
       website: clean(company.website),
       taxLine: taxLine(company.taxIdLabel, company.taxId),
-      registrationLine: taxLine(company.registrationLabel || 'Reg. No.', company.registrationNumber),
+      registrationLine: taxLine(
+        company.registrationLabel || 'Reg. No.',
+        company.registrationNumber,
+      ),
     },
     client: {
       name: clean(client?.name),
-      contactName: clean(primaryContact?.name) !== clean(client?.name) ? clean(primaryContact?.name) : '',
+      contactName:
+        clean(primaryContact?.name) !== clean(client?.name) ? clean(primaryContact?.name) : '',
       // The country is left out for domestic clients.
       addressLines: formatAddressLines(
         client?.address,

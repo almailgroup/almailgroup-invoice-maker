@@ -7,9 +7,23 @@ import { Input, NumberInput, Switch } from '@/components/ui/form';
 import { DiscountInput } from './line-items';
 import { TaxSelect } from './tax-select';
 
-function Row({ label, value, strong }: { label: React.ReactNode; value: React.ReactNode; strong?: boolean }) {
+function Row({
+  label,
+  value,
+  strong,
+}: {
+  label: React.ReactNode;
+  value: React.ReactNode;
+  strong?: boolean;
+}) {
   return (
-    <div className={strong ? 'flex items-center justify-between py-1.5 text-base font-semibold text-slate-900' : 'flex items-center justify-between py-1 text-sm text-slate-600'}>
+    <div
+      className={
+        strong
+          ? 'flex items-center justify-between py-1.5 text-base font-semibold text-slate-900'
+          : 'flex items-center justify-between py-1 text-sm text-slate-600'
+      }
+    >
       <span>{label}</span>
       <span className="tabular">{value}</span>
     </div>
@@ -72,14 +86,22 @@ export function TotalsPanel({
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="text-sm text-slate-600">Tax on total</span>
           <div className="w-56">
-            <TaxSelect value={doc.taxes} onChange={(taxes) => onChange({ taxes })} rates={taxRates} placeholder="None" />
+            <TaxSelect
+              value={doc.taxes}
+              onChange={(taxes) => onChange({ taxes })}
+              rates={taxRates}
+              placeholder="None"
+            />
           </div>
         </div>
       ) : null}
 
       <div className="space-y-2">
         {doc.charges.map((charge, index) => (
-          <div key={charge.id} className="grid grid-cols-[1fr_7rem_auto] items-center gap-2 sm:grid-cols-[1fr_7rem_8rem_auto]">
+          <div
+            key={charge.id}
+            className="grid grid-cols-[1fr_7rem_auto] items-center gap-2 sm:grid-cols-[1fr_7rem_8rem_auto]"
+          >
             <Input
               aria-label="Charge label"
               value={charge.label}
@@ -92,7 +114,11 @@ export function TotalsPanel({
               onValueChange={(amount) => setCharge(index, { amount })}
             />
             <div className="col-span-3 row-start-2 sm:col-span-1 sm:row-start-auto">
-              <TaxSelect value={charge.taxes} onChange={(taxes) => setCharge(index, { taxes })} rates={taxRates} />
+              <TaxSelect
+                value={charge.taxes}
+                onChange={(taxes) => setCharge(index, { taxes })}
+                rates={taxRates}
+              />
             </div>
             <Button
               variant="ghost"
@@ -134,13 +160,21 @@ export function TotalsPanel({
         <Row label="Total" value={money(result.total)} strong />
         {doc.pricesIncludeTax
           ? result.taxes.map((t) => (
-              <Row key={t.key} label={`Includes ${t.name} ${percent(t.rate)}`} value={money(t.amount)} />
+              <Row
+                key={t.key}
+                label={`Includes ${t.name} ${percent(t.rate)}`}
+                value={money(t.amount)}
+              />
             ))
           : null}
         {doc.type !== 'quote' && result.paid !== 0 ? (
           <>
             <Row label={doc.type === 'credit' ? 'Applied' : 'Paid'} value={money(-result.paid)} />
-            <Row label={doc.type === 'credit' ? 'Remaining credit' : 'Balance due'} value={money(result.balance)} strong />
+            <Row
+              label={doc.type === 'credit' ? 'Remaining credit' : 'Balance due'}
+              value={money(result.balance)}
+              strong
+            />
           </>
         ) : null}
         {taxExempt ? (
@@ -164,7 +198,10 @@ export function TotalsPanel({
               onChange={(on) =>
                 onChange(
                   on
-                    ? { deposit: Math.round(result.total * 0.5 * 100) / 100 || 0, depositDueDate: doc.issueDate }
+                    ? {
+                        deposit: Math.round(result.total * 0.5 * 100) / 100 || 0,
+                        depositDueDate: doc.issueDate,
+                      }
                     : { deposit: 0, depositDueDate: null },
                 )
               }
@@ -174,8 +211,14 @@ export function TotalsPanel({
             {doc.deposit > 0 ? (
               <div className="grid grid-cols-2 gap-3">
                 <label className="text-sm">
-                  <span className="mb-1 block text-xs font-medium text-slate-500">Deposit amount</span>
-                  <NumberInput value={doc.deposit} onValueChange={(deposit) => onChange({ deposit })} allowNegative={false} />
+                  <span className="mb-1 block text-xs font-medium text-slate-500">
+                    Deposit amount
+                  </span>
+                  <NumberInput
+                    value={doc.deposit}
+                    onValueChange={(deposit) => onChange({ deposit })}
+                    allowNegative={false}
+                  />
                 </label>
                 <label className="text-sm">
                   <span className="mb-1 block text-xs font-medium text-slate-500">Deposit due</span>

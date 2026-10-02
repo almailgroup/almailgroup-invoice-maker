@@ -25,7 +25,14 @@ export function ClientDialog({
     createClient(company.id, {
       name: initialName,
       contacts: [newContact(true)],
-      address: { line1: '', line2: '', city: '', state: '', postalCode: '', country: company.address.country },
+      address: {
+        line1: '',
+        line2: '',
+        city: '',
+        state: '',
+        postalCode: '',
+        country: company.address.country,
+      },
     }),
   );
   const [errors, setErrors] = useState<Partial<Record<'name', string>>>({});
@@ -53,9 +60,19 @@ export function ClientDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent title="New client" description="You can add more details later from the Clients page." size="lg">
+      <DialogContent
+        title="New client"
+        description="You can add more details later from the Clients page."
+        size="lg"
+      >
         <DialogBody>
-          <ClientForm value={client} onChange={setClient} company={company} compact errors={errors} />
+          <ClientForm
+            value={client}
+            onChange={setClient}
+            company={company}
+            compact
+            errors={errors}
+          />
         </DialogBody>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>

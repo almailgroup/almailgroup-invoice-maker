@@ -48,11 +48,19 @@ export function createPayment(companyId: ID, overrides: Partial<Payment> = {}): 
 }
 
 /** Merges allocations per document and drops empty ones. */
-export function normalizeAllocations(allocations: PaymentAllocation[], precision = 2): PaymentAllocation[] {
+export function normalizeAllocations(
+  allocations: PaymentAllocation[],
+  precision = 2,
+): PaymentAllocation[] {
   const byDoc = new Map<string, number>();
   for (const a of allocations) {
     if (!a.documentId) continue;
-    byDoc.set(a.documentId, dec(byDoc.get(a.documentId) ?? 0).plus(dec(a.amount)).toNumber());
+    byDoc.set(
+      a.documentId,
+      dec(byDoc.get(a.documentId) ?? 0)
+        .plus(dec(a.amount))
+        .toNumber(),
+    );
   }
   return [...byDoc.entries()]
     .map(([documentId, amount]) => ({ documentId, amount: round(amount, precision) }))
@@ -60,7 +68,9 @@ export function normalizeAllocations(allocations: PaymentAllocation[], precision
 }
 
 export function unappliedAmount(payment: Pick<Payment, 'amount' | 'allocations'>): number {
-  return payment.allocations.reduce((rest, a) => rest.minus(dec(a.amount)), dec(payment.amount)).toNumber();
+  return payment.allocations
+    .reduce((rest, a) => rest.minus(dec(a.amount)), dec(payment.amount))
+    .toNumber();
 }
 
 export class AllocationError extends Error {}
@@ -89,9 +99,13 @@ export async function savePayment(input: Payment): Promise<Payment> {
       };
       if (!payment.number.trim()) {
         const taken = new Set(
-          (await db.payments.where('companyId').equals(company.id).toArray()).map((p) => p.number.toLowerCase()),
+          (await db.payments.where('companyId').equals(company.id).toArray()).map((p) =>
+            p.number.toLowerCase(),
+          ),
         );
-        const allocatedNumber = allocateNumber(company.numbering.payment, payment.date, (n) => taken.has(n.toLowerCase()));
+        const allocatedNumber = allocateNumber(company.numbering.payment, payment.date, (n) =>
+          taken.has(n.toLowerCase()),
+        );
         payment = { ...payment, number: allocatedNumber.number };
         await db.companies.put({
           ...company,
@@ -129,9 +143,19 @@ export async function deletePayment(id: ID): Promise<void> {
     const payment = await db.payments.get(id);
     if (!payment) return;
     await db.payments.delete(id);
-    await recalculateDocuments([...payment.documentIds, ...(payment.creditId ? [payment.creditId] : [])]);
-    await logActivity(payment.companyId, 'payment', payment.id, 'deleted', `Payment ${payment.number} deleted`, {
-      clientId: payment.clientId || null,
-    });
+    await recalculateDocuments([
+      ...payment.documentIds,
+      ...(payment.creditId ? [payment.creditId] : []),
+    ]);
+    await logActivity(
+      payment.companyId,
+      'payment',
+      payment.id,
+      'deleted',
+      `Payment ${payment.number} deleted`,
+      {
+        clientId: payment.clientId || null,
+      },
+    );
   });
 }

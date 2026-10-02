@@ -62,7 +62,12 @@ export default function CompaniesSettings() {
                 Switch
               </Button>
             ) : null}
-            <Button variant="ghost" size="icon-sm" aria-label={`Delete ${c.name}`} onClick={() => void remove(c.id, c.name)}>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={`Delete ${c.name}`}
+              onClick={() => void remove(c.id, c.name)}
+            >
               <Trash2 />
             </Button>
           </li>

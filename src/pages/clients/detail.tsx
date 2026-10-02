@@ -1,7 +1,16 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Archive, ArchiveRestore, Mail, MoreHorizontal, Pencil, Phone, Plus, Trash2 } from 'lucide-react';
+import {
+  Archive,
+  ArchiveRestore,
+  Mail,
+  MoreHorizontal,
+  Pencil,
+  Phone,
+  Plus,
+  Trash2,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { db } from '@/db/db';
 import { deleteClient, saveClient } from '@/db/records';
@@ -12,7 +21,16 @@ import { formatAddressLines, isAddressEmpty } from '@/lib/geo';
 import { displayStatus } from '@/lib/status';
 import { today } from '@/lib/dates';
 import { Button, ButtonLink } from '@/components/ui/button';
-import { Badge, Card, CardBody, CardHeader, Segmented, Spinner, Stat, StatusBadge } from '@/components/ui/misc';
+import {
+  Badge,
+  Card,
+  CardBody,
+  CardHeader,
+  Segmented,
+  Spinner,
+  Stat,
+  StatusBadge,
+} from '@/components/ui/misc';
 import {
   DropdownContent,
   DropdownItem,
@@ -40,23 +58,39 @@ export default function ClientDetailPage() {
   const stats = useMemo(() => {
     if (!docs) return null;
     const now = today();
-    const invoices = docs.filter((d) => d.type === 'invoice' && d.status !== 'draft' && d.status !== 'void' && d.currency === currency);
-    const credits = docs.filter((d) => d.type === 'credit' && (d.status === 'sent' || d.status === 'partial') && d.currency === currency);
+    const invoices = docs.filter(
+      (d) =>
+        d.type === 'invoice' &&
+        d.status !== 'draft' &&
+        d.status !== 'void' &&
+        d.currency === currency,
+    );
+    const credits = docs.filter(
+      (d) =>
+        d.type === 'credit' &&
+        (d.status === 'sent' || d.status === 'partial') &&
+        d.currency === currency,
+    );
     return {
       invoiced: invoices.reduce((s, d) => s + d.totals.total, 0),
       paid: invoices.reduce((s, d) => s + d.totals.paid, 0),
-      outstanding: invoices.filter((d) => d.status === 'sent' || d.status === 'partial').reduce((s, d) => s + d.totals.balance, 0),
-      overdue: invoices.filter((d) => displayStatus(d, now) === 'overdue').reduce((s, d) => s + d.totals.balance, 0),
+      outstanding: invoices
+        .filter((d) => d.status === 'sent' || d.status === 'partial')
+        .reduce((s, d) => s + d.totals.balance, 0),
+      overdue: invoices
+        .filter((d) => displayStatus(d, now) === 'overdue')
+        .reduce((s, d) => s + d.totals.balance, 0),
       credit: credits.reduce((s, d) => s + d.totals.balance, 0),
     };
   }, [docs, currency]);
 
-  if (client === undefined || !docs || !payments) return <Spinner className="py-24" label="Loading…" />;
+  if (client === undefined || !docs || !payments)
+    return <Spinner className="py-24" label="Loading…" />;
   if (!client || client.companyId !== company.id) {
     return (
       <Card className="p-10 text-center">
         <p className="text-slate-600">This client could not be found.</p>
-        <Link to="/clients" className="mt-4 inline-block text-sm font-medium text-primary-700">
+        <Link to="/clients" className="text-primary-700 mt-4 inline-block text-sm font-medium">
           Back to clients
         </Link>
       </Card>
@@ -64,7 +98,10 @@ export default function ClientDetailPage() {
   }
 
   const now = today();
-  const listed = tab === 'payments' ? [] : docs.filter((d) => d.type === tab).sort((a, b) => b.issueDate.localeCompare(a.issueDate));
+  const listed =
+    tab === 'payments'
+      ? []
+      : docs.filter((d) => d.type === tab).sort((a, b) => b.issueDate.localeCompare(a.issueDate));
   const counts = {
     invoice: docs.filter((d) => d.type === 'invoice').length,
     quote: docs.filter((d) => d.type === 'quote').length,
@@ -80,7 +117,8 @@ export default function ClientDetailPage() {
   const remove = async () => {
     const ok = await confirm({
       title: `Delete ${client.name}?`,
-      description: 'This cannot be undone. Clients with documents or payments can only be archived.',
+      description:
+        'This cannot be undone. Clients with documents or payments can only be archived.',
       confirmLabel: 'Delete',
       danger: true,
     });
@@ -95,7 +133,10 @@ export default function ClientDetailPage() {
   };
 
   const address = formatAddressLines(client.address, fmt.locale);
-  const shipping = client.shippingAddress && !isAddressEmpty(client.shippingAddress) ? formatAddressLines(client.shippingAddress, fmt.locale) : [];
+  const shipping =
+    client.shippingAddress && !isAddressEmpty(client.shippingAddress)
+      ? formatAddressLines(client.shippingAddress, fmt.locale)
+      : [];
 
   return (
     <div className="space-y-6">
@@ -131,14 +172,23 @@ export default function ClientDetailPage() {
               </Button>
             </DropdownTrigger>
             <DropdownContent>
-              <DropdownItem icon={<Plus />} onSelect={() => navigate(`/credits/new?client=${client.id}`)}>
+              <DropdownItem
+                icon={<Plus />}
+                onSelect={() => navigate(`/credits/new?client=${client.id}`)}
+              >
                 New credit note
               </DropdownItem>
-              <DropdownItem icon={<Plus />} onSelect={() => navigate(`/payments/new?client=${client.id}`)}>
+              <DropdownItem
+                icon={<Plus />}
+                onSelect={() => navigate(`/payments/new?client=${client.id}`)}
+              >
                 Record payment
               </DropdownItem>
               <DropdownSeparator />
-              <DropdownItem icon={client.archived ? <ArchiveRestore /> : <Archive />} onSelect={() => void toggleArchive()}>
+              <DropdownItem
+                icon={client.archived ? <ArchiveRestore /> : <Archive />}
+                onSelect={() => void toggleArchive()}
+              >
                 {client.archived ? 'Restore' : 'Archive'}
               </DropdownItem>
               <DropdownItem icon={<Trash2 />} danger onSelect={() => void remove()}>
@@ -152,13 +202,19 @@ export default function ClientDetailPage() {
       {stats ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Stat label="Invoiced" value={fmt.money(stats.invoiced, currency)} />
-          <Stat label="Paid" value={fmt.money(stats.paid, currency)} tone={stats.paid > 0 ? 'success' : 'default'} />
+          <Stat
+            label="Paid"
+            value={fmt.money(stats.paid, currency)}
+            tone={stats.paid > 0 ? 'success' : 'default'}
+          />
           <Stat label="Outstanding" value={fmt.money(stats.outstanding, currency)} />
           <Stat
             label="Overdue"
             value={fmt.money(stats.overdue, currency)}
             tone={stats.overdue > 0 ? 'danger' : 'default'}
-            hint={stats.credit > 0 ? `${fmt.money(stats.credit, currency)} unused credit` : undefined}
+            hint={
+              stats.credit > 0 ? `${fmt.money(stats.credit, currency)} unused credit` : undefined
+            }
           />
         </div>
       ) : null}
@@ -186,7 +242,10 @@ export default function ClientDetailPage() {
                   .sort((a, b) => b.date.localeCompare(a.date))
                   .map((p) => (
                     <li key={p.id}>
-                      <Link to={`/payments/${p.id}`} className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-slate-50">
+                      <Link
+                        to={`/payments/${p.id}`}
+                        className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-slate-50"
+                      >
                         <span>
                           <span className="block text-sm font-medium text-slate-800">
                             {p.number} · {fmt.date(p.date)}
@@ -196,7 +255,9 @@ export default function ClientDetailPage() {
                             {p.reference ? ` · ${p.reference}` : ''}
                           </span>
                         </span>
-                        <span className="tabular text-sm font-semibold text-emerald-700">{fmt.money(p.amount, p.currency)}</span>
+                        <span className="tabular text-sm font-semibold text-emerald-700">
+                          {fmt.money(p.amount, p.currency)}
+                        </span>
                       </Link>
                     </li>
                   ))}
@@ -205,7 +266,10 @@ export default function ClientDetailPage() {
           ) : listed.length === 0 ? (
             <div className="px-6 py-12 text-center text-sm text-slate-500">
               Nothing here yet.{' '}
-              <Link to={`${DOCUMENT_ROUTES[tab]}/new?client=${client.id}`} className="font-medium text-primary-700">
+              <Link
+                to={`${DOCUMENT_ROUTES[tab]}/new?client=${client.id}`}
+                className="text-primary-700 font-medium"
+              >
                 Create one
               </Link>
             </div>
@@ -213,7 +277,10 @@ export default function ClientDetailPage() {
             <ul className="divide-y divide-slate-100">
               {listed.map((d) => (
                 <li key={d.id}>
-                  <Link to={`${DOCUMENT_ROUTES[d.type]}/${d.id}`} className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-slate-50">
+                  <Link
+                    to={`${DOCUMENT_ROUTES[d.type]}/${d.id}`}
+                    className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-slate-50"
+                  >
                     <span>
                       <span className="block text-sm font-medium text-slate-800">{d.number}</span>
                       <span className="text-xs text-slate-500">
@@ -222,7 +289,9 @@ export default function ClientDetailPage() {
                       </span>
                     </span>
                     <span className="flex items-center gap-3">
-                      <span className="tabular text-sm font-semibold text-slate-900">{fmt.money(d.totals.total, d.currency)}</span>
+                      <span className="tabular text-sm font-semibold text-slate-900">
+                        {fmt.money(d.totals.total, d.currency)}
+                      </span>
                       <StatusBadge status={displayStatus(d, now)} />
                     </span>
                   </Link>
@@ -241,15 +310,23 @@ export default function ClientDetailPage() {
                   <div key={c.id}>
                     <p className="font-medium text-slate-800">
                       {c.name || 'Contact'}
-                      {c.primary && client.contacts.length > 1 ? <span className="ml-2 text-xs font-normal text-slate-400">Primary</span> : null}
+                      {c.primary && client.contacts.length > 1 ? (
+                        <span className="ml-2 text-xs font-normal text-slate-400">Primary</span>
+                      ) : null}
                     </p>
                     {c.email ? (
-                      <a href={`mailto:${c.email}`} className="flex items-center gap-1.5 text-primary-700 hover:underline">
+                      <a
+                        href={`mailto:${c.email}`}
+                        className="text-primary-700 flex items-center gap-1.5 hover:underline"
+                      >
                         <Mail className="size-3.5" /> {c.email}
                       </a>
                     ) : null}
                     {c.phone ? (
-                      <a href={`tel:${c.phone}`} className="flex items-center gap-1.5 text-slate-600">
+                      <a
+                        href={`tel:${c.phone}`}
+                        className="flex items-center gap-1.5 text-slate-600"
+                      >
                         <Phone className="size-3.5" /> {c.phone}
                       </a>
                     ) : null}
@@ -259,30 +336,40 @@ export default function ClientDetailPage() {
             ) : null}
             {address.length ? (
               <div>
-                <p className="mb-1 text-xs font-medium tracking-wide text-slate-500 uppercase">Billing address</p>
+                <p className="mb-1 text-xs font-medium tracking-wide text-slate-500 uppercase">
+                  Billing address
+                </p>
                 <p className="whitespace-pre-line text-slate-700">{address.join('\n')}</p>
               </div>
             ) : null}
             {shipping.length ? (
               <div>
-                <p className="mb-1 text-xs font-medium tracking-wide text-slate-500 uppercase">Shipping address</p>
+                <p className="mb-1 text-xs font-medium tracking-wide text-slate-500 uppercase">
+                  Shipping address
+                </p>
                 <p className="whitespace-pre-line text-slate-700">{shipping.join('\n')}</p>
               </div>
             ) : null}
             {client.taxId ? (
               <div>
-                <p className="mb-1 text-xs font-medium tracking-wide text-slate-500 uppercase">{company.taxIdLabel || 'Tax ID'}</p>
+                <p className="mb-1 text-xs font-medium tracking-wide text-slate-500 uppercase">
+                  {company.taxIdLabel || 'Tax ID'}
+                </p>
                 <p className="text-slate-700">{client.taxId}</p>
               </div>
             ) : null}
             {client.paymentTermsDays !== null ? (
               <div>
-                <p className="mb-1 text-xs font-medium tracking-wide text-slate-500 uppercase">Payment terms</p>
+                <p className="mb-1 text-xs font-medium tracking-wide text-slate-500 uppercase">
+                  Payment terms
+                </p>
                 <p className="text-slate-700">{client.paymentTermsDays} days</p>
               </div>
             ) : null}
             {client.notes ? (
-              <p className="rounded-md bg-amber-50 p-3 text-xs whitespace-pre-line text-amber-900">{client.notes}</p>
+              <p className="rounded-md bg-amber-50 p-3 text-xs whitespace-pre-line text-amber-900">
+                {client.notes}
+              </p>
             ) : null}
           </CardBody>
         </Card>

@@ -34,7 +34,14 @@ export default function ClientFormPage() {
       } else {
         loaded = createClient(company.id, {
           contacts: [newContact(true)],
-          address: { line1: '', line2: '', city: '', state: '', postalCode: '', country: company.address.country },
+          address: {
+            line1: '',
+            line2: '',
+            city: '',
+            state: '',
+            postalCode: '',
+            country: company.address.country,
+          },
         });
       }
       if (!cancelled) {
@@ -54,7 +61,7 @@ export default function ClientFormPage() {
     return (
       <Card className="p-10 text-center">
         <p className="text-slate-600">This client could not be found.</p>
-        <Link to="/clients" className="mt-4 inline-block text-sm font-medium text-primary-700">
+        <Link to="/clients" className="text-primary-700 mt-4 inline-block text-sm font-medium">
           Back to clients
         </Link>
       </Card>

@@ -50,13 +50,21 @@ function PreviewDialog({
   const data = useMemo(() => {
     const c = previewCompany(company);
     const client = sampleClient(c.id);
-    return { company: c, client, doc: sampleDocument(c, client, 'invoice', { currency: c.currency }) };
+    return {
+      company: c,
+      client,
+      doc: sampleDocument(c, client, 'invoice', { currency: c.currency }),
+    };
   }, [company]);
   const pdf = useLivePdf(data.doc, data.company, data.client, template.id, { delay: 0 });
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent title={`${template.name} template`} description="Previewed with your company details and sample items." size="xl">
+      <DialogContent
+        title={`${template.name} template`}
+        description="Previewed with your company details and sample items."
+        size="xl"
+      >
         <div className="bg-slate-100 p-4 sm:p-6">
           <div className="mx-auto max-w-[680px]">
             <PdfPreview blob={pdf.blob} loading={pdf.loading} error={pdf.error} maxPages={2} />
@@ -77,7 +85,8 @@ export default function TemplatesPage() {
   const { draft, update, dirty, saving, save, saveWith, reset } = useCompanyDraft();
   const [previewing, setPreviewing] = useState<TemplateMeta | null>(null);
   const branding = draft.branding;
-  const setBranding = (patch: Partial<Company['branding']>) => update({ branding: { ...branding, ...patch } });
+  const setBranding = (patch: Partial<Company['branding']>) =>
+    update({ branding: { ...branding, ...patch } });
 
   const applyTemplate = async (id: string) => {
     await saveWith(
@@ -96,12 +105,22 @@ export default function TemplatesPage() {
 
       <Card className="mb-6 grid gap-6 p-6 lg:grid-cols-3">
         <Field label="Brand colour" hint="Used for headings, highlights and the total.">
-          {(id) => <ColorField id={id} value={branding.accentColor} onChange={(accentColor) => setBranding({ accentColor })} />}
+          {(id) => (
+            <ColorField
+              id={id}
+              value={branding.accentColor}
+              onChange={(accentColor) => setBranding({ accentColor })}
+            />
+          )}
         </Field>
         <div className="space-y-4">
           <Field label="Font" hint="Override the template's typeface.">
             {(id) => (
-              <Select id={id} value={branding.fontId ?? ''} onChange={(e) => setBranding({ fontId: e.target.value || null })}>
+              <Select
+                id={id}
+                value={branding.fontId ?? ''}
+                onChange={(e) => setBranding({ fontId: e.target.value || null })}
+              >
                 {FONT_CHOICES.map((f) => (
                   <option key={f.value} value={f.value}>
                     {f.label}
@@ -127,7 +146,10 @@ export default function TemplatesPage() {
           return (
             <Card
               key={t.id}
-              className={cn('group flex flex-col overflow-hidden transition-shadow hover:shadow-md', active && 'ring-2 ring-primary-500')}
+              className={cn(
+                'group flex flex-col overflow-hidden transition-shadow hover:shadow-md',
+                active && 'ring-primary-500 ring-2',
+              )}
             >
               <button
                 type="button"
@@ -160,7 +182,10 @@ export default function TemplatesPage() {
                 <div className="mt-3 flex items-center justify-between gap-2">
                   <div className="flex flex-wrap gap-1">
                     {t.tags.map((tag) => (
-                      <span key={tag} className="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600">
+                      <span
+                        key={tag}
+                        className="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600"
+                      >
                         {tag}
                       </span>
                     ))}
@@ -176,12 +201,19 @@ export default function TemplatesPage() {
           );
         })}
       </div>
-      <p className="mt-4 text-sm text-slate-500">Thumbnails show sample data. Previews use your logo, colour and details.</p>
+      <p className="mt-4 text-sm text-slate-500">
+        Thumbnails show sample data. Previews use your logo, colour and details.
+      </p>
 
       <SaveBar dirty={dirty} saving={saving} onSave={save} onReset={reset} />
 
       {previewing ? (
-        <PreviewDialog template={previewing} company={draft} onClose={() => setPreviewing(null)} onUse={() => void applyTemplate(previewing.id)} />
+        <PreviewDialog
+          template={previewing}
+          company={draft}
+          onClose={() => setPreviewing(null)}
+          onUse={() => void applyTemplate(previewing.id)}
+        />
       ) : null}
     </div>
   );

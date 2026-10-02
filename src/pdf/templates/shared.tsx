@@ -161,8 +161,20 @@ export interface ItemsTableStyles {
 
 type ColumnKey = 'qty' | 'price' | 'discount' | 'tax' | 'amount';
 
-const MIN_WIDTHS: Record<ColumnKey, number> = { qty: 44, price: 62, discount: 50, tax: 44, amount: 70 };
-const MAX_WIDTHS: Record<ColumnKey, number> = { qty: 96, price: 104, discount: 70, tax: 80, amount: 120 };
+const MIN_WIDTHS: Record<ColumnKey, number> = {
+  qty: 44,
+  price: 62,
+  discount: 50,
+  tax: 44,
+  amount: 70,
+};
+const MAX_WIDTHS: Record<ColumnKey, number> = {
+  qty: 96,
+  price: 104,
+  discount: 70,
+  tax: 80,
+  amount: 120,
+};
 
 /** Estimates column widths from their content so numbers never wrap. */
 function columnWidths(
@@ -240,7 +252,10 @@ export function ItemsTable({
     <View style={sx({ width: '100%' }, styles.container)}>
       <View
         fixed
-        style={sx({ flexDirection: 'row', alignItems: 'center', paddingVertical: py - 1 }, styles.header)}
+        style={sx(
+          { flexDirection: 'row', alignItems: 'center', paddingVertical: py - 1 },
+          styles.header,
+        )}
       >
         <View style={{ flex: 1, paddingHorizontal: px }}>
           <Text style={headerText}>{labels.description}</Text>
@@ -274,7 +289,12 @@ export function ItemsTable({
                 {item.title}
               </Text>
               {item.detail ? (
-                <Text style={sx({ fontSize: fontSize - 1, color: theme.muted, marginTop: 1 }, styles.detail)}>
+                <Text
+                  style={sx(
+                    { fontSize: fontSize - 1, color: theme.muted, marginTop: 1 },
+                    styles.detail,
+                  )}
+                >
                   {item.detail}
                 </Text>
               ) : null}
@@ -396,7 +416,13 @@ export function TotalsTable({
           return (
             <View key={i} style={sx(row, { paddingVertical: 7 }, styles.grandRow)}>
               {grandBackground}
-              <Text style={sx(label, { fontSize: 10, fontWeight: 700, color: theme.ink }, styles.grandLabel)}>
+              <Text
+                style={sx(
+                  label,
+                  { fontSize: 10, fontWeight: 700, color: theme.ink },
+                  styles.grandLabel,
+                )}
+              >
                 {t.label}
               </Text>
               <Text style={sx(value, { fontSize: 12, fontWeight: 700 }, styles.grandValue)}>
@@ -419,7 +445,9 @@ export function TotalsTable({
           return (
             <View key={i} style={sx(row, { paddingVertical: 2 })}>
               <Text style={sx(label, { fontSize: 8 }, styles.note)}>{t.label}</Text>
-              <Text style={sx(value, { fontSize: 8, color: theme.muted }, styles.note)}>{t.value}</Text>
+              <Text style={sx(value, { fontSize: 8, color: theme.muted }, styles.note)}>
+                {t.value}
+              </Text>
             </View>
           );
         }
@@ -631,7 +659,9 @@ export function PageFooter({
       <Text
         style={text}
         render={({ pageNumber, totalPages }) =>
-          totalPages > 1 ? `${model.labels.page} ${pageNumber} ${model.labels.of} ${totalPages}` : ''
+          totalPages > 1
+            ? `${model.labels.page} ${pageNumber} ${model.labels.of} ${totalPages}`
+            : ''
         }
       />
     </View>
@@ -897,9 +927,14 @@ export function MetaRows({
       {rows.map((r) => (
         <View
           key={r.label}
-          style={sx({ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 2 }, rowStyle)}
+          style={sx(
+            { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 2 },
+            rowStyle,
+          )}
         >
-          <Text style={sx(labelWidth ? { width: labelWidth } : undefined, labelStyle)}>{r.label}</Text>
+          <Text style={sx(labelWidth ? { width: labelWidth } : undefined, labelStyle)}>
+            {r.label}
+          </Text>
           <Text style={sx({ textAlign: 'right' }, TNUM, valueStyle)}>{r.value}</Text>
         </View>
       ))}

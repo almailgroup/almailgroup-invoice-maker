@@ -19,9 +19,18 @@ export default function PaymentListPage() {
   const [query, setQuery] = useState('');
   const [method, setMethod] = useState<PaymentMethod | ''>('');
 
-  const payments = useLiveQuery(() => db.payments.where('companyId').equals(company.id).toArray(), [company.id]);
-  const clients = useLiveQuery(() => db.clients.where('companyId').equals(company.id).toArray(), [company.id]);
-  const docs = useLiveQuery(() => db.documents.where('companyId').equals(company.id).toArray(), [company.id]);
+  const payments = useLiveQuery(
+    () => db.payments.where('companyId').equals(company.id).toArray(),
+    [company.id],
+  );
+  const clients = useLiveQuery(
+    () => db.clients.where('companyId').equals(company.id).toArray(),
+    [company.id],
+  );
+  const docs = useLiveQuery(
+    () => db.documents.where('companyId').equals(company.id).toArray(),
+    [company.id],
+  );
 
   const rows = useMemo(() => {
     if (!payments || !clients || !docs) return null;
@@ -34,7 +43,11 @@ export default function PaymentListPage() {
         invoices: p.documentIds.map((id) => numbers.get(id)).filter(Boolean) as string[],
         unapplied: unappliedAmount(p),
       }))
-      .sort((a, b) => b.payment.date.localeCompare(a.payment.date) || b.payment.number.localeCompare(a.payment.number, undefined, { numeric: true }));
+      .sort(
+        (a, b) =>
+          b.payment.date.localeCompare(a.payment.date) ||
+          b.payment.number.localeCompare(a.payment.number, undefined, { numeric: true }),
+      );
   }, [payments, clients, docs]);
 
   const filtered = useMemo(() => {
@@ -43,7 +56,10 @@ export default function PaymentListPage() {
     return rows.filter(
       (r) =>
         (!method || r.payment.method === method) &&
-        (!q || `${r.payment.number} ${r.client?.name ?? ''} ${r.payment.reference} ${r.invoices.join(' ')}`.toLowerCase().includes(q)),
+        (!q ||
+          `${r.payment.number} ${r.client?.name ?? ''} ${r.payment.reference} ${r.invoices.join(' ')}`
+            .toLowerCase()
+            .includes(q)),
     );
   }, [rows, query, method]);
 
@@ -71,7 +87,17 @@ export default function PaymentListPage() {
                 onClick={() =>
                   downloadCsv(
                     `payments-${today()}`,
-                    ['Number', 'Date', 'Client', 'Method', 'Reference', 'Currency', 'Amount', 'Applied to', 'Unapplied'],
+                    [
+                      'Number',
+                      'Date',
+                      'Client',
+                      'Method',
+                      'Reference',
+                      'Currency',
+                      'Amount',
+                      'Applied to',
+                      'Unapplied',
+                    ],
                     filtered.map((r) => [
                       r.payment.number,
                       r.payment.date,
@@ -113,7 +139,11 @@ export default function PaymentListPage() {
         <Card>
           <div className="flex flex-col gap-3 border-b border-slate-100 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="w-full sm:w-52">
-              <Select value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod | '')} aria-label="Filter by method">
+              <Select
+                value={method}
+                onChange={(e) => setMethod(e.target.value as PaymentMethod | '')}
+                aria-label="Filter by method"
+              >
                 <option value="">All methods</option>
                 {PAYMENT_METHODS.map((m) => (
                   <option key={m.value} value={m.value}>
@@ -124,7 +154,13 @@ export default function PaymentListPage() {
             </div>
             <div className="relative sm:w-72">
               <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
-              <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search payments…" className="pl-9" aria-label="Search payments" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search payments…"
+                className="pl-9"
+                aria-label="Search payments"
+              />
             </div>
           </div>
           {filtered.length === 0 ? (
@@ -143,17 +179,33 @@ export default function PaymentListPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {filtered.map((r) => (
-                    <tr key={r.payment.id} onClick={() => navigate(`/payments/${r.payment.id}`)} className="cursor-pointer hover:bg-slate-50">
+                    <tr
+                      key={r.payment.id}
+                      onClick={() => navigate(`/payments/${r.payment.id}`)}
+                      className="cursor-pointer hover:bg-slate-50"
+                    >
                       <td className="px-5 py-3">
-                        <Link to={`/payments/${r.payment.id}`} onClick={(e) => e.stopPropagation()} className="font-medium text-slate-900 hover:text-primary-700">
+                        <Link
+                          to={`/payments/${r.payment.id}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="hover:text-primary-700 font-medium text-slate-900"
+                        >
                           {r.payment.number}
                         </Link>
-                        <span className="block text-xs text-slate-500">{fmt.date(r.payment.date)}</span>
+                        <span className="block text-xs text-slate-500">
+                          {fmt.date(r.payment.date)}
+                        </span>
                       </td>
-                      <td className="max-w-56 truncate px-3 py-3 text-slate-700">{r.client?.name ?? '—'}</td>
+                      <td className="max-w-56 truncate px-3 py-3 text-slate-700">
+                        {r.client?.name ?? '—'}
+                      </td>
                       <td className="hidden px-3 py-3 text-slate-600 md:table-cell">
                         {paymentMethodLabel(r.payment.method)}
-                        {r.payment.reference ? <span className="block text-xs text-slate-400">{r.payment.reference}</span> : null}
+                        {r.payment.reference ? (
+                          <span className="block text-xs text-slate-400">
+                            {r.payment.reference}
+                          </span>
+                        ) : null}
                       </td>
                       <td className="hidden px-3 py-3 text-slate-600 lg:table-cell">
                         {r.invoices.join(', ') || '—'}

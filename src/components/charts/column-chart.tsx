@@ -79,16 +79,22 @@ export function ColumnChart({
 
   // Place the readout beside the active period so it never covers its columns.
   const onRight = active !== null && active < labels.length / 2;
-  const tooltipLeft =
-    active === null ? 0 : margin.left + band * active + (onRight ? band + 8 : -8);
+  const tooltipLeft = active === null ? 0 : margin.left + band * active + (onRight ? band + 8 : -8);
 
   return (
     <div className="viz-root" style={{ ['--series-gridline' as string]: '#ecebe8' }}>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <ul className="flex flex-wrap items-center gap-4 text-sm text-slate-600" aria-label="Legend">
+        <ul
+          className="flex flex-wrap items-center gap-4 text-sm text-slate-600"
+          aria-label="Legend"
+        >
           {series.map((s) => (
             <li key={s.key} className="flex items-center gap-2">
-              <span className="inline-block size-2.5 rounded-[3px]" style={{ backgroundColor: s.color }} aria-hidden />
+              <span
+                className="inline-block size-2.5 rounded-[3px]"
+                style={{ backgroundColor: s.color }}
+                aria-hidden
+              />
               {s.label}
             </li>
           ))}
@@ -134,7 +140,13 @@ export function ColumnChart({
       ) : (
         <div ref={wrapper} className="relative" onPointerLeave={() => setActive(null)}>
           {width > 0 ? (
-            <svg width={width} height={height} role="img" aria-label={title} className="block overflow-visible">
+            <svg
+              width={width}
+              height={height}
+              role="img"
+              aria-label={title}
+              className="block overflow-visible"
+            >
               {ticks.map((t) => (
                 <g key={t}>
                   <line
@@ -146,7 +158,13 @@ export function ColumnChart({
                     strokeWidth={1}
                     shapeRendering="crispEdges"
                   />
-                  <text x={margin.left - 8} y={y(t)} dy="0.32em" textAnchor="end" className="tabular fill-slate-400 text-[11px]">
+                  <text
+                    x={margin.left - 8}
+                    y={y(t)}
+                    dy="0.32em"
+                    textAnchor="end"
+                    className="tabular fill-slate-400 text-[11px]"
+                  >
                     {formatTick(t)}
                   </text>
                 </g>
@@ -157,7 +175,13 @@ export function ColumnChart({
                 return (
                   <g key={label}>
                     {isActive ? (
-                      <rect x={margin.left + band * i} y={margin.top} width={band} height={plotH} fill="#f5f5f3" />
+                      <rect
+                        x={margin.left + band * i}
+                        y={margin.top}
+                        width={band}
+                        height={plotH}
+                        fill="#f5f5f3"
+                      />
                     ) : null}
                     {series.map((s, si) => {
                       const v = s.values[i] ?? 0;
@@ -176,7 +200,10 @@ export function ColumnChart({
                         x={margin.left + band * i + band / 2}
                         y={height - 8}
                         textAnchor="middle"
-                        className={cn('text-[11px]', isActive ? 'fill-slate-700' : 'fill-slate-400')}
+                        className={cn(
+                          'text-[11px]',
+                          isActive ? 'fill-slate-700' : 'fill-slate-400',
+                        )}
                       >
                         {label}
                       </text>
@@ -226,10 +253,15 @@ export function ColumnChart({
               {series.map((s) => (
                 <div key={s.key} className="flex items-center justify-between gap-4">
                   <span className="flex items-center gap-2 text-xs text-slate-500">
-                    <span className="inline-block h-0.5 w-3 rounded" style={{ backgroundColor: s.color }} />
+                    <span
+                      className="inline-block h-0.5 w-3 rounded"
+                      style={{ backgroundColor: s.color }}
+                    />
                     {s.label}
                   </span>
-                  <span className="font-semibold text-slate-900">{formatValue(s.values[active] ?? 0)}</span>
+                  <span className="font-semibold text-slate-900">
+                    {formatValue(s.values[active] ?? 0)}
+                  </span>
                 </div>
               ))}
             </div>

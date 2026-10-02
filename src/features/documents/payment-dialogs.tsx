@@ -49,7 +49,15 @@ export function RecordPaymentDialog({
           method,
           reference: reference.trim(),
           notes: notes.trim(),
-          allocations: applied > 0 ? [{ documentId: invoice.id, amount: round(applied, currencyPrecision(invoice.currency)) }] : [],
+          allocations:
+            applied > 0
+              ? [
+                  {
+                    documentId: invoice.id,
+                    amount: round(applied, currencyPrecision(invoice.currency)),
+                  },
+                ]
+              : [],
         }),
       );
       toast.success(`Payment of ${money(amount)} recorded`);
@@ -63,21 +71,47 @@ export function RecordPaymentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent title="Record payment" description={`${invoice.number} · balance ${money(invoice.totals.balance)}`}>
+      <DialogContent
+        title="Record payment"
+        description={`${invoice.number} · balance ${money(invoice.totals.balance)}`}
+      >
         <DialogBody>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field
               label={`Amount (${invoice.currency})`}
-              hint={overpaid ? `The extra ${money(amount - invoice.totals.balance)} stays as client credit.` : undefined}
+              hint={
+                overpaid
+                  ? `The extra ${money(amount - invoice.totals.balance)} stays as client credit.`
+                  : undefined
+              }
             >
-              {(id) => <NumberInput id={id} value={amount} onValueChange={setAmount} allowNegative={false} autoFocus />}
+              {(id) => (
+                <NumberInput
+                  id={id}
+                  value={amount}
+                  onValueChange={setAmount}
+                  allowNegative={false}
+                  autoFocus
+                />
+              )}
             </Field>
             <Field label="Date">
-              {(id) => <Input id={id} type="date" value={date} onChange={(e) => setDate(e.target.value || today())} />}
+              {(id) => (
+                <Input
+                  id={id}
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value || today())}
+                />
+              )}
             </Field>
             <Field label="Method">
               {(id) => (
-                <Select id={id} value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)}>
+                <Select
+                  id={id}
+                  value={method}
+                  onChange={(e) => setMethod(e.target.value as PaymentMethod)}
+                >
                   {PAYMENT_METHODS.filter((m) => m.value !== 'credit_note').map((m) => (
                     <option key={m.value} value={m.value}>
                       {m.label}
@@ -87,11 +121,20 @@ export function RecordPaymentDialog({
               )}
             </Field>
             <Field label="Reference" optional>
-              {(id) => <Input id={id} value={reference} onChange={(e) => setReference(e.target.value)} placeholder="Transaction ID, cheque no." />}
+              {(id) => (
+                <Input
+                  id={id}
+                  value={reference}
+                  onChange={(e) => setReference(e.target.value)}
+                  placeholder="Transaction ID, cheque no."
+                />
+              )}
             </Field>
           </div>
           <Field label="Notes" optional>
-            {(id) => <Textarea id={id} value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />}
+            {(id) => (
+              <Textarea id={id} value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
+            )}
           </Field>
         </DialogBody>
         <DialogFooter>
@@ -138,8 +181,13 @@ export function ApplyCreditDialog({
   const [amount, setAmount] = useState(0);
   const [saving, setSaving] = useState(false);
   const money = (n: number) => formatMoney(n, credit.currency, company.locale);
-  const selected = useMemo(() => invoices?.find((i) => i.id === invoiceId) ?? null, [invoices, invoiceId]);
-  const max = selected ? Math.min(credit.totals.balance, selected.totals.balance) : credit.totals.balance;
+  const selected = useMemo(
+    () => invoices?.find((i) => i.id === invoiceId) ?? null,
+    [invoices, invoiceId],
+  );
+  const max = selected
+    ? Math.min(credit.totals.balance, selected.totals.balance)
+    : credit.totals.balance;
 
   const save = async () => {
     if (!selected || amount <= 0) {
@@ -172,10 +220,15 @@ export function ApplyCreditDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent title="Apply credit note" description={`${credit.number} · ${money(credit.totals.balance)} available`}>
+      <DialogContent
+        title="Apply credit note"
+        description={`${credit.number} · ${money(credit.totals.balance)} available`}
+      >
         <DialogBody>
           {invoices && invoices.length === 0 ? (
-            <p className="text-sm text-slate-600">This client has no open invoices in {credit.currency}.</p>
+            <p className="text-sm text-slate-600">
+              This client has no open invoices in {credit.currency}.
+            </p>
           ) : (
             <>
               <Field label="Invoice">
@@ -192,14 +245,23 @@ export function ApplyCreditDialog({
                     <option value="">Choose an invoice…</option>
                     {invoices?.map((inv) => (
                       <option key={inv.id} value={inv.id}>
-                        {inv.number} · {formatDate(inv.issueDate, company.dateFormat, company.locale)} · balance {money(inv.totals.balance)}
+                        {inv.number} ·{' '}
+                        {formatDate(inv.issueDate, company.dateFormat, company.locale)} · balance{' '}
+                        {money(inv.totals.balance)}
                       </option>
                     ))}
                   </Select>
                 )}
               </Field>
               <Field label="Amount to apply" hint={`Up to ${money(max)}`}>
-                {(id) => <NumberInput id={id} value={amount} onValueChange={setAmount} allowNegative={false} />}
+                {(id) => (
+                  <NumberInput
+                    id={id}
+                    value={amount}
+                    onValueChange={setAmount}
+                    allowNegative={false}
+                  />
+                )}
               </Field>
             </>
           )}

@@ -9,7 +9,14 @@ import { displayStatus, type DisplayStatus } from '@/lib/status';
 import { today } from '@/lib/dates';
 import { downloadCsv } from '@/lib/csv';
 import { Button, ButtonLink } from '@/components/ui/button';
-import { Card, EmptyState, PageHeader, Segmented, Spinner, StatusBadge } from '@/components/ui/misc';
+import {
+  Card,
+  EmptyState,
+  PageHeader,
+  Segmented,
+  Spinner,
+  StatusBadge,
+} from '@/components/ui/misc';
 import { Input } from '@/components/ui/form';
 
 type Filter = 'all' | DisplayStatus | 'unpaid';
@@ -69,7 +76,10 @@ export default function DocumentListPage({ type }: { type: DocumentType }) {
     () => db.documents.where('[companyId+type]').equals([company.id, type]).toArray(),
     [company.id, type],
   );
-  const clients = useLiveQuery(() => db.clients.where('companyId').equals(company.id).toArray(), [company.id]);
+  const clients = useLiveQuery(
+    () => db.clients.where('companyId').equals(company.id).toArray(),
+    [company.id],
+  );
 
   const rows = useMemo(() => {
     if (!docs || !clients) return null;
@@ -86,7 +96,8 @@ export default function DocumentListPage({ type }: { type: DocumentType }) {
 
   const counts = useMemo(() => {
     const c: Partial<Record<Filter, number>> = {};
-    for (const f of FILTERS[type]) c[f.value] = rows?.filter((r) => matches(f.value, r.status)).length ?? 0;
+    for (const f of FILTERS[type])
+      c[f.value] = rows?.filter((r) => matches(f.value, r.status)).length ?? 0;
     return c;
   }, [rows, type]);
 
@@ -116,7 +127,21 @@ export default function DocumentListPage({ type }: { type: DocumentType }) {
   const exportCsv = () => {
     downloadCsv(
       `${labels.plural.toLowerCase().replace(/\s+/g, '-')}-${today()}`,
-      ['Number', 'Status', 'Client', 'Issue date', type === 'quote' ? 'Valid until' : 'Due date', 'PO', 'Currency', 'Subtotal', 'Discount', 'Tax', 'Total', 'Paid', 'Balance'],
+      [
+        'Number',
+        'Status',
+        'Client',
+        'Issue date',
+        type === 'quote' ? 'Valid until' : 'Due date',
+        'PO',
+        'Currency',
+        'Subtotal',
+        'Discount',
+        'Tax',
+        'Total',
+        'Paid',
+        'Balance',
+      ],
       filtered.map(({ doc, client, status }) => [
         doc.number,
         status,
@@ -199,7 +224,9 @@ export default function DocumentListPage({ type }: { type: DocumentType }) {
           </div>
 
           {filtered.length === 0 ? (
-            <p className="px-6 py-12 text-center text-sm text-slate-500">Nothing matches these filters.</p>
+            <p className="px-6 py-12 text-center text-sm text-slate-500">
+              Nothing matches these filters.
+            </p>
           ) : (
             <>
               <div className="hidden md:block">
@@ -211,7 +238,11 @@ export default function DocumentListPage({ type }: { type: DocumentType }) {
                       <th className="px-3 py-3">Date</th>
                       <th className="px-3 py-3">{type === 'quote' ? 'Valid until' : 'Due'}</th>
                       <th className="px-3 py-3 text-right">Total</th>
-                      {type !== 'quote' ? <th className="px-3 py-3 text-right">{type === 'credit' ? 'Remaining' : 'Balance'}</th> : null}
+                      {type !== 'quote' ? (
+                        <th className="px-3 py-3 text-right">
+                          {type === 'credit' ? 'Remaining' : 'Balance'}
+                        </th>
+                      ) : null}
                       <th className="px-5 py-3 text-right">Status</th>
                     </tr>
                   </thead>
@@ -223,13 +254,23 @@ export default function DocumentListPage({ type }: { type: DocumentType }) {
                         className="cursor-pointer transition-colors hover:bg-slate-50"
                       >
                         <td className="px-5 py-3 font-medium text-slate-900">
-                          <Link to={`${base}/${doc.id}`} onClick={(e) => e.stopPropagation()} className="hover:text-primary-700">
+                          <Link
+                            to={`${base}/${doc.id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="hover:text-primary-700"
+                          >
                             {doc.number || '—'}
                           </Link>
                         </td>
-                        <td className="max-w-56 truncate px-3 py-3 text-slate-700">{client?.name ?? '—'}</td>
-                        <td className="px-3 py-3 whitespace-nowrap text-slate-600">{fmt.date(doc.issueDate)}</td>
-                        <td className={`px-3 py-3 whitespace-nowrap ${status === 'overdue' ? 'font-medium text-red-600' : 'text-slate-600'}`}>
+                        <td className="max-w-56 truncate px-3 py-3 text-slate-700">
+                          {client?.name ?? '—'}
+                        </td>
+                        <td className="px-3 py-3 whitespace-nowrap text-slate-600">
+                          {fmt.date(doc.issueDate)}
+                        </td>
+                        <td
+                          className={`px-3 py-3 whitespace-nowrap ${status === 'overdue' ? 'font-medium text-red-600' : 'text-slate-600'}`}
+                        >
                           {fmt.date(doc.dueDate) || '—'}
                         </td>
                         <td className="tabular px-3 py-3 text-right font-medium whitespace-nowrap text-slate-900">
@@ -237,7 +278,9 @@ export default function DocumentListPage({ type }: { type: DocumentType }) {
                         </td>
                         {type !== 'quote' ? (
                           <td className="tabular px-3 py-3 text-right whitespace-nowrap text-slate-600">
-                            {status === 'void' || status === 'draft' ? '—' : fmt.money(doc.totals.balance, doc.currency)}
+                            {status === 'void' || status === 'draft'
+                              ? '—'
+                              : fmt.money(doc.totals.balance, doc.currency)}
                           </td>
                         ) : null}
                         <td className="px-5 py-3 text-right">
@@ -252,7 +295,10 @@ export default function DocumentListPage({ type }: { type: DocumentType }) {
               <ul className="divide-y divide-slate-100 md:hidden">
                 {filtered.slice(0, limit).map(({ doc, client, status }) => (
                   <li key={doc.id}>
-                    <Link to={`${base}/${doc.id}`} className="flex items-center justify-between gap-3 px-4 py-3">
+                    <Link
+                      to={`${base}/${doc.id}`}
+                      className="flex items-center justify-between gap-3 px-4 py-3"
+                    >
                       <div className="min-w-0">
                         <p className="truncate font-medium text-slate-900">{client?.name ?? '—'}</p>
                         <p className="text-xs text-slate-500">
@@ -272,16 +318,23 @@ export default function DocumentListPage({ type }: { type: DocumentType }) {
 
               <div className="flex flex-col gap-2 border-t border-slate-100 px-5 py-3 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
                 <span>
-                  {filtered.length} {filtered.length === 1 ? labels.singular.toLowerCase() : labels.plural.toLowerCase()}
+                  {filtered.length}{' '}
+                  {filtered.length === 1
+                    ? labels.singular.toLowerCase()
+                    : labels.plural.toLowerCase()}
                 </span>
                 <span className="tabular flex flex-wrap gap-x-4">
                   {totalsByCurrency.map(([currency, t]) => (
                     <span key={currency}>
-                      Total <strong className="text-slate-900">{fmt.money(t.total, currency)}</strong>
+                      Total{' '}
+                      <strong className="text-slate-900">{fmt.money(t.total, currency)}</strong>
                       {type === 'invoice' ? (
                         <>
                           {' '}
-                          · Outstanding <strong className="text-slate-900">{fmt.money(t.balance, currency)}</strong>
+                          · Outstanding{' '}
+                          <strong className="text-slate-900">
+                            {fmt.money(t.balance, currency)}
+                          </strong>
                         </>
                       ) : null}
                     </span>

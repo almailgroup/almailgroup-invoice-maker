@@ -138,11 +138,22 @@ function Minimal({ model, theme }: TemplateProps) {
         styles={{
           cellPaddingX: 0,
           header: sx(hairline, { paddingTop: 0, paddingBottom: 7 }),
-          headerText: { fontSize: 7, color: theme.faint, letterSpacing: 1.1, textTransform: 'uppercase', fontWeight: 400 },
+          headerText: {
+            fontSize: 7,
+            color: theme.faint,
+            letterSpacing: 1.1,
+            textTransform: 'uppercase',
+            fontWeight: 400,
+          },
           row: { borderBottomWidth: 0.5, borderBottomColor: '#ececf0', paddingVertical: 7.5 },
           title: { fontWeight: 600 },
           amount: { fontWeight: 600 },
-          headingText: { fontSize: 8, textTransform: 'uppercase', letterSpacing: 1, color: theme.accentInk },
+          headingText: {
+            fontSize: 8,
+            textTransform: 'uppercase',
+            letterSpacing: 1,
+            color: theme.accentInk,
+          },
           widths: {},
         }}
       />
@@ -156,7 +167,12 @@ function Minimal({ model, theme }: TemplateProps) {
         totals={{
           width: 220,
           row: { paddingVertical: 3.5 },
-          strongRow: { borderTopWidth: 0.5, borderTopColor: '#d4d4d8', marginTop: 4, paddingTop: 7 },
+          strongRow: {
+            borderTopWidth: 0.5,
+            borderTopColor: '#d4d4d8',
+            marginTop: 4,
+            paddingTop: 7,
+          },
           grandRow: { borderTopWidth: 1.2, borderTopColor: theme.ink, marginTop: 6, paddingTop: 9 },
           grandLabel: { fontWeight: 600 },
           grandValue: { fontSize: 14, fontWeight: 700, color: theme.ink },

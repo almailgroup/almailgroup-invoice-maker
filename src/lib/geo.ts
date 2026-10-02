@@ -48,9 +48,37 @@ export function currencyName(code: string, locale = 'en'): string {
 }
 
 const COMMON_CURRENCIES = [
-  'USD', 'EUR', 'GBP', 'AED', 'SAR', 'QAR', 'KWD', 'BHD', 'OMR', 'EGP', 'CAD', 'AUD',
-  'CHF', 'JPY', 'CNY', 'INR', 'PKR', 'NGN', 'ZAR', 'KES', 'MAD', 'TRY', 'SEK', 'NOK',
-  'DKK', 'PLN', 'SGD', 'HKD', 'NZD', 'MXN', 'BRL',
+  'USD',
+  'EUR',
+  'GBP',
+  'AED',
+  'SAR',
+  'QAR',
+  'KWD',
+  'BHD',
+  'OMR',
+  'EGP',
+  'CAD',
+  'AUD',
+  'CHF',
+  'JPY',
+  'CNY',
+  'INR',
+  'PKR',
+  'NGN',
+  'ZAR',
+  'KES',
+  'MAD',
+  'TRY',
+  'SEK',
+  'NOK',
+  'DKK',
+  'PLN',
+  'SGD',
+  'HKD',
+  'NZD',
+  'MXN',
+  'BRL',
 ];
 
 export function currencyOptions(locale = 'en'): { value: string; label: string }[] {
@@ -103,7 +131,19 @@ export const LOCALE_OPTIONS: { value: string; label: string }[] = [
 ];
 
 const CITY_STATE_ZIP = new Set(['US', 'CA', 'AU', 'PH']);
-const CITY_THEN_POSTCODE = new Set(['GB', 'IE', 'IM', 'JE', 'GG', 'AE', 'SA', 'QA', 'KW', 'BH', 'OM']);
+const CITY_THEN_POSTCODE = new Set([
+  'GB',
+  'IE',
+  'IM',
+  'JE',
+  'GG',
+  'AE',
+  'SA',
+  'QA',
+  'KW',
+  'BH',
+  'OM',
+]);
 
 export function emptyAddress(country = ''): Address {
   return { line1: '', line2: '', city: '', state: '', postalCode: '', country };
@@ -139,7 +179,9 @@ export function formatAddressLines(
     const stateZip = [a.state, a.postalCode].filter(Boolean).join(' ');
     lines.push([a.city, stateZip].filter(Boolean).join(', '));
   } else if (CITY_THEN_POSTCODE.has(a.country)) {
-    lines.push([[a.city, a.postalCode].filter(Boolean).join(' '), a.state].filter(Boolean).join(', '));
+    lines.push(
+      [[a.city, a.postalCode].filter(Boolean).join(' '), a.state].filter(Boolean).join(', '),
+    );
   } else {
     lines.push([a.postalCode, a.city].filter(Boolean).join(' '));
     lines.push(a.state);

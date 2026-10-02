@@ -29,16 +29,32 @@ export default function EmailSettings() {
       >
         <Segmented value={kind} onChange={setKind} options={KINDS} />
         <Field label="Subject">
-          {(id) => <Input id={id} value={template.subject} onChange={(e) => set({ subject: e.target.value })} />}
+          {(id) => (
+            <Input
+              id={id}
+              value={template.subject}
+              onChange={(e) => set({ subject: e.target.value })}
+            />
+          )}
         </Field>
         <Field label="Message">
-          {(id) => <Textarea id={id} value={template.body} onChange={(e) => set({ body: e.target.value })} rows={10} />}
+          {(id) => (
+            <Textarea
+              id={id}
+              value={template.body}
+              onChange={(e) => set({ body: e.target.value })}
+              rows={10}
+            />
+          )}
         </Field>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-slate-500">
             Placeholders:{' '}
             {EMAIL_PLACEHOLDERS.map((p) => (
-              <code key={p} className="mr-1.5 rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-700">
+              <code
+                key={p}
+                className="mr-1.5 rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-700"
+              >
                 {p}
               </code>
             ))}

@@ -86,7 +86,7 @@ export function Combobox({
           id={id}
           type="button"
           className={cn(
-            'flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-slate-300 bg-white px-3 text-left text-sm shadow-xs transition-colors hover:border-slate-400 focus-visible:border-primary-500 disabled:cursor-not-allowed disabled:bg-slate-50',
+            'focus-visible:border-primary-500 flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-slate-300 bg-white px-3 text-left text-sm shadow-xs transition-colors hover:border-slate-400 disabled:cursor-not-allowed disabled:bg-slate-50',
             className,
           )}
         >
@@ -100,7 +100,7 @@ export function Combobox({
         <Popover.Content
           align="start"
           sideOffset={4}
-          className="z-50 w-[var(--radix-popover-trigger-width)] min-w-64 rounded-lg border border-slate-200 bg-white shadow-lg data-[state=open]:animate-fade-in"
+          className="data-[state=open]:animate-fade-in z-50 w-[var(--radix-popover-trigger-width)] min-w-64 rounded-lg border border-slate-200 bg-white shadow-lg"
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           <div className="flex items-center gap-2 border-b border-slate-100 px-3">
@@ -146,12 +146,17 @@ export function Combobox({
                 )}
               >
                 <Check
-                  className={cn('size-4 shrink-0 text-primary-600', o.value === value ? 'opacity-100' : 'opacity-0')}
+                  className={cn(
+                    'text-primary-600 size-4 shrink-0',
+                    o.value === value ? 'opacity-100' : 'opacity-0',
+                  )}
                   aria-hidden
                 />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-slate-900">{o.label}</span>
-                  {o.detail ? <span className="block truncate text-xs text-slate-500">{o.detail}</span> : null}
+                  {o.detail ? (
+                    <span className="block truncate text-xs text-slate-500">{o.detail}</span>
+                  ) : null}
                 </span>
               </button>
             ))}
@@ -161,7 +166,7 @@ export function Combobox({
                 onMouseEnter={() => setActive(filtered.length)}
                 onClick={() => choose(filtered.length)}
                 className={cn(
-                  'flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm font-medium text-primary-700',
+                  'text-primary-700 flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm font-medium',
                   active === filtered.length ? 'bg-primary-50' : '',
                 )}
               >

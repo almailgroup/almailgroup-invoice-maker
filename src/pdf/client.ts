@@ -8,7 +8,11 @@ let workerBroken = false;
 let nextId = 1;
 const pending = new Map<
   number,
-  { resolve: (blob: Blob) => void; reject: (error: Error) => void; timer: ReturnType<typeof setTimeout> }
+  {
+    resolve: (blob: Blob) => void;
+    reject: (error: Error) => void;
+    timer: ReturnType<typeof setTimeout>;
+  }
 >();
 
 function failAll(error: Error) {
@@ -76,7 +80,11 @@ export async function renderPdf(model: RenderModel, templateId: string | null): 
         worker?.terminate();
         worker = null;
         failAll(new Error('PDF generation timed out.'));
-        reject(new Error('PDF generation took too long. Please check the logo and content, then try again.'));
+        reject(
+          new Error(
+            'PDF generation took too long. Please check the logo and content, then try again.',
+          ),
+        );
       }, TIMEOUT_MS);
       pending.set(id, { resolve, reject, timer });
       w.postMessage({ id, model, templateId } satisfies PdfRequest);

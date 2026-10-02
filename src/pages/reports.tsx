@@ -26,15 +26,27 @@ type Report = 'aging' | 'tax' | 'sales' | 'payments';
 
 function Th({ children, right }: { children: React.ReactNode; right?: boolean }) {
   return (
-    <th className={`px-4 py-3 text-xs font-medium tracking-wide whitespace-nowrap text-slate-500 uppercase ${right ? 'text-right' : 'text-left'}`}>
+    <th
+      className={`px-4 py-3 text-xs font-medium tracking-wide whitespace-nowrap text-slate-500 uppercase ${right ? 'text-right' : 'text-left'}`}
+    >
       {children}
     </th>
   );
 }
 
-function Td({ children, right, strong }: { children: React.ReactNode; right?: boolean; strong?: boolean }) {
+function Td({
+  children,
+  right,
+  strong,
+}: {
+  children: React.ReactNode;
+  right?: boolean;
+  strong?: boolean;
+}) {
   return (
-    <td className={`px-4 py-2.5 whitespace-nowrap ${right ? 'tabular text-right' : ''} ${strong ? 'font-semibold text-slate-900' : 'text-slate-700'}`}>
+    <td
+      className={`px-4 py-2.5 whitespace-nowrap ${right ? 'tabular text-right' : ''} ${strong ? 'font-semibold text-slate-900' : 'text-slate-700'}`}
+    >
       {children}
     </td>
   );
@@ -48,9 +60,18 @@ export default function ReportsPage() {
   const [custom, setCustom] = useState(() => presetRange('this-quarter', today()));
   const [currency, setCurrency] = useState(company.currency);
 
-  const docs = useLiveQuery(() => db.documents.where('companyId').equals(company.id).toArray(), [company.id]);
-  const clients = useLiveQuery(() => db.clients.where('companyId').equals(company.id).toArray(), [company.id]);
-  const payments = useLiveQuery(() => db.payments.where('companyId').equals(company.id).toArray(), [company.id]);
+  const docs = useLiveQuery(
+    () => db.documents.where('companyId').equals(company.id).toArray(),
+    [company.id],
+  );
+  const clients = useLiveQuery(
+    () => db.clients.where('companyId').equals(company.id).toArray(),
+    [company.id],
+  );
+  const payments = useLiveQuery(
+    () => db.payments.where('companyId').equals(company.id).toArray(),
+    [company.id],
+  );
 
   const range = preset === 'custom' ? custom : presetRange(preset, today());
   const data = useMemo(() => {
@@ -65,7 +86,8 @@ export default function ReportsPage() {
 
   if (!data) return <Spinner className="py-24" label="Loading…" />;
   const money = (n: number) => fmt.money(n, currency);
-  const rangeLabel = preset === 'all' ? 'all time' : `${fmt.date(range.from)} – ${fmt.date(range.to)}`;
+  const rangeLabel =
+    preset === 'all' ? 'all time' : `${fmt.date(range.from)} – ${fmt.date(range.to)}`;
   const stamp = `${range.from}_${range.to}`.replace(/0000-01-01_9999-12-31/, 'all');
 
   const exportCurrent = () => {
@@ -73,28 +95,52 @@ export default function ReportsPage() {
       downloadCsv(
         `aging-${today()}`,
         ['Client', ...AGING_BUCKETS, 'Total'],
-        [...data.aging.rows.map((r) => [r.clientName, ...r.buckets, r.total]), ['Total', ...data.aging.totals, data.aging.total]],
+        [
+          ...data.aging.rows.map((r) => [r.clientName, ...r.buckets, r.total]),
+          ['Total', ...data.aging.totals, data.aging.total],
+        ],
       );
     } else if (report === 'tax') {
       downloadCsv(
         `tax-summary-${stamp}`,
         ['Tax', 'Rate %', 'Taxable amount', 'Tax amount'],
-        [...data.tax.rows.map((r) => [r.name, r.rate, r.base, r.tax]), ['Total', '', data.tax.net, data.tax.tax]],
+        [
+          ...data.tax.rows.map((r) => [r.name, r.rate, r.base, r.tax]),
+          ['Total', '', data.tax.net, data.tax.tax],
+        ],
       );
     } else if (report === 'sales') {
       downloadCsv(
         `sales-by-client-${stamp}`,
         ['Client', 'Invoices', 'Invoiced', 'Paid', 'Outstanding'],
         [
-          ...data.sales.rows.map((r) => [r.clientName, r.invoices, r.invoiced, r.paid, r.outstanding]),
-          ['Total', data.sales.totals.invoices, data.sales.totals.invoiced, data.sales.totals.paid, data.sales.totals.outstanding],
+          ...data.sales.rows.map((r) => [
+            r.clientName,
+            r.invoices,
+            r.invoiced,
+            r.paid,
+            r.outstanding,
+          ]),
+          [
+            'Total',
+            data.sales.totals.invoices,
+            data.sales.totals.invoiced,
+            data.sales.totals.paid,
+            data.sales.totals.outstanding,
+          ],
         ],
       );
     } else {
       downloadCsv(
         `payments-${stamp}`,
         ['Date', 'Number', 'Method', 'Reference', 'Amount'],
-        data.payments.list.map((p) => [p.date, p.number, paymentMethodLabel(p.method), p.reference, p.amount]),
+        data.payments.list.map((p) => [
+          p.date,
+          p.number,
+          paymentMethodLabel(p.method),
+          p.reference,
+          p.amount,
+        ]),
       );
     }
   };
@@ -128,7 +174,11 @@ export default function ReportsPage() {
           {report !== 'aging' ? (
             <>
               <div className="w-40">
-                <Select value={preset} onChange={(e) => setPreset(e.target.value as RangePreset | 'custom')} aria-label="Date range">
+                <Select
+                  value={preset}
+                  onChange={(e) => setPreset(e.target.value as RangePreset | 'custom')}
+                  aria-label="Date range"
+                >
                   {RANGE_PRESETS.map((p) => (
                     <option key={p.value} value={p.value}>
                       {p.label}
@@ -139,8 +189,24 @@ export default function ReportsPage() {
               </div>
               {preset === 'custom' ? (
                 <>
-                  <Input type="date" aria-label="From" value={custom.from} onChange={(e) => e.target.value && setCustom((c) => ({ ...c, from: e.target.value }))} className="w-40" />
-                  <Input type="date" aria-label="To" value={custom.to} onChange={(e) => e.target.value && setCustom((c) => ({ ...c, to: e.target.value }))} className="w-40" />
+                  <Input
+                    type="date"
+                    aria-label="From"
+                    value={custom.from}
+                    onChange={(e) =>
+                      e.target.value && setCustom((c) => ({ ...c, from: e.target.value }))
+                    }
+                    className="w-40"
+                  />
+                  <Input
+                    type="date"
+                    aria-label="To"
+                    value={custom.to}
+                    onChange={(e) =>
+                      e.target.value && setCustom((c) => ({ ...c, to: e.target.value }))
+                    }
+                    className="w-40"
+                  />
                 </>
               ) : null}
             </>
@@ -157,7 +223,9 @@ export default function ReportsPage() {
             Unpaid invoices by how late they are, as of {fmt.date(today())}.
           </div>
           {data.aging.rows.length === 0 ? (
-            <p className="px-6 py-12 text-center text-sm text-slate-500">Nothing outstanding in {currency}. 🎉</p>
+            <p className="px-6 py-12 text-center text-sm text-slate-500">
+              Nothing outstanding in {currency}. 🎉
+            </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -176,13 +244,22 @@ export default function ReportsPage() {
                   {data.aging.rows.map((r) => (
                     <tr key={r.clientId}>
                       <Td>
-                        <Link to={`/clients/${r.clientId}`} className="font-medium text-slate-900 hover:text-primary-700">
+                        <Link
+                          to={`/clients/${r.clientId}`}
+                          className="hover:text-primary-700 font-medium text-slate-900"
+                        >
                           {r.clientName}
                         </Link>
                       </Td>
                       {r.buckets.map((v, i) => (
                         <Td key={i} right>
-                          <span className={v === 0 ? 'text-slate-300' : i >= 3 ? 'font-medium text-red-600' : ''}>{money(v)}</span>
+                          <span
+                            className={
+                              v === 0 ? 'text-slate-300' : i >= 3 ? 'font-medium text-red-600' : ''
+                            }
+                          >
+                            {money(v)}
+                          </span>
                         </Td>
                       ))}
                       <Td right strong>
@@ -228,10 +305,13 @@ export default function ReportsPage() {
           </div>
           <Card className="overflow-hidden">
             <div className="border-b border-slate-100 px-4 py-3 text-sm text-slate-500">
-              {data.tax.documents} invoices and credit notes issued {rangeLabel} (drafts and void excluded; credit notes deducted).
+              {data.tax.documents} invoices and credit notes issued {rangeLabel} (drafts and void
+              excluded; credit notes deducted).
             </div>
             {data.tax.rows.length === 0 ? (
-              <p className="px-6 py-12 text-center text-sm text-slate-500">No taxed sales in this period.</p>
+              <p className="px-6 py-12 text-center text-sm text-slate-500">
+                No taxed sales in this period.
+              </p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -264,9 +344,13 @@ export default function ReportsPage() {
 
       {report === 'sales' ? (
         <Card className="overflow-hidden">
-          <div className="border-b border-slate-100 px-4 py-3 text-sm text-slate-500">Invoices issued {rangeLabel}.</div>
+          <div className="border-b border-slate-100 px-4 py-3 text-sm text-slate-500">
+            Invoices issued {rangeLabel}.
+          </div>
           {data.sales.rows.length === 0 ? (
-            <p className="px-6 py-12 text-center text-sm text-slate-500">No invoices in this period.</p>
+            <p className="px-6 py-12 text-center text-sm text-slate-500">
+              No invoices in this period.
+            </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -283,7 +367,10 @@ export default function ReportsPage() {
                   {data.sales.rows.map((r) => (
                     <tr key={r.clientId}>
                       <Td>
-                        <Link to={`/clients/${r.clientId}`} className="font-medium text-slate-900 hover:text-primary-700">
+                        <Link
+                          to={`/clients/${r.clientId}`}
+                          className="hover:text-primary-700 font-medium text-slate-900"
+                        >
                           {r.clientName}
                         </Link>
                       </Td>
@@ -323,7 +410,9 @@ export default function ReportsPage() {
         <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
           <Card className="h-fit p-5">
             <p className="text-sm text-slate-500">Received {rangeLabel}</p>
-            <p className="mt-1 text-2xl font-semibold text-slate-900">{money(data.payments.total)}</p>
+            <p className="mt-1 text-2xl font-semibold text-slate-900">
+              {money(data.payments.total)}
+            </p>
             <ul className="mt-4 space-y-2 text-sm">
               {data.payments.byMethod.map(([method, amount]) => (
                 <li key={method} className="flex justify-between">
@@ -335,7 +424,9 @@ export default function ReportsPage() {
           </Card>
           <Card className="overflow-hidden">
             {data.payments.list.length === 0 ? (
-              <p className="px-6 py-12 text-center text-sm text-slate-500">No payments in this period.</p>
+              <p className="px-6 py-12 text-center text-sm text-slate-500">
+                No payments in this period.
+              </p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -353,7 +444,10 @@ export default function ReportsPage() {
                       <tr key={p.id}>
                         <Td>{fmt.date(p.date)}</Td>
                         <Td>
-                          <Link to={`/payments/${p.id}`} className="font-medium text-slate-900 hover:text-primary-700">
+                          <Link
+                            to={`/payments/${p.id}`}
+                            className="hover:text-primary-700 font-medium text-slate-900"
+                          >
                             {p.number}
                           </Link>
                         </Td>

@@ -40,7 +40,10 @@ export default function PaymentFormPage() {
       } else {
         const clientId = params.get('client') ?? '';
         const client = clientId ? await db.clients.get(clientId) : undefined;
-        loaded = createPayment(company.id, { clientId, currency: client?.currency ?? company.currency });
+        loaded = createPayment(company.id, {
+          clientId,
+          currency: client?.currency ?? company.currency,
+        });
       }
       if (!cancelled) {
         setPayment(loaded);
@@ -52,10 +55,16 @@ export default function PaymentFormPage() {
     };
   }, [id, company.id, company.currency, params]);
 
-  const clients = useLiveQuery(() => db.clients.where('companyId').equals(company.id).toArray(), [company.id]);
+  const clients = useLiveQuery(
+    () => db.clients.where('companyId').equals(company.id).toArray(),
+    [company.id],
+  );
   const clientId = payment?.clientId ?? '';
   const clientDocs = useLiveQuery(
-    () => (clientId ? db.documents.where('clientId').equals(clientId).toArray() : Promise.resolve([] as InvoiceDocument[])),
+    () =>
+      clientId
+        ? db.documents.where('clientId').equals(clientId).toArray()
+        : Promise.resolve([] as InvoiceDocument[]),
     [clientId],
   );
 
@@ -76,11 +85,22 @@ export default function PaymentFormPage() {
         (d) =>
           d.type === 'invoice' &&
           d.currency === payment.currency &&
-          ((d.status === 'sent' || d.status === 'partial' || d.status === 'draft') || previous.has(d.id)),
+          (d.status === 'sent' ||
+            d.status === 'partial' ||
+            d.status === 'draft' ||
+            previous.has(d.id)),
       )
-      .map((d) => ({ doc: d, available: round(d.totals.balance + (previous.get(d.id) ?? 0), currencyPrecision(d.currency)) }))
+      .map((d) => ({
+        doc: d,
+        available: round(
+          d.totals.balance + (previous.get(d.id) ?? 0),
+          currencyPrecision(d.currency),
+        ),
+      }))
       .filter((x) => x.available > 0 || previous.has(x.doc.id))
-      .sort((a, b) => (a.doc.dueDate ?? a.doc.issueDate).localeCompare(b.doc.dueDate ?? b.doc.issueDate));
+      .sort((a, b) =>
+        (a.doc.dueDate ?? a.doc.issueDate).localeCompare(b.doc.dueDate ?? b.doc.issueDate),
+      );
   }, [clientDocs, payment, previous]);
 
   const credits = useMemo(() => {
@@ -97,7 +117,7 @@ export default function PaymentFormPage() {
     return (
       <Card className="p-10 text-center">
         <p className="text-slate-600">This payment could not be found.</p>
-        <Link to="/payments" className="mt-4 inline-block text-sm font-medium text-primary-700">
+        <Link to="/payments" className="text-primary-700 mt-4 inline-block text-sm font-medium">
           Back to payments
         </Link>
       </Card>
@@ -107,7 +127,8 @@ export default function PaymentFormPage() {
 
   const set = (patch: Partial<Payment>) => setPayment((p) => (p ? { ...p, ...patch } : p));
   const precision = currencyPrecision(payment.currency);
-  const allocationFor = (docId: string) => payment.allocations.find((a) => a.documentId === docId)?.amount ?? 0;
+  const allocationFor = (docId: string) =>
+    payment.allocations.find((a) => a.documentId === docId)?.amount ?? 0;
   const setAllocation = (docId: string, amount: number) =>
     set({
       allocations: [
@@ -121,7 +142,8 @@ export default function PaymentFormPage() {
   const selectedCredit = credits.find((c) => c.id === payment.creditId) ?? null;
   const creditAvailable = selectedCredit
     ? round(
-        selectedCredit.totals.balance + (before?.creditId === selectedCredit.id ? before.amount : 0),
+        selectedCredit.totals.balance +
+          (before?.creditId === selectedCredit.id ? before.amount : 0),
         precision,
       )
     : 0;
@@ -143,13 +165,20 @@ export default function PaymentFormPage() {
   const save = async () => {
     if (!payment.clientId) return toast.error('Choose a client.');
     if (!(payment.amount > 0)) return toast.error('Enter the amount received.');
-    if (allocated - payment.amount > 1e-9) return toast.error('More is applied to invoices than the payment amount.');
+    if (allocated - payment.amount > 1e-9)
+      return toast.error('More is applied to invoices than the payment amount.');
     for (const { doc, available } of invoices) {
-      if (allocationFor(doc.id) - available > 1e-9) return toast.error(`${doc.number} only has ${fmt.money(available, doc.currency)} left to pay.`);
+      if (allocationFor(doc.id) - available > 1e-9)
+        return toast.error(
+          `${doc.number} only has ${fmt.money(available, doc.currency)} left to pay.`,
+        );
     }
     if (isCredit) {
       if (!selectedCredit) return toast.error('Choose the credit note to apply.');
-      if (payment.amount - creditAvailable > 1e-9) return toast.error(`The credit note only has ${fmt.money(creditAvailable, payment.currency)} available.`);
+      if (payment.amount - creditAvailable > 1e-9)
+        return toast.error(
+          `The credit note only has ${fmt.money(creditAvailable, payment.currency)} available.`,
+        );
     }
     setSaving(true);
     try {
@@ -194,7 +223,12 @@ export default function PaymentFormPage() {
                 value={payment.clientId || null}
                 onChange={(value) => {
                   const client = clients.find((c) => c.id === value);
-                  set({ clientId: value, allocations: [], creditId: null, currency: client?.currency ?? company.currency });
+                  set({
+                    clientId: value,
+                    allocations: [],
+                    creditId: null,
+                    currency: client?.currency ?? company.currency,
+                  });
                 }}
                 options={clientOptions}
                 placeholder="Who paid?"
@@ -203,17 +237,41 @@ export default function PaymentFormPage() {
             )}
           </Field>
           <Field label="Amount received">
-            {(fid) => <NumberInput id={fid} value={payment.amount} onValueChange={(amount) => set({ amount })} allowNegative={false} />}
+            {(fid) => (
+              <NumberInput
+                id={fid}
+                value={payment.amount}
+                onValueChange={(amount) => set({ amount })}
+                allowNegative={false}
+              />
+            )}
           </Field>
           <Field label="Currency">
-            {(fid) => <CurrencySelect id={fid} value={payment.currency} onChange={(currency) => set({ currency, allocations: [], creditId: null })} />}
+            {(fid) => (
+              <CurrencySelect
+                id={fid}
+                value={payment.currency}
+                onChange={(currency) => set({ currency, allocations: [], creditId: null })}
+              />
+            )}
           </Field>
           <Field label="Date">
-            {(fid) => <Input id={fid} type="date" value={payment.date} onChange={(e) => set({ date: e.target.value || today() })} />}
+            {(fid) => (
+              <Input
+                id={fid}
+                type="date"
+                value={payment.date}
+                onChange={(e) => set({ date: e.target.value || today() })}
+              />
+            )}
           </Field>
           <Field label="Method">
             {(fid) => (
-              <Select id={fid} value={payment.method} onChange={(e) => set({ method: e.target.value as PaymentMethod, creditId: null })}>
+              <Select
+                id={fid}
+                value={payment.method}
+                onChange={(e) => set({ method: e.target.value as PaymentMethod, creditId: null })}
+              >
                 {PAYMENT_METHODS.map((m) => (
                   <option key={m.value} value={m.value}>
                     {m.label}
@@ -223,17 +281,33 @@ export default function PaymentFormPage() {
             )}
           </Field>
           {isCredit ? (
-            <Field label="Credit note" className="sm:col-span-2" hint={selectedCredit ? `${fmt.money(creditAvailable, payment.currency)} available` : undefined}>
+            <Field
+              label="Credit note"
+              className="sm:col-span-2"
+              hint={
+                selectedCredit
+                  ? `${fmt.money(creditAvailable, payment.currency)} available`
+                  : undefined
+              }
+            >
               {(fid) => (
                 <Select
                   id={fid}
                   value={payment.creditId ?? ''}
                   onChange={(e) => {
                     const credit = credits.find((c) => c.id === e.target.value);
-                    set({ creditId: e.target.value || null, reference: credit?.number ?? payment.reference, amount: credit ? credit.totals.balance : payment.amount });
+                    set({
+                      creditId: e.target.value || null,
+                      reference: credit?.number ?? payment.reference,
+                      amount: credit ? credit.totals.balance : payment.amount,
+                    });
                   }}
                 >
-                  <option value="">{credits.length ? 'Choose a credit note…' : 'This client has no open credit notes'}</option>
+                  <option value="">
+                    {credits.length
+                      ? 'Choose a credit note…'
+                      : 'This client has no open credit notes'}
+                  </option>
                   {credits.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.number} · {fmt.money(c.totals.balance, c.currency)} available
@@ -244,10 +318,24 @@ export default function PaymentFormPage() {
             </Field>
           ) : null}
           <Field label="Reference" optional>
-            {(fid) => <Input id={fid} value={payment.reference} onChange={(e) => set({ reference: e.target.value })} placeholder="Transaction ID, cheque number…" />}
+            {(fid) => (
+              <Input
+                id={fid}
+                value={payment.reference}
+                onChange={(e) => set({ reference: e.target.value })}
+                placeholder="Transaction ID, cheque number…"
+              />
+            )}
           </Field>
           <Field label="Notes" optional className="sm:col-span-2">
-            {(fid) => <Textarea id={fid} value={payment.notes} onChange={(e) => set({ notes: e.target.value })} rows={2} />}
+            {(fid) => (
+              <Textarea
+                id={fid}
+                value={payment.notes}
+                onChange={(e) => set({ notes: e.target.value })}
+                rows={2}
+              />
+            )}
           </Field>
         </CardBody>
       </Card>
@@ -258,14 +346,21 @@ export default function PaymentFormPage() {
           description="Split the payment across the client's open invoices."
           actions={
             invoices.length > 0 ? (
-              <Button variant="outline" size="sm" onClick={autoApply} disabled={!(payment.amount > 0)}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={autoApply}
+                disabled={!(payment.amount > 0)}
+              >
                 <Wand2 /> Apply oldest first
               </Button>
             ) : null
           }
         />
         {!payment.clientId ? (
-          <p className="px-5 py-8 text-center text-sm text-slate-500">Choose a client to see their open invoices.</p>
+          <p className="px-5 py-8 text-center text-sm text-slate-500">
+            Choose a client to see their open invoices.
+          </p>
         ) : invoices.length === 0 ? (
           <p className="px-5 py-8 text-center text-sm text-slate-500">
             No open invoices in {payment.currency}. The payment will be kept as client credit.
@@ -285,13 +380,20 @@ export default function PaymentFormPage() {
                 {invoices.map(({ doc, available }) => (
                   <tr key={doc.id}>
                     <td className="px-5 py-2.5">
-                      <Link to={`/invoices/${doc.id}`} className="font-medium text-slate-900 hover:text-primary-700">
+                      <Link
+                        to={`/invoices/${doc.id}`}
+                        className="hover:text-primary-700 font-medium text-slate-900"
+                      >
                         {doc.number}
                       </Link>
-                      {doc.status === 'draft' ? <span className="ml-2 text-xs text-slate-400">(draft)</span> : null}
+                      {doc.status === 'draft' ? (
+                        <span className="ml-2 text-xs text-slate-400">(draft)</span>
+                      ) : null}
                     </td>
                     <td className="px-3 py-2.5 text-slate-600">{fmt.date(doc.dueDate) || '—'}</td>
-                    <td className="tabular px-3 py-2.5 text-right text-slate-700">{fmt.money(available, doc.currency)}</td>
+                    <td className="tabular px-3 py-2.5 text-right text-slate-700">
+                      {fmt.money(available, doc.currency)}
+                    </td>
                     <td className="px-5 py-2.5">
                       <NumberInput
                         aria-label={`Amount applied to ${doc.number}`}
@@ -308,7 +410,10 @@ export default function PaymentFormPage() {
         )}
         <div className="flex flex-wrap justify-end gap-x-6 gap-y-1 border-t border-slate-100 px-5 py-3 text-sm">
           <span className="text-slate-500">
-            Applied <strong className="tabular text-slate-900">{fmt.money(allocated, payment.currency)}</strong>
+            Applied{' '}
+            <strong className="tabular text-slate-900">
+              {fmt.money(allocated, payment.currency)}
+            </strong>
           </span>
           <span className={unapplied < 0 ? 'text-red-600' : 'text-slate-500'}>
             Unapplied <strong className="tabular">{fmt.money(unapplied, payment.currency)}</strong>

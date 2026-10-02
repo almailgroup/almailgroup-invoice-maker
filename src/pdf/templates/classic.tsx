@@ -48,7 +48,14 @@ function Classic({ model, theme }: TemplateProps) {
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
         <View style={{ width: '52%' }}>
           {c.logo ? <Logo src={c.logo} width={160} height={48} /> : null}
-          <Text style={{ fontSize: c.logo ? 10 : 16, fontWeight: 700, color: theme.ink, marginTop: c.logo ? 8 : 0 }}>
+          <Text
+            style={{
+              fontSize: c.logo ? 10 : 16,
+              fontWeight: 700,
+              color: theme.ink,
+              marginTop: c.logo ? 8 : 0,
+            }}
+          >
             {c.name}
           </Text>
           <Lines
@@ -96,7 +103,14 @@ function Classic({ model, theme }: TemplateProps) {
                 </Text>
                 <Text
                   style={sx(
-                    { flex: 1, fontSize: 8.5, color: theme.ink, paddingVertical: 4, paddingHorizontal: 7, textAlign: 'right' },
+                    {
+                      flex: 1,
+                      fontSize: 8.5,
+                      color: theme.ink,
+                      paddingVertical: 4,
+                      paddingHorizontal: 7,
+                      textAlign: 'right',
+                    },
                     TNUM,
                   )}
                 >
@@ -132,15 +146,36 @@ function Classic({ model, theme }: TemplateProps) {
           </View>
         ) : null}
         {!model.shipTo ? (
-          <View style={{ width: 215, marginLeft: 10, ...box, justifyContent: 'center', alignItems: 'center', padding: 10 }}>
-            <Text style={{ fontSize: 7.5, fontWeight: 700, color: theme.muted, textTransform: 'uppercase', letterSpacing: 0.6 }}>
+          <View
+            style={{
+              width: 215,
+              marginLeft: 10,
+              ...box,
+              justifyContent: 'center',
+              alignItems: 'center',
+              padding: 10,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 7.5,
+                fontWeight: 700,
+                color: theme.muted,
+                textTransform: 'uppercase',
+                letterSpacing: 0.6,
+              }}
+            >
               {model.amountDue.label}
             </Text>
-            <Text style={sx({ fontSize: 18, fontWeight: 700, color: theme.ink, marginTop: 4 }, TNUM)}>
+            <Text
+              style={sx({ fontSize: 18, fontWeight: 700, color: theme.ink, marginTop: 4 }, TNUM)}
+            >
               {model.amountDue.value}
             </Text>
             {model.amountDue.caption ? (
-              <Text style={{ fontSize: 7.5, color: theme.muted, marginTop: 3 }}>{model.amountDue.caption}</Text>
+              <Text style={{ fontSize: 7.5, color: theme.muted, marginTop: 3 }}>
+                {model.amountDue.caption}
+              </Text>
             ) : null}
           </View>
         ) : null}
@@ -155,7 +190,13 @@ function Classic({ model, theme }: TemplateProps) {
         styles={{
           container: box,
           header: { backgroundColor: HEAD, borderBottomWidth: 0.75, borderBottomColor: BORDER },
-          headerText: { color: theme.ink, fontSize: 7.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4 },
+          headerText: {
+            color: theme.ink,
+            fontSize: 7.5,
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: 0.4,
+          },
           row: { borderTopWidth: 0.75, borderTopColor: '#e2e8f0', paddingVertical: 6 },
           columnLines: BORDER,
           headingRow: { borderTopWidth: 0.75, borderTopColor: BORDER, backgroundColor: '#fafafa' },
@@ -179,9 +220,19 @@ function Classic({ model, theme }: TemplateProps) {
           styles={{
             width: 215,
             container: box,
-            row: { paddingHorizontal: 8, paddingVertical: 4, borderBottomWidth: 0.75, borderBottomColor: '#e2e8f0' },
+            row: {
+              paddingHorizontal: 8,
+              paddingVertical: 4,
+              borderBottomWidth: 0.75,
+              borderBottomColor: '#e2e8f0',
+            },
             label: { color: theme.body },
-            strongRow: { paddingHorizontal: 8, paddingVertical: 5, borderBottomWidth: 0.75, borderBottomColor: '#e2e8f0' },
+            strongRow: {
+              paddingHorizontal: 8,
+              paddingVertical: 5,
+              borderBottomWidth: 0.75,
+              borderBottomColor: '#e2e8f0',
+            },
             grandRow: { paddingHorizontal: 8, paddingVertical: 7, backgroundColor: HEAD },
             grandValue: { fontSize: 12 },
             note: { paddingHorizontal: 8 },
@@ -197,13 +248,17 @@ function Classic({ model, theme }: TemplateProps) {
           {model.notes ? (
             <View style={sx(box, { flex: 1, marginRight: model.terms ? 10 : 0 })}>
               <Text style={stripLabel}>{model.labels.notes}</Text>
-              <Text style={{ fontSize: 8.5, color: theme.body, lineHeight: 1.5, padding: 8 }}>{model.notes}</Text>
+              <Text style={{ fontSize: 8.5, color: theme.body, lineHeight: 1.5, padding: 8 }}>
+                {model.notes}
+              </Text>
             </View>
           ) : null}
           {model.terms ? (
             <View style={sx(box, { flex: 1 })}>
               <Text style={stripLabel}>{model.labels.terms}</Text>
-              <Text style={{ fontSize: 8, color: theme.muted, lineHeight: 1.5, padding: 8 }}>{model.terms}</Text>
+              <Text style={{ fontSize: 8, color: theme.muted, lineHeight: 1.5, padding: 8 }}>
+                {model.terms}
+              </Text>
             </View>
           ) : null}
         </View>
@@ -211,7 +266,14 @@ function Classic({ model, theme }: TemplateProps) {
 
       <View
         fixed
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, backgroundColor: theme.accent }}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 4,
+          backgroundColor: theme.accent,
+        }}
       />
       <RunningHeader model={model} theme={theme} />
       <PageFooter model={model} theme={theme} />

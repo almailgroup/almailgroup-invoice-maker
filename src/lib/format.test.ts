@@ -1,13 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { currencyPrecision, parseAmount, round } from './money';
 import { addDaysISO, daysBetween, isISODate, occurrenceDate } from './dates';
-import {
-  formatDate,
-  formatMoney,
-  formatPercent,
-  formatQuantity,
-  formatUnitPrice,
-} from './format';
+import { formatDate, formatMoney, formatPercent, formatQuantity, formatUnitPrice } from './format';
 
 describe('money helpers', () => {
   it('rounds half away from zero', () => {

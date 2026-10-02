@@ -40,6 +40,7 @@ export async function normalizeImage(src: string, maxSize = 800): Promise<string
 
 export async function logoFromFile(file: File): Promise<string> {
   if (file.size > MAX_INPUT_BYTES) throw new Error('Please choose an image smaller than 8 MB.');
-  if (!/^image\//.test(file.type)) throw new Error('Please choose an image file (PNG, JPG, SVG or WebP).');
+  if (!/^image\//.test(file.type))
+    throw new Error('Please choose an image file (PNG, JPG, SVG or WebP).');
   return normalizeImage(await readAsDataUrl(file));
 }

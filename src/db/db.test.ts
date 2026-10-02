@@ -22,13 +22,16 @@ import {
 import type { Company, InvoiceDocument } from './types';
 
 async function freshCompany(): Promise<Company> {
-  return setupCompany(
-    { name: 'Acme Mail', currency: 'USD', locale: 'en-US' },
-    [{ name: 'VAT', rate: 20 }],
-  );
+  return setupCompany({ name: 'Acme Mail', currency: 'USD', locale: 'en-US' }, [
+    { name: 'VAT', rate: 20 },
+  ]);
 }
 
-async function invoiceFor(company: Company, clientId: string, unitPrice = 100): Promise<InvoiceDocument> {
+async function invoiceFor(
+  company: Company,
+  clientId: string,
+  unitPrice = 100,
+): Promise<InvoiceDocument> {
   const client = (await db.clients.get(clientId))!;
   const draft = await draftDocument(company, 'invoice', client);
   draft.items[0] = { ...draft.items[0], name: 'Service', quantity: 1, unitPrice };

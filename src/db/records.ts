@@ -38,30 +38,32 @@ export async function setupCompany(
     await db.companies.add(company);
     if (rates.length) await db.taxRates.bulkAdd(rates);
     await setCurrentCompanyId(company.id);
-    await logActivity(company.id, 'company', company.id, 'created', `Company ${company.name} created`);
+    await logActivity(
+      company.id,
+      'company',
+      company.id,
+      'created',
+      `Company ${company.name} created`,
+    );
     return company;
   });
 }
 
 /** Deletes a company and everything that belongs to it. */
 export async function deleteCompany(id: ID): Promise<void> {
-  await db.transaction(
-    'rw',
-    [...DATA_TABLES.map((t) => db[t]), db.meta],
-    async () => {
-      for (const table of DATA_TABLES) {
-        if (table === 'companies') continue;
-        await db[table].where('companyId').equals(id).delete();
-      }
-      await db.companies.delete(id);
-      const current = await getCurrentCompanyId();
-      if (current === id) {
-        const next = await db.companies.toCollection().first();
-        if (next) await setCurrentCompanyId(next.id);
-        else await db.meta.delete(CURRENT_COMPANY_KEY);
-      }
-    },
-  );
+  await db.transaction('rw', [...DATA_TABLES.map((t) => db[t]), db.meta], async () => {
+    for (const table of DATA_TABLES) {
+      if (table === 'companies') continue;
+      await db[table].where('companyId').equals(id).delete();
+    }
+    await db.companies.delete(id);
+    const current = await getCurrentCompanyId();
+    if (current === id) {
+      const next = await db.companies.toCollection().first();
+      if (next) await setCurrentCompanyId(next.id);
+      else await db.meta.delete(CURRENT_COMPANY_KEY);
+    }
+  });
 }
 
 /* -------------------------------------------------------------------------- */
@@ -76,7 +78,9 @@ export async function saveClient(input: Client): Promise<Client> {
       const company = await db.companies.get(client.companyId);
       if (company) {
         const taken = new Set(
-          (await db.clients.where('companyId').equals(company.id).toArray()).map((c) => c.number.toLowerCase()),
+          (await db.clients.where('companyId').equals(company.id).toArray()).map((c) =>
+            c.number.toLowerCase(),
+          ),
         );
         const allocated = allocateNumber(
           company.numbering.client,
@@ -84,7 +88,10 @@ export async function saveClient(input: Client): Promise<Client> {
           (n) => taken.has(n.toLowerCase()),
         );
         client = { ...client, number: allocated.number };
-        await db.companies.put({ ...company, numbering: { ...company.numbering, client: allocated.rule } });
+        await db.companies.put({
+          ...company,
+          numbering: { ...company.numbering, client: allocated.rule },
+        });
       }
     }
     // Keep the contact flagged as primary first and make sure one exists.
@@ -95,9 +102,16 @@ export async function saveClient(input: Client): Promise<Client> {
     if (!client.email && primary?.email) client.email = primary.email;
     await db.clients.put(client);
     if (!existing) {
-      await logActivity(client.companyId, 'client', client.id, 'created', `Client ${client.name} added`, {
-        clientId: client.id,
-      });
+      await logActivity(
+        client.companyId,
+        'client',
+        client.id,
+        'created',
+        `Client ${client.name} added`,
+        {
+          clientId: client.id,
+        },
+      );
     }
     return client;
   });

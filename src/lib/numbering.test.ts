@@ -50,8 +50,10 @@ describe('numbering', () => {
 
   it('allocates the next free number and advances the rule', () => {
     const taken = new Set(['INV-2026-0003', 'INV-2026-0004']);
-    const result = allocateNumber(rule({ next: 3, reset: 'yearly', period: '2026' }), '2026-06-01', (n) =>
-      taken.has(n),
+    const result = allocateNumber(
+      rule({ next: 3, reset: 'yearly', period: '2026' }),
+      '2026-06-01',
+      (n) => taken.has(n),
     );
     expect(result.number).toBe('INV-2026-0005');
     expect(result.rule).toMatchObject({ next: 6, period: '2026' });

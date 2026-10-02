@@ -64,11 +64,28 @@ function Mono({ model, theme }: TemplateProps) {
               <Logo src={c.logo} width={130} height={36} />
             </View>
           ) : null}
-          <Text style={{ fontFamily: mono, fontSize: c.logo ? 9 : 14, fontWeight: 600, color: '#ffffff' }}>
+          <Text
+            style={{
+              fontFamily: mono,
+              fontSize: c.logo ? 9 : 14,
+              fontWeight: 600,
+              color: '#ffffff',
+            }}
+          >
             {c.name}
           </Text>
-          <Text style={{ fontFamily: mono, fontSize: 7, color: '#94a3b8', marginTop: 3, lineHeight: 1.5 }}>
-            {[c.addressLines.join(', '), companyContactLines(model, false).join(' · ')].filter(Boolean).join('\n')}
+          <Text
+            style={{
+              fontFamily: mono,
+              fontSize: 7,
+              color: '#94a3b8',
+              marginTop: 3,
+              lineHeight: 1.5,
+            }}
+          >
+            {[c.addressLines.join(', '), companyContactLines(model, false).join(' · ')]
+              .filter(Boolean)
+              .join('\n')}
           </Text>
         </View>
         <View style={{ alignItems: 'flex-end' }}>
@@ -91,21 +108,38 @@ function Mono({ model, theme }: TemplateProps) {
           ) : null}
         </View>
       </View>
-      <View style={{ height: 3, backgroundColor: theme.accent, marginHorizontal: -40, marginBottom: 18 }} />
+      <View
+        style={{
+          height: 3,
+          backgroundColor: theme.accent,
+          marginHorizontal: -40,
+          marginBottom: 18,
+        }}
+      />
 
-      <View style={{ flexDirection: 'row', borderWidth: 0.75, borderColor: GRID, marginBottom: 18 }}>
+      <View
+        style={{ flexDirection: 'row', borderWidth: 0.75, borderColor: GRID, marginBottom: 18 }}
+      >
         <View style={sx(cell, { flex: 1.3 })}>
           <Text style={label}>{model.recipientLabel}</Text>
           <Text style={{ fontSize: 9.5, fontWeight: 700, color: theme.ink, marginBottom: 2 }}>
             {model.client.name || '—'}
           </Text>
-          <Lines lines={clientLines(model, false)} style={{ fontSize: 7.5, color: theme.body, lineHeight: 1.45 }} />
+          <Lines
+            lines={clientLines(model, false)}
+            style={{ fontSize: 7.5, color: theme.body, lineHeight: 1.45 }}
+          />
         </View>
         {model.shipTo ? (
           <View style={cell}>
             <Text style={label}>{model.labels.shipTo}</Text>
-            <Text style={{ fontSize: 9, fontWeight: 700, color: theme.ink, marginBottom: 2 }}>{model.shipTo.name}</Text>
-            <Lines lines={model.shipTo.lines} style={{ fontSize: 7.5, color: theme.body, lineHeight: 1.45 }} />
+            <Text style={{ fontSize: 9, fontWeight: 700, color: theme.ink, marginBottom: 2 }}>
+              {model.shipTo.name}
+            </Text>
+            <Lines
+              lines={model.shipTo.lines}
+              style={{ fontSize: 7.5, color: theme.body, lineHeight: 1.45 }}
+            />
           </View>
         ) : null}
         <View style={cell}>
@@ -116,7 +150,13 @@ function Mono({ model, theme }: TemplateProps) {
             </View>
           ))}
         </View>
-        <View style={sx(cell, { borderRightWidth: 0, backgroundColor: '#f8fafc', alignItems: 'flex-end' })}>
+        <View
+          style={sx(cell, {
+            borderRightWidth: 0,
+            backgroundColor: '#f8fafc',
+            alignItems: 'flex-end',
+          })}
+        >
           <Text style={label}>{model.amountDue.label}</Text>
           <Text style={{ fontFamily: mono, fontSize: 15, fontWeight: 600, color: theme.ink }}>
             {model.amountDue.value}
@@ -127,7 +167,15 @@ function Mono({ model, theme }: TemplateProps) {
             </Text>
           ) : null}
           {model.deposit ? (
-            <Text style={{ fontFamily: mono, fontSize: 6.5, color: theme.accentInk, marginTop: 6, textAlign: 'right' }}>
+            <Text
+              style={{
+                fontFamily: mono,
+                fontSize: 6.5,
+                color: theme.accentInk,
+                marginTop: 6,
+                textAlign: 'right',
+              }}
+            >
               {`${model.deposit.label}: ${model.deposit.value}`}
             </Text>
           ) : null}
@@ -143,12 +191,25 @@ function Mono({ model, theme }: TemplateProps) {
         styles={{
           container: { borderWidth: 0.75, borderColor: GRID },
           header: { backgroundColor: '#f8fafc', borderBottomWidth: 0.75, borderBottomColor: GRID },
-          headerText: { fontFamily: mono, fontSize: 6.5, fontWeight: 500, color: theme.muted, textTransform: 'uppercase', letterSpacing: 0.6 },
+          headerText: {
+            fontFamily: mono,
+            fontSize: 6.5,
+            fontWeight: 500,
+            color: theme.muted,
+            textTransform: 'uppercase',
+            letterSpacing: 0.6,
+          },
           row: { borderTopWidth: 0.5, borderTopColor: GRID, paddingVertical: 7 },
           cell: { fontFamily: mono, fontSize: 8 },
           amount: { fontFamily: mono, fontWeight: 600 },
           columnLines: GRID,
-          headingText: { fontFamily: mono, fontSize: 8, fontWeight: 600, color: theme.accentInk, textTransform: 'uppercase' },
+          headingText: {
+            fontFamily: mono,
+            fontSize: 8,
+            fontWeight: 600,
+            color: theme.accentInk,
+            textTransform: 'uppercase',
+          },
         }}
       />
 
@@ -160,12 +221,28 @@ function Mono({ model, theme }: TemplateProps) {
         totals={{
           width: 240,
           container: { borderWidth: 0.75, borderColor: GRID },
-          row: { paddingHorizontal: 10, paddingVertical: 4, borderBottomWidth: 0.5, borderBottomColor: GRID },
+          row: {
+            paddingHorizontal: 10,
+            paddingVertical: 4,
+            borderBottomWidth: 0.5,
+            borderBottomColor: GRID,
+          },
           label: { fontFamily: mono, fontSize: 7.5 },
           value: { fontFamily: mono, fontSize: 8 },
-          strongRow: { paddingHorizontal: 10, paddingVertical: 5, borderBottomWidth: 0.5, borderBottomColor: GRID },
+          strongRow: {
+            paddingHorizontal: 10,
+            paddingVertical: 5,
+            borderBottomWidth: 0.5,
+            borderBottomColor: GRID,
+          },
           grandRow: { backgroundColor: NIGHT, paddingHorizontal: 10, paddingVertical: 9 },
-          grandLabel: { fontFamily: mono, color: '#ffffff', fontSize: 8.5, textTransform: 'uppercase', letterSpacing: 0.6 },
+          grandLabel: {
+            fontFamily: mono,
+            color: '#ffffff',
+            fontSize: 8.5,
+            textTransform: 'uppercase',
+            letterSpacing: 0.6,
+          },
           grandValue: { fontFamily: mono, color: theme.accentBright, fontSize: 12.5 },
           note: { paddingHorizontal: 10 },
         }}
@@ -174,12 +251,24 @@ function Mono({ model, theme }: TemplateProps) {
       {companyIdLine(model) ? (
         <Text
           fixed
-          style={{ position: 'absolute', left: 40, right: 40, bottom: 36, fontFamily: mono, fontSize: 6.5, color: theme.faint }}
+          style={{
+            position: 'absolute',
+            left: 40,
+            right: 40,
+            bottom: 36,
+            fontFamily: mono,
+            fontSize: 6.5,
+            color: theme.faint,
+          }}
         >
           {companyIdLine(model)}
         </Text>
       ) : null}
-      <RunningHeader model={model} theme={theme} style={{ fontFamily: mono, color: '#94a3b8', top: 12 }} />
+      <RunningHeader
+        model={model}
+        theme={theme}
+        style={{ fontFamily: mono, color: '#94a3b8', top: 12 }}
+      />
       <PageFooter model={model} theme={theme} textStyle={{ fontFamily: mono, fontSize: 6.5 }} />
     </DocShell>
   );

@@ -50,9 +50,7 @@ function Compact({ model, theme }: TemplateProps) {
         }}
       >
         <View style={{ flexDirection: 'row', width: '64%' }}>
-          {c.logo ? (
-            <Logo src={c.logo} width={96} height={38} style={{ marginRight: 12 }} />
-          ) : null}
+          {c.logo ? <Logo src={c.logo} width={96} height={38} style={{ marginRight: 12 }} /> : null}
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 11, fontWeight: 700, color: theme.ink }}>{c.name}</Text>
             <Lines
@@ -78,7 +76,9 @@ function Compact({ model, theme }: TemplateProps) {
             {model.title}
           </Text>
           {model.number ? (
-            <Text style={sx({ fontSize: 9, fontWeight: 600, color: theme.ink, marginTop: 1 }, TNUM)}>
+            <Text
+              style={sx({ fontSize: 9, fontWeight: 600, color: theme.ink, marginTop: 1 }, TNUM)}
+            >
               {model.number}
             </Text>
           ) : null}
@@ -110,7 +110,9 @@ function Compact({ model, theme }: TemplateProps) {
           <MetaRows
             rows={[
               ...model.meta,
-              ...(model.deposit ? [{ label: model.deposit.label, value: model.deposit.value }] : []),
+              ...(model.deposit
+                ? [{ label: model.deposit.label, value: model.deposit.value }]
+                : []),
             ]}
             labelStyle={{ fontSize: 7.5, color: theme.muted }}
             valueStyle={{ fontSize: 7.5, fontWeight: 600, color: theme.ink }}
@@ -132,7 +134,9 @@ function Compact({ model, theme }: TemplateProps) {
             {model.amountDue.value}
           </Text>
           {model.amountDue.caption ? (
-            <Text style={{ fontSize: 6.5, color: theme.muted, marginTop: 2 }}>{model.amountDue.caption}</Text>
+            <Text style={{ fontSize: 6.5, color: theme.muted, marginTop: 2 }}>
+              {model.amountDue.caption}
+            </Text>
           ) : null}
         </View>
       </View>
@@ -148,13 +152,24 @@ function Compact({ model, theme }: TemplateProps) {
           rowPaddingY: 4,
           cellPaddingX: 6,
           header: { backgroundColor: theme.accentSoft, paddingVertical: 4 },
-          headerText: { color: theme.accentInk, fontSize: 6.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6 },
+          headerText: {
+            color: theme.accentInk,
+            fontSize: 6.5,
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: 0.6,
+          },
           row: { borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb' },
           zebra: '#f8fafc',
           title: { fontWeight: 500 },
           detail: { fontSize: 7, marginTop: 1 },
           headingRow: { paddingTop: 7, paddingBottom: 3 },
-          headingText: { fontSize: 8, color: theme.accentInk, textTransform: 'uppercase', letterSpacing: 0.5 },
+          headingText: {
+            fontSize: 8,
+            color: theme.accentInk,
+            textTransform: 'uppercase',
+            letterSpacing: 0.5,
+          },
         }}
       />
 
@@ -170,8 +185,20 @@ function Compact({ model, theme }: TemplateProps) {
           row: { paddingHorizontal: 6, paddingVertical: 2.5 },
           label: { fontSize: 8 },
           value: { fontSize: 8 },
-          strongRow: { paddingHorizontal: 6, borderTopWidth: 0.5, borderTopColor: '#e5e7eb', marginTop: 2, paddingTop: 4 },
-          grandRow: { backgroundColor: theme.accent, paddingHorizontal: 8, paddingVertical: 6, marginTop: 4, borderRadius: 3 },
+          strongRow: {
+            paddingHorizontal: 6,
+            borderTopWidth: 0.5,
+            borderTopColor: '#e5e7eb',
+            marginTop: 2,
+            paddingTop: 4,
+          },
+          grandRow: {
+            backgroundColor: theme.accent,
+            paddingHorizontal: 8,
+            paddingVertical: 6,
+            marginTop: 4,
+            borderRadius: 3,
+          },
           grandLabel: { color: theme.onAccent, fontSize: 9 },
           grandValue: { color: theme.onAccent, fontSize: 11 },
           note: { paddingHorizontal: 6 },

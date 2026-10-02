@@ -13,12 +13,7 @@ import { registerFonts } from '../src/pdf/fonts';
 import { buildRenderModel } from '../src/pdf/model';
 import { createPdfElement } from '../src/pdf/element';
 import { TEMPLATES } from '../src/pdf/templates';
-import {
-  sampleClient,
-  sampleCompany,
-  sampleDocument,
-  sampleLongItems,
-} from '../src/pdf/sample';
+import { sampleClient, sampleCompany, sampleDocument, sampleLongItems } from '../src/pdf/sample';
 
 const outDir = resolve(process.argv[2] ?? 'template-previews');
 const only = process.argv[3];

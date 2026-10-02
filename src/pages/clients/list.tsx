@@ -19,7 +19,10 @@ export default function ClientListPage() {
   const [query, setQuery] = useState('');
   const [view, setView] = useState<'active' | 'archived'>('active');
 
-  const clients = useLiveQuery(() => db.clients.where('companyId').equals(company.id).toArray(), [company.id]);
+  const clients = useLiveQuery(
+    () => db.clients.where('companyId').equals(company.id).toArray(),
+    [company.id],
+  );
   const docs = useLiveQuery(
     () => db.documents.where('[companyId+type]').equals([company.id, 'invoice']).toArray(),
     [company.id],
@@ -28,7 +31,10 @@ export default function ClientListPage() {
   const rows = useMemo(() => {
     if (!clients || !docs) return null;
     const now = today();
-    const stats = new Map<string, { invoiced: number; balance: number; overdue: boolean; count: number }>();
+    const stats = new Map<
+      string,
+      { invoiced: number; balance: number; overdue: boolean; count: number }
+    >();
     for (const d of docs) {
       if (d.status === 'draft' || d.status === 'void') continue;
       const s = stats.get(d.clientId) ?? { invoiced: 0, balance: 0, overdue: false, count: 0 };
@@ -41,7 +47,10 @@ export default function ClientListPage() {
       stats.set(d.clientId, s);
     }
     return clients
-      .map((c) => ({ client: c, stats: stats.get(c.id) ?? { invoiced: 0, balance: 0, overdue: false, count: 0 } }))
+      .map((c) => ({
+        client: c,
+        stats: stats.get(c.id) ?? { invoiced: 0, balance: 0, overdue: false, count: 0 },
+      }))
       .sort((a, b) => a.client.name.localeCompare(b.client.name));
   }, [clients, docs, company.currency]);
 
@@ -65,7 +74,21 @@ export default function ClientListPage() {
   const exportCsv = () =>
     downloadCsv(
       `clients-${today()}`,
-      ['Number', 'Name', 'Contact', 'Email', 'Phone', 'Address', 'City', 'Postal code', 'Country', 'Tax ID', 'Currency', 'Invoiced', 'Outstanding'],
+      [
+        'Number',
+        'Name',
+        'Contact',
+        'Email',
+        'Phone',
+        'Address',
+        'City',
+        'Postal code',
+        'Country',
+        'Tax ID',
+        'Currency',
+        'Invoiced',
+        'Outstanding',
+      ],
       filtered.map(({ client, stats }) => {
         const contact = client.contacts.find((c) => c.primary) ?? client.contacts[0];
         return [
@@ -130,7 +153,13 @@ export default function ClientListPage() {
             />
             <div className="relative sm:w-72">
               <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
-              <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search clients…" className="pl-9" aria-label="Search clients" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search clients…"
+                className="pl-9"
+                aria-label="Search clients"
+              />
             </div>
           </div>
           {filtered.length === 0 ? (
@@ -152,9 +181,17 @@ export default function ClientListPage() {
                     const contact = client.contacts.find((c) => c.primary) ?? client.contacts[0];
                     const currency = client.currency ?? company.currency;
                     return (
-                      <tr key={client.id} onClick={() => navigate(`/clients/${client.id}`)} className="cursor-pointer hover:bg-slate-50">
+                      <tr
+                        key={client.id}
+                        onClick={() => navigate(`/clients/${client.id}`)}
+                        className="cursor-pointer hover:bg-slate-50"
+                      >
                         <td className="px-5 py-3">
-                          <Link to={`/clients/${client.id}`} onClick={(e) => e.stopPropagation()} className="font-medium text-slate-900 hover:text-primary-700">
+                          <Link
+                            to={`/clients/${client.id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="hover:text-primary-700 font-medium text-slate-900"
+                          >
                             {client.name}
                           </Link>
                           <span className="block text-xs text-slate-500">
@@ -164,16 +201,29 @@ export default function ClientListPage() {
                         </td>
                         <td className="hidden px-3 py-3 md:table-cell">
                           <span className="block text-slate-700">{contact?.name || '—'}</span>
-                          <span className="block text-xs text-slate-500">{contact?.email || client.email}</span>
+                          <span className="block text-xs text-slate-500">
+                            {contact?.email || client.email}
+                          </span>
                         </td>
                         <td className="hidden px-3 py-3 text-slate-600 lg:table-cell">
-                          {[client.address.city, client.address.country ? countryName(client.address.country, fmt.locale) : '']
+                          {[
+                            client.address.city,
+                            client.address.country
+                              ? countryName(client.address.country, fmt.locale)
+                              : '',
+                          ]
                             .filter(Boolean)
                             .join(', ') || '—'}
                         </td>
-                        <td className="tabular px-3 py-3 text-right text-slate-600">{fmt.money(stats.invoiced, currency)}</td>
+                        <td className="tabular px-3 py-3 text-right text-slate-600">
+                          {fmt.money(stats.invoiced, currency)}
+                        </td>
                         <td className="tabular px-5 py-3 text-right">
-                          <span className={stats.balance > 0 ? 'font-medium text-slate-900' : 'text-slate-400'}>
+                          <span
+                            className={
+                              stats.balance > 0 ? 'font-medium text-slate-900' : 'text-slate-400'
+                            }
+                          >
                             {fmt.money(stats.balance, currency)}
                           </span>
                           {stats.overdue ? (

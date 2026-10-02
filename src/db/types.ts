@@ -317,13 +317,7 @@ export interface Payment {
 }
 
 export type Frequency =
-  | 'weekly'
-  | 'biweekly'
-  | 'monthly'
-  | 'bimonthly'
-  | 'quarterly'
-  | 'semiannually'
-  | 'yearly';
+  'weekly' | 'biweekly' | 'monthly' | 'bimonthly' | 'quarterly' | 'semiannually' | 'yearly';
 
 export type RecurringStatus = 'active' | 'paused' | 'completed';
 
@@ -370,14 +364,7 @@ export interface RecurringProfile {
 }
 
 export type ActivityEntity =
-  | 'invoice'
-  | 'quote'
-  | 'credit'
-  | 'payment'
-  | 'client'
-  | 'product'
-  | 'recurring'
-  | 'company';
+  'invoice' | 'quote' | 'credit' | 'payment' | 'client' | 'product' | 'recurring' | 'company';
 
 export interface Activity {
   id: ID;

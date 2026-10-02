@@ -49,9 +49,7 @@ export function SendDialog({
   fileName: string;
 }) {
   const template =
-    kind === 'reminder'
-      ? company.emailTemplates.reminder
-      : company.emailTemplates[doc.type];
+    kind === 'reminder' ? company.emailTemplates.reminder : company.emailTemplates[doc.type];
   const values = useMemo(() => emailValues(doc, company, client), [doc, company, client]);
   const contacts = (client?.contacts ?? []).filter((c) => c.email);
   const [to, setTo] = useState(
@@ -130,8 +128,19 @@ export function SendDialog({
         size="lg"
       >
         <DialogBody>
-          <Field label="To" error={invalid.length ? `Check: ${invalid.join(', ')}` : undefined} hint="Separate several addresses with commas.">
-            {(id) => <Input id={id} value={to} onChange={(e) => setTo(e.target.value)} placeholder="client@example.com" />}
+          <Field
+            label="To"
+            error={invalid.length ? `Check: ${invalid.join(', ')}` : undefined}
+            hint="Separate several addresses with commas."
+          >
+            {(id) => (
+              <Input
+                id={id}
+                value={to}
+                onChange={(e) => setTo(e.target.value)}
+                placeholder="client@example.com"
+              />
+            )}
           </Field>
           {contacts.length > 1 ? (
             <div className="flex flex-wrap gap-2">
@@ -140,7 +149,11 @@ export function SendDialog({
                   key={c.id}
                   type="button"
                   className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-700 hover:bg-slate-200"
-                  onClick={() => setTo((t) => (t.includes(c.email) ? t : [t, c.email].filter(Boolean).join(', ')))}
+                  onClick={() =>
+                    setTo((t) =>
+                      t.includes(c.email) ? t : [t, c.email].filter(Boolean).join(', '),
+                    )
+                  }
                 >
                   + {c.name || c.email}
                 </button>
@@ -151,7 +164,9 @@ export function SendDialog({
             {(id) => <Input id={id} value={subject} onChange={(e) => setSubject(e.target.value)} />}
           </Field>
           <Field label="Message">
-            {(id) => <Textarea id={id} value={body} onChange={(e) => setBody(e.target.value)} rows={9} />}
+            {(id) => (
+              <Textarea id={id} value={body} onChange={(e) => setBody(e.target.value)} rows={9} />
+            )}
           </Field>
           {doc.status === 'draft' ? (
             <Checkbox
@@ -167,11 +182,20 @@ export function SendDialog({
             <Copy /> Copy text
           </Button>
           {canShare ? (
-            <Button variant="outline" onClick={share} loading={busy === 'share'} disabled={busy !== null}>
+            <Button
+              variant="outline"
+              onClick={share}
+              loading={busy === 'share'}
+              disabled={busy !== null}
+            >
               <Share2 /> Share PDF…
             </Button>
           ) : null}
-          <Button onClick={openMail} loading={busy === 'mail'} disabled={busy !== null || invalid.length > 0}>
+          <Button
+            onClick={openMail}
+            loading={busy === 'mail'}
+            disabled={busy !== null || invalid.length > 0}
+          >
             <Mail /> Open email app
           </Button>
         </DialogFooter>

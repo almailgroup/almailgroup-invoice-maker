@@ -9,13 +9,7 @@ export interface DateRange {
 }
 
 export type RangePreset =
-  | 'this-month'
-  | 'last-month'
-  | 'this-quarter'
-  | 'last-quarter'
-  | 'this-year'
-  | 'last-year'
-  | 'all';
+  'this-month' | 'last-month' | 'this-quarter' | 'last-quarter' | 'this-year' | 'last-year' | 'all';
 
 export const RANGE_PRESETS: { value: RangePreset; label: string }[] = [
   { value: 'this-month', label: 'This month' },
@@ -58,7 +52,13 @@ const counts = (d: InvoiceDocument) => d.status !== 'draft' && d.status !== 'voi
 /* Aging                                                                      */
 /* -------------------------------------------------------------------------- */
 
-export const AGING_BUCKETS = ['Current', '1–30 days', '31–60 days', '61–90 days', '90+ days'] as const;
+export const AGING_BUCKETS = [
+  'Current',
+  '1–30 days',
+  '31–60 days',
+  '61–90 days',
+  '90+ days',
+] as const;
 
 export interface AgingRow {
   clientId: string;
@@ -91,11 +91,26 @@ export function agingReport(
       clientId,
       clientName: names.get(clientId) ?? '—',
       buckets,
-      total: round(buckets.reduce((s, v) => s + v, 0), p),
+      total: round(
+        buckets.reduce((s, v) => s + v, 0),
+        p,
+      ),
     }))
     .sort((a, b) => b.total - a.total);
-  const totals = [0, 1, 2, 3, 4].map((i) => round(rows.reduce((s, r) => s + r.buckets[i], 0), p));
-  return { rows, totals, total: round(totals.reduce((s, v) => s + v, 0), p) };
+  const totals = [0, 1, 2, 3, 4].map((i) =>
+    round(
+      rows.reduce((s, r) => s + r.buckets[i], 0),
+      p,
+    ),
+  );
+  return {
+    rows,
+    totals,
+    total: round(
+      totals.reduce((s, v) => s + v, 0),
+      p,
+    ),
+  };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -175,7 +190,13 @@ export function salesByClient(
   const names = new Map(clients.map((c) => [c.id, c.name]));
   const map = new Map<string, ClientSalesRow>();
   for (const d of docs) {
-    if (d.type !== 'invoice' || d.currency !== currency || !counts(d) || !inRange(d.issueDate, range)) continue;
+    if (
+      d.type !== 'invoice' ||
+      d.currency !== currency ||
+      !counts(d) ||
+      !inRange(d.issueDate, range)
+    )
+      continue;
     const row = map.get(d.clientId) ?? {
       clientId: d.clientId,
       clientName: names.get(d.clientId) ?? '—',
@@ -195,9 +216,18 @@ export function salesByClient(
     rows,
     totals: {
       invoices: rows.reduce((s, r) => s + r.invoices, 0),
-      invoiced: round(rows.reduce((s, r) => s + r.invoiced, 0), p),
-      paid: round(rows.reduce((s, r) => s + r.paid, 0), p),
-      outstanding: round(rows.reduce((s, r) => s + r.outstanding, 0), p),
+      invoiced: round(
+        rows.reduce((s, r) => s + r.invoiced, 0),
+        p,
+      ),
+      paid: round(
+        rows.reduce((s, r) => s + r.paid, 0),
+        p,
+      ),
+      outstanding: round(
+        rows.reduce((s, r) => s + r.outstanding, 0),
+        p,
+      ),
     },
   };
 }
@@ -216,6 +246,9 @@ export function paymentsReport(payments: Payment[], currency: string, range: Dat
   return {
     list,
     byMethod: [...byMethod.entries()].sort((a, b) => b[1] - a[1]),
-    total: round(list.reduce((s, x) => s + x.amount, 0), p),
+    total: round(
+      list.reduce((s, x) => s + x.amount, 0),
+      p,
+    ),
   };
 }

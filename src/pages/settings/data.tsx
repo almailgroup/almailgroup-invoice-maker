@@ -20,7 +20,13 @@ import { formatBytes, requestPersistentStorage, storageStatus } from '@/lib/stor
 import { daysBetween, today } from '@/lib/dates';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/misc';
-import { Dialog, DialogBody, DialogContent, DialogFooter, useConfirm } from '@/components/ui/overlay';
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogFooter,
+  useConfirm,
+} from '@/components/ui/overlay';
 import { SettingsSection } from './shared';
 
 function downloadJson(data: unknown, fileName: string) {
@@ -87,7 +93,8 @@ export default function DataSettings() {
     if (mode === 'replace') {
       const ok = await confirm({
         title: 'Replace all data?',
-        description: 'Everything currently stored in this browser is deleted and replaced by the backup.',
+        description:
+          'Everything currently stored in this browser is deleted and replaced by the backup.',
         confirmLabel: 'Replace everything',
         danger: true,
       });
@@ -108,7 +115,8 @@ export default function DataSettings() {
   const wipe = async () => {
     const ok = await confirm({
       title: 'Delete all data in this browser?',
-      description: 'All companies, clients, invoices and payments stored here are removed permanently. Download a backup first.',
+      description:
+        'All companies, clients, invoices and payments stored here are removed permanently. Download a backup first.',
       confirmLabel: 'Delete everything',
       danger: true,
     });
@@ -124,8 +132,9 @@ export default function DataSettings() {
       <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
         <p className="font-medium">Your data lives only in this browser.</p>
         <p className="mt-1">
-          Nothing is uploaded to a server — that keeps it private, but clearing browser data or switching computers
-          loses it. Download a backup regularly and restore it on another device when needed.
+          Nothing is uploaded to a server — that keeps it private, but clearing browser data or
+          switching computers loses it. Download a backup regularly and restore it on another device
+          when needed.
         </p>
       </div>
 
@@ -154,7 +163,10 @@ export default function DataSettings() {
         </div>
       </SettingsSection>
 
-      <SettingsSection title="Restore" description="Load a backup file made with Invoice Maker (.json).">
+      <SettingsSection
+        title="Restore"
+        description="Load a backup file made with Invoice Maker (.json)."
+      >
         <Button variant="outline" onClick={() => input.current?.click()}>
           <Upload /> Choose backup file…
         </Button>
@@ -189,7 +201,9 @@ export default function DataSettings() {
                   const ok = await requestPersistentStorage();
                   setStatus(await storageStatus());
                   toast[ok ? 'success' : 'message'](
-                    ok ? 'Storage is now protected.' : 'Your browser decides this automatically (bookmarking or installing the app helps).',
+                    ok
+                      ? 'Storage is now protected.'
+                      : 'Your browser decides this automatically (bookmarking or installing the app helps).',
                   );
                 }}
               >
@@ -202,7 +216,9 @@ export default function DataSettings() {
 
       <SettingsSection title="Danger zone">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-slate-600">Remove every company and record from this browser.</p>
+          <p className="text-sm text-slate-600">
+            Remove every company and record from this browser.
+          </p>
           <Button variant="danger" onClick={() => void wipe()}>
             <AlertTriangle /> Delete all data
           </Button>
@@ -211,7 +227,10 @@ export default function DataSettings() {
 
       <Dialog open={pending !== null} onOpenChange={(open) => !open && setPending(null)}>
         {pending ? (
-          <DialogContent title="Restore backup" description={`Created ${fmt.dateTime(pending.exportedAt)}`}>
+          <DialogContent
+            title="Restore backup"
+            description={`Created ${fmt.dateTime(pending.exportedAt)}`}
+          >
             <DialogBody>
               <ul className="divide-y divide-slate-100 text-sm">
                 {Object.entries(summarizeBackup(pending)).map(([table, count]) => (
@@ -222,18 +241,26 @@ export default function DataSettings() {
                 ))}
               </ul>
               <p className="text-sm text-slate-500">
-                <strong>Merge</strong> adds the backup to what is already here (records with the same id are
-                updated). <strong>Replace</strong> deletes everything first.
+                <strong>Merge</strong> adds the backup to what is already here (records with the
+                same id are updated). <strong>Replace</strong> deletes everything first.
               </p>
             </DialogBody>
             <DialogFooter>
               <Button variant="outline" onClick={() => setPending(null)}>
                 Cancel
               </Button>
-              <Button variant="outline" onClick={() => void restore('merge')} loading={busy === 'merge'}>
+              <Button
+                variant="outline"
+                onClick={() => void restore('merge')}
+                loading={busy === 'merge'}
+              >
                 Merge
               </Button>
-              <Button variant="danger" onClick={() => void restore('replace')} loading={busy === 'replace'}>
+              <Button
+                variant="danger"
+                onClick={() => void restore('replace')}
+                loading={busy === 'replace'}
+              >
                 Replace everything
               </Button>
             </DialogFooter>

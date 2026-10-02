@@ -43,14 +43,16 @@ export const TEMPLATE_META: TemplateMeta[] = [
   {
     id: 'bold',
     name: 'Bold',
-    description: 'Big, confident type with a dark summary band — makes the amount due impossible to miss.',
+    description:
+      'Big, confident type with a dark summary band — makes the amount due impossible to miss.',
     tags: ['Striking', 'Dark'],
     defaultAccent: '#f97316',
   },
   {
     id: 'classic',
     name: 'Classic',
-    description: 'Traditional boxed layout with ruled tables — familiar to every accounts department.',
+    description:
+      'Traditional boxed layout with ruled tables — familiar to every accounts department.',
     tags: ['Traditional', 'Structured'],
     defaultAccent: '#0e7490',
   },
@@ -64,14 +66,16 @@ export const TEMPLATE_META: TemplateMeta[] = [
   {
     id: 'compact',
     name: 'Compact',
-    description: 'Dense, efficient layout that fits many line items per page — great for itemised services.',
+    description:
+      'Dense, efficient layout that fits many line items per page — great for itemised services.',
     tags: ['Many items', 'Efficient'],
     defaultAccent: '#2563eb',
   },
   {
     id: 'gradient',
     name: 'Gradient',
-    description: 'Vibrant gradient header in your brand colour, with the logo on a clean white card.',
+    description:
+      'Vibrant gradient header in your brand colour, with the logo on a clean white card.',
     tags: ['Colorful', 'Modern'],
     defaultAccent: '#7c3aed',
   },

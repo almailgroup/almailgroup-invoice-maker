@@ -75,7 +75,8 @@ export function PdfPreview({
           const canvas = document.createElement('canvas');
           canvas.width = Math.floor(viewport.width);
           canvas.height = Math.floor(viewport.height);
-          canvas.className = 'block w-full rounded-sm bg-white shadow-[0_1px_3px_rgba(15,23,42,0.12),0_8px_24px_-8px_rgba(15,23,42,0.18)]';
+          canvas.className =
+            'block w-full rounded-sm bg-white shadow-[0_1px_3px_rgba(15,23,42,0.12),0_8px_24px_-8px_rgba(15,23,42,0.18)]';
           canvas.setAttribute('aria-label', `Page ${n}`);
           await page.render({ canvas, viewport }).promise;
           if (cancelled) return;
@@ -86,7 +87,8 @@ export function PdfPreview({
         setRendered(true);
         setRenderError(null);
       } catch (e) {
-        if (!cancelled) setRenderError(e instanceof Error ? e.message : 'Could not display the PDF.');
+        if (!cancelled)
+          setRenderError(e instanceof Error ? e.message : 'Could not display the PDF.');
       }
     })();
 

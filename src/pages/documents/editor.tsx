@@ -53,9 +53,18 @@ export default function DocumentEditorPage({ type }: { type: DocumentType }) {
   const fmt = useFormat();
   const labels = DOCUMENT_LABELS[type];
 
-  const clients = useLiveQuery(() => db.clients.where('companyId').equals(company.id).toArray(), [company.id]);
-  const products = useLiveQuery(() => db.products.where('companyId').equals(company.id).toArray(), [company.id]);
-  const taxRates = useLiveQuery(() => db.taxRates.where('companyId').equals(company.id).toArray(), [company.id]);
+  const clients = useLiveQuery(
+    () => db.clients.where('companyId').equals(company.id).toArray(),
+    [company.id],
+  );
+  const products = useLiveQuery(
+    () => db.products.where('companyId').equals(company.id).toArray(),
+    [company.id],
+  );
+  const taxRates = useLiveQuery(
+    () => db.taxRates.where('companyId').equals(company.id).toArray(),
+    [company.id],
+  );
 
   const [doc, setDoc] = useState<InvoiceDocument | null>(null);
   const [original, setOriginal] = useState('');
@@ -63,7 +72,10 @@ export default function DocumentEditorPage({ type }: { type: DocumentType }) {
   const [numberHint, setNumberHint] = useState('');
   const [errors, setErrors] = useState<{ client?: string; number?: string; items?: string }>({});
   const [saving, setSaving] = useState<SaveIntent | null>(null);
-  const [clientDialog, setClientDialog] = useState<{ open: boolean; name: string }>({ open: false, name: '' });
+  const [clientDialog, setClientDialog] = useState<{ open: boolean; name: string }>({
+    open: false,
+    name: '',
+  });
   const [showPreview, setShowPreview] = useState(true);
   const [mobilePreview, setMobilePreview] = useState(false);
   const [notFound, setNotFound] = useState(false);
@@ -120,7 +132,8 @@ export default function DocumentEditorPage({ type }: { type: DocumentType }) {
   }, [issueDate, hasNumber, type, client?.number]);
 
   const result = useMemo(
-    () => (doc ? computeDocument(doc, { paid: doc.totals.paid, taxExempt: client?.taxExempt }) : null),
+    () =>
+      doc ? computeDocument(doc, { paid: doc.totals.paid, taxExempt: client?.taxExempt }) : null,
     [doc, client],
   );
 
@@ -129,7 +142,12 @@ export default function DocumentEditorPage({ type }: { type: DocumentType }) {
     [doc, numberHint],
   );
   const templateId = doc?.templateId ?? company.branding.templateId;
-  const pdf = useLivePdf(showPreview || mobilePreview ? previewDoc : null, company, client, templateId);
+  const pdf = useLivePdf(
+    showPreview || mobilePreview ? previewDoc : null,
+    company,
+    client,
+    templateId,
+  );
 
   const dirty = doc !== null && JSON.stringify(doc) !== original;
   const allowNavigation = useUnsavedGuard(dirty && saving === null);
@@ -138,7 +156,10 @@ export default function DocumentEditorPage({ type }: { type: DocumentType }) {
     return (
       <Card className="p-10 text-center">
         <p className="text-slate-600">This {labels.singular.toLowerCase()} could not be found.</p>
-        <Link to={DOCUMENT_ROUTES[type]} className="mt-4 inline-block text-sm font-medium text-primary-700">
+        <Link
+          to={DOCUMENT_ROUTES[type]}
+          className="text-primary-700 mt-4 inline-block text-sm font-medium"
+        >
           Back to {labels.plural.toLowerCase()}
         </Link>
       </Card>
@@ -156,7 +177,8 @@ export default function DocumentEditorPage({ type }: { type: DocumentType }) {
 
   const termsDays = doc.dueDate ? daysBetween(doc.issueDate, doc.dueDate) : null;
   const termsOptions = type === 'quote' ? QUOTE_VALIDITY : PAYMENT_TERMS;
-  const termsValue = termsDays === null ? 'none' : termsOptions.includes(termsDays) ? String(termsDays) : 'custom';
+  const termsValue =
+    termsDays === null ? 'none' : termsOptions.includes(termsDays) ? String(termsDays) : 'custom';
 
   const selectClient = (clientId: string) => {
     const picked = clients.find((c) => c.id === clientId);
@@ -167,7 +189,10 @@ export default function DocumentEditorPage({ type }: { type: DocumentType }) {
       if (picked) {
         if (isNew || d.totals.paid === 0) next.currency = picked.currency || company.currency;
         if (type === 'invoice' && isNew) {
-          next.dueDate = addDaysISO(d.issueDate, picked.paymentTermsDays ?? company.defaults.paymentTermsDays);
+          next.dueDate = addDaysISO(
+            d.issueDate,
+            picked.paymentTermsDays ?? company.defaults.paymentTermsDays,
+          );
         }
       }
       return next;
@@ -194,7 +219,9 @@ export default function DocumentEditorPage({ type }: { type: DocumentType }) {
       const saved = await saveDocument({
         ...doc,
         items: doc.items.filter((i) =>
-          i.kind === 'heading' ? i.name.trim() || i.description.trim() : i.name.trim() || i.description.trim() || i.unitPrice !== 0,
+          i.kind === 'heading'
+            ? i.name.trim() || i.description.trim()
+            : i.name.trim() || i.description.trim() || i.unitPrice !== 0,
         ),
         charges: doc.charges.filter((c) => c.label.trim() || c.amount !== 0),
       });
@@ -205,7 +232,8 @@ export default function DocumentEditorPage({ type }: { type: DocumentType }) {
         state: intent === 'download' ? { download: true } : undefined,
       });
     } catch (error) {
-      if (error instanceof DuplicateNumberError) setErrors({ number: 'This number is already used.' });
+      if (error instanceof DuplicateNumberError)
+        setErrors({ number: 'This number is already used.' });
       toast.error(error instanceof Error ? error.message : 'Could not save.');
       setSaving(null);
     }
@@ -217,13 +245,13 @@ export default function DocumentEditorPage({ type }: { type: DocumentType }) {
     .map((c) => ({
       value: c.id,
       label: c.name,
-      detail: [c.contacts.find((x) => x.primary)?.email || c.email, c.address.city].filter(Boolean).join(' · '),
+      detail: [c.contacts.find((x) => x.primary)?.email || c.email, c.address.city]
+        .filter(Boolean)
+        .join(' · '),
       keywords: c.number,
     }));
 
-  const preview = (
-    <PdfPreview blob={pdf.blob} loading={pdf.loading} error={pdf.error} />
-  );
+  const preview = <PdfPreview blob={pdf.blob} loading={pdf.loading} error={pdf.error} />;
 
   const templateSelect = (
     <Select
@@ -233,7 +261,8 @@ export default function DocumentEditorPage({ type }: { type: DocumentType }) {
       className="h-8 text-xs"
     >
       <option value="">
-        Default ({TEMPLATE_META.find((t) => t.id === company.branding.templateId)?.name ?? 'Modern'})
+        Default ({TEMPLATE_META.find((t) => t.id === company.branding.templateId)?.name ?? 'Modern'}
+        )
       </option>
       {TEMPLATE_META.map((t) => (
         <option key={t.id} value={t.id}>
@@ -249,12 +278,21 @@ export default function DocumentEditorPage({ type }: { type: DocumentType }) {
         Cancel
       </Button>
       <div className="flex">
-        <Button onClick={() => save('save')} loading={saving === 'save'} disabled={saving !== null} className="rounded-r-none">
+        <Button
+          onClick={() => save('save')}
+          loading={saving === 'save'}
+          disabled={saving !== null}
+          className="rounded-r-none"
+        >
           <Save /> Save
         </Button>
         <DropdownMenu>
           <DropdownTrigger asChild>
-            <Button className="rounded-l-none border-l border-primary-500 px-2" disabled={saving !== null} aria-label="More save options">
+            <Button
+              className="border-primary-500 rounded-l-none border-l px-2"
+              disabled={saving !== null}
+              aria-label="More save options"
+            >
               <ChevronDown />
             </Button>
           </DropdownTrigger>
@@ -283,7 +321,9 @@ export default function DocumentEditorPage({ type }: { type: DocumentType }) {
             </Link>
           </p>
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-            {isNew ? `New ${labels.singular.toLowerCase()}` : `Edit ${labels.singular.toLowerCase()} ${doc.number}`}
+            {isNew
+              ? `New ${labels.singular.toLowerCase()}`
+              : `Edit ${labels.singular.toLowerCase()} ${doc.number}`}
           </h1>
         </div>
         <div className="flex items-center gap-2">
@@ -310,7 +350,11 @@ export default function DocumentEditorPage({ type }: { type: DocumentType }) {
         <div className="min-w-0 space-y-6">
           <Card>
             <CardBody className="grid gap-4 md:grid-cols-2">
-              <Field label={type === 'quote' ? 'Prepared for' : 'Bill to'} error={errors.client} className="md:col-span-2">
+              <Field
+                label={type === 'quote' ? 'Prepared for' : 'Bill to'}
+                error={errors.client}
+                className="md:col-span-2"
+              >
                 {(fid) => (
                   <Combobox
                     id={fid}
@@ -343,7 +387,13 @@ export default function DocumentEditorPage({ type }: { type: DocumentType }) {
                 )}
               </Field>
               <Field label="PO / reference" optional>
-                {(fid) => <Input id={fid} value={doc.poNumber} onChange={(e) => update({ poNumber: e.target.value })} />}
+                {(fid) => (
+                  <Input
+                    id={fid}
+                    value={doc.poNumber}
+                    onChange={(e) => update({ poNumber: e.target.value })}
+                  />
+                )}
               </Field>
               <Field label="Issue date">
                 {(fid) => (
@@ -356,7 +406,10 @@ export default function DocumentEditorPage({ type }: { type: DocumentType }) {
                       if (!value) return;
                       update({
                         issueDate: value,
-                        dueDate: doc.dueDate && termsDays !== null ? addDaysISO(value, termsDays) : doc.dueDate,
+                        dueDate:
+                          doc.dueDate && termsDays !== null
+                            ? addDaysISO(value, termsDays)
+                            : doc.dueDate,
                       });
                     }}
                   />
@@ -372,14 +425,19 @@ export default function DocumentEditorPage({ type }: { type: DocumentType }) {
                         onChange={(e) => {
                           const v = e.target.value;
                           if (v === 'none') update({ dueDate: null });
-                          else if (v !== 'custom') update({ dueDate: addDaysISO(doc.issueDate, Number(v)) });
+                          else if (v !== 'custom')
+                            update({ dueDate: addDaysISO(doc.issueDate, Number(v)) });
                         }}
                         className="w-36"
                       >
                         {type === 'invoice' ? <option value="none">No due date</option> : null}
                         {termsOptions.map((d) => (
                           <option key={d} value={d}>
-                            {type === 'quote' ? `${d} days` : d === 0 ? 'Due on receipt' : `Net ${d}`}
+                            {type === 'quote'
+                              ? `${d} days`
+                              : d === 0
+                                ? 'Due on receipt'
+                                : `Net ${d}`}
                           </option>
                         ))}
                         <option value="custom">Custom</option>
@@ -398,13 +456,28 @@ export default function DocumentEditorPage({ type }: { type: DocumentType }) {
                 <div />
               )}
               <Field label="Currency">
-                {(fid) => <CurrencySelect id={fid} value={doc.currency} onChange={(currency) => update({ currency })} />}
+                {(fid) => (
+                  <CurrencySelect
+                    id={fid}
+                    value={doc.currency}
+                    onChange={(currency) => update({ currency })}
+                  />
+                )}
               </Field>
             </CardBody>
           </Card>
 
           <Card>
-            <CardHeader title="Items" description={errors.items ? <span className="text-red-600">{errors.items}</span> : 'Type to search your products & services.'} />
+            <CardHeader
+              title="Items"
+              description={
+                errors.items ? (
+                  <span className="text-red-600">{errors.items}</span>
+                ) : (
+                  'Type to search your products & services.'
+                )
+              }
+            />
             <CardBody>
               <LineItemsEditor
                 items={doc.items}
@@ -429,17 +502,42 @@ export default function DocumentEditorPage({ type }: { type: DocumentType }) {
               <CardHeader title="Notes & terms" />
               <CardBody className="space-y-4">
                 <Field label="Notes" hint="Shown on the document.">
-                  {(fid) => <Textarea id={fid} value={doc.notes} onChange={(e) => update({ notes: e.target.value })} rows={3} />}
+                  {(fid) => (
+                    <Textarea
+                      id={fid}
+                      value={doc.notes}
+                      onChange={(e) => update({ notes: e.target.value })}
+                      rows={3}
+                    />
+                  )}
                 </Field>
                 <Field label="Terms & conditions">
-                  {(fid) => <Textarea id={fid} value={doc.terms} onChange={(e) => update({ terms: e.target.value })} rows={3} />}
+                  {(fid) => (
+                    <Textarea
+                      id={fid}
+                      value={doc.terms}
+                      onChange={(e) => update({ terms: e.target.value })}
+                      rows={3}
+                    />
+                  )}
                 </Field>
                 <Field label="Footer">
-                  {(fid) => <Input id={fid} value={doc.footer} onChange={(e) => update({ footer: e.target.value })} />}
+                  {(fid) => (
+                    <Input
+                      id={fid}
+                      value={doc.footer}
+                      onChange={(e) => update({ footer: e.target.value })}
+                    />
+                  )}
                 </Field>
                 <Field label="Private notes" hint="Only visible to you, never printed.">
                   {(fid) => (
-                    <Textarea id={fid} value={doc.privateNotes} onChange={(e) => update({ privateNotes: e.target.value })} rows={2} />
+                    <Textarea
+                      id={fid}
+                      value={doc.privateNotes}
+                      onChange={(e) => update({ privateNotes: e.target.value })}
+                      rows={2}
+                    />
                   )}
                 </Field>
               </CardBody>
@@ -464,7 +562,9 @@ export default function DocumentEditorPage({ type }: { type: DocumentType }) {
             </Card>
           </div>
 
-          <div className="flex justify-end border-t border-slate-200 pt-4 xl:hidden">{saveButtons}</div>
+          <div className="flex justify-end border-t border-slate-200 pt-4 xl:hidden">
+            {saveButtons}
+          </div>
         </div>
 
         {showPreview ? (
@@ -474,7 +574,9 @@ export default function DocumentEditorPage({ type }: { type: DocumentType }) {
                 <p className="text-sm font-medium text-slate-700">Live preview</p>
                 <div className="w-48">{templateSelect}</div>
               </div>
-              <div className="max-h-[calc(100dvh-8rem)] overflow-y-auto rounded-xl bg-slate-200/60 p-4">{preview}</div>
+              <div className="max-h-[calc(100dvh-8rem)] overflow-y-auto rounded-xl bg-slate-200/60 p-4">
+                {preview}
+              </div>
             </div>
           </aside>
         ) : null}

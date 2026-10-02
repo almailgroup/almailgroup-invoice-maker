@@ -35,7 +35,12 @@ export function ClientForm({
   return (
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Client name" className="sm:col-span-2" error={errors.name} hint="Company or person you are billing.">
+        <Field
+          label="Client name"
+          className="sm:col-span-2"
+          error={errors.name}
+          hint="Company or person you are billing."
+        >
           {(id) => (
             <Input
               id={id}
@@ -51,17 +56,37 @@ export function ClientForm({
       <section className="space-y-3">
         <h3 className="text-sm font-semibold text-slate-900">Contacts</h3>
         {contacts.map((contact, index) => (
-          <div key={contact.id} className="grid gap-3 rounded-lg border border-slate-200 p-3 sm:grid-cols-[1fr_1fr_1fr_auto]">
+          <div
+            key={contact.id}
+            className="grid gap-3 rounded-lg border border-slate-200 p-3 sm:grid-cols-[1fr_1fr_1fr_auto]"
+          >
             <Field label="Name">
-              {(id) => <Input id={id} value={contact.name} onChange={(e) => setContact(index, { name: e.target.value })} />}
+              {(id) => (
+                <Input
+                  id={id}
+                  value={contact.name}
+                  onChange={(e) => setContact(index, { name: e.target.value })}
+                />
+              )}
             </Field>
             <Field label="Email">
               {(id) => (
-                <Input id={id} type="email" value={contact.email} onChange={(e) => setContact(index, { email: e.target.value })} />
+                <Input
+                  id={id}
+                  type="email"
+                  value={contact.email}
+                  onChange={(e) => setContact(index, { email: e.target.value })}
+                />
               )}
             </Field>
             <Field label="Phone">
-              {(id) => <Input id={id} value={contact.phone} onChange={(e) => setContact(index, { phone: e.target.value })} />}
+              {(id) => (
+                <Input
+                  id={id}
+                  value={contact.phone}
+                  onChange={(e) => setContact(index, { phone: e.target.value })}
+                />
+              )}
             </Field>
             <div className="flex items-end gap-1 pb-0.5">
               <Button
@@ -69,7 +94,9 @@ export function ClientForm({
                 size="icon-sm"
                 title={contact.primary ? 'Primary contact' : 'Make primary'}
                 aria-label={contact.primary ? 'Primary contact' : 'Make primary contact'}
-                onClick={() => set({ contacts: contacts.map((c, i) => ({ ...c, primary: i === index })) })}
+                onClick={() =>
+                  set({ contacts: contacts.map((c, i) => ({ ...c, primary: i === index })) })
+                }
               >
                 <Star className={contact.primary ? 'fill-amber-400 text-amber-500' : ''} />
               </Button>
@@ -86,7 +113,11 @@ export function ClientForm({
             </div>
           </div>
         ))}
-        <Button variant="ghost" size="sm" onClick={() => set({ contacts: [...contacts, newContact(false)] })}>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => set({ contacts: [...contacts, newContact(false)] })}
+        >
           <Plus /> Add contact
         </Button>
       </section>
@@ -98,52 +129,90 @@ export function ClientForm({
           checked={showShipping}
           onChange={(on) => {
             setShowShipping(on);
-            set({ shippingAddress: on ? (value.shippingAddress ?? emptyAddress(value.address.country)) : null });
+            set({
+              shippingAddress: on
+                ? (value.shippingAddress ?? emptyAddress(value.address.country))
+                : null,
+            });
           }}
           label="Different shipping address"
         />
         {showShipping && value.shippingAddress ? (
-          <AddressFields value={value.shippingAddress} onChange={(shippingAddress) => set({ shippingAddress })} />
+          <AddressFields
+            value={value.shippingAddress}
+            onChange={(shippingAddress) => set({ shippingAddress })}
+          />
         ) : null}
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2">
         <Field label={company.taxIdLabel || 'Tax ID'} optional>
-          {(id) => <Input id={id} value={value.taxId} onChange={(e) => set({ taxId: e.target.value })} />}
+          {(id) => (
+            <Input id={id} value={value.taxId} onChange={(e) => set({ taxId: e.target.value })} />
+          )}
         </Field>
         <Field label="Phone (main)" optional>
-          {(id) => <Input id={id} value={value.phone} onChange={(e) => set({ phone: e.target.value })} />}
+          {(id) => (
+            <Input id={id} value={value.phone} onChange={(e) => set({ phone: e.target.value })} />
+          )}
         </Field>
         {!compact ? (
           <>
             <Field label="Website" optional>
-              {(id) => <Input id={id} value={value.website} onChange={(e) => set({ website: e.target.value })} />}
+              {(id) => (
+                <Input
+                  id={id}
+                  value={value.website}
+                  onChange={(e) => set({ website: e.target.value })}
+                />
+              )}
             </Field>
             <Field label="Currency" hint={`Leave as default to use ${company.currency}.`}>
               {(id) => (
                 <div className="flex gap-2">
                   <div className="flex-1">
-                    <CurrencySelect id={id} value={value.currency ?? company.currency} onChange={(currency) => set({ currency: currency === company.currency ? null : currency })} />
+                    <CurrencySelect
+                      id={id}
+                      value={value.currency ?? company.currency}
+                      onChange={(currency) =>
+                        set({ currency: currency === company.currency ? null : currency })
+                      }
+                    />
                   </div>
                   {value.currency ? (
-                    <Button variant="ghost" size="sm" className="h-9" onClick={() => set({ currency: null })}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-9"
+                      onClick={() => set({ currency: null })}
+                    >
                       Default
                     </Button>
                   ) : null}
                 </div>
               )}
             </Field>
-            <Field label="Payment terms (days)" hint={`Default: ${company.defaults.paymentTermsDays} days`}>
+            <Field
+              label="Payment terms (days)"
+              hint={`Default: ${company.defaults.paymentTermsDays} days`}
+            >
               {(id) => (
                 <div className="flex gap-2">
                   <NumberInput
                     id={id}
                     value={value.paymentTermsDays ?? company.defaults.paymentTermsDays}
-                    onValueChange={(days) => set({ paymentTermsDays: Math.max(0, Math.round(days)) })}
+                    onValueChange={(days) =>
+                      set({ paymentTermsDays: Math.max(0, Math.round(days)) })
+                    }
                     allowNegative={false}
                   />
                   {value.paymentTermsDays !== null ? (
-                    <Button variant="ghost" size="sm" className="h-9" onClick={() => set({ paymentTermsDays: null })}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-9"
+                      onClick={() => set({ paymentTermsDays: null })}
+                    >
                       Default
                     </Button>
                   ) : null}
@@ -155,7 +224,9 @@ export function ClientForm({
                 <Select
                   id={id}
                   value={value.language ?? ''}
-                  onChange={(e) => set({ language: (e.target.value || null) as Client['language'] })}
+                  onChange={(e) =>
+                    set({ language: (e.target.value || null) as Client['language'] })
+                  }
                 >
                   <option value="">Company default</option>
                   {LANGUAGES.map((l) => (
@@ -175,7 +246,14 @@ export function ClientForm({
               />
             </div>
             <Field label="Internal notes" className="sm:col-span-2" hint="Only visible to you.">
-              {(id) => <Textarea id={id} value={value.notes} onChange={(e) => set({ notes: e.target.value })} rows={3} />}
+              {(id) => (
+                <Textarea
+                  id={id}
+                  value={value.notes}
+                  onChange={(e) => set({ notes: e.target.value })}
+                  rows={3}
+                />
+              )}
             </Field>
           </>
         ) : null}

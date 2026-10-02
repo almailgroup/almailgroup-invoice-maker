@@ -120,22 +120,59 @@ export function AddressFields({
   return (
     <div className="grid gap-4 sm:grid-cols-6">
       <Field label="Address line 1" className="sm:col-span-6">
-        {(id) => <Input id={id} value={value.line1} onChange={(e) => set({ line1: e.target.value })} autoComplete="address-line1" />}
+        {(id) => (
+          <Input
+            id={id}
+            value={value.line1}
+            onChange={(e) => set({ line1: e.target.value })}
+            autoComplete="address-line1"
+          />
+        )}
       </Field>
       <Field label="Address line 2" className="sm:col-span-6" optional>
-        {(id) => <Input id={id} value={value.line2} onChange={(e) => set({ line2: e.target.value })} autoComplete="address-line2" />}
+        {(id) => (
+          <Input
+            id={id}
+            value={value.line2}
+            onChange={(e) => set({ line2: e.target.value })}
+            autoComplete="address-line2"
+          />
+        )}
       </Field>
       <Field label="City" className="sm:col-span-3">
-        {(id) => <Input id={id} value={value.city} onChange={(e) => set({ city: e.target.value })} autoComplete="address-level2" />}
+        {(id) => (
+          <Input
+            id={id}
+            value={value.city}
+            onChange={(e) => set({ city: e.target.value })}
+            autoComplete="address-level2"
+          />
+        )}
       </Field>
       <Field label="State / region" className="sm:col-span-3" optional>
-        {(id) => <Input id={id} value={value.state} onChange={(e) => set({ state: e.target.value })} autoComplete="address-level1" />}
+        {(id) => (
+          <Input
+            id={id}
+            value={value.state}
+            onChange={(e) => set({ state: e.target.value })}
+            autoComplete="address-level1"
+          />
+        )}
       </Field>
       <Field label="Postal code" className="sm:col-span-2">
-        {(id) => <Input id={id} value={value.postalCode} onChange={(e) => set({ postalCode: e.target.value })} autoComplete="postal-code" />}
+        {(id) => (
+          <Input
+            id={id}
+            value={value.postalCode}
+            onChange={(e) => set({ postalCode: e.target.value })}
+            autoComplete="postal-code"
+          />
+        )}
       </Field>
       <Field label="Country" className="sm:col-span-4">
-        {(id) => <CountrySelect id={id} value={value.country} onChange={(country) => set({ country })} />}
+        {(id) => (
+          <CountrySelect id={id} value={value.country} onChange={(country) => set({ country })} />
+        )}
       </Field>
     </div>
   );
@@ -281,7 +318,9 @@ export function ColorField({
             onClick={() => onChange(c)}
             className={cn(
               'size-7 rounded-full ring-offset-2 transition-shadow',
-              normalizeHex(value) === c ? 'ring-2 ring-slate-900' : 'hover:ring-2 hover:ring-slate-300',
+              normalizeHex(value) === c
+                ? 'ring-2 ring-slate-900'
+                : 'hover:ring-2 hover:ring-slate-300',
             )}
             style={{ backgroundColor: c }}
             aria-label={`Use colour ${c}`}

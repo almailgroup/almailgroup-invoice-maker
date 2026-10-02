@@ -26,7 +26,9 @@ import { ItemNameInput } from './item-name-input';
 import { TaxSelect } from './tax-select';
 
 function MiniLabel({ children }: { children: ReactNode }) {
-  return <span className="mb-1 block text-xs font-medium text-slate-500 @xl:hidden">{children}</span>;
+  return (
+    <span className="mb-1 block text-xs font-medium text-slate-500 @xl:hidden">{children}</span>
+  );
 }
 
 export function DiscountInput({
@@ -143,10 +145,18 @@ export function LineItemsEditor({
                 </Button>
               </DropdownTrigger>
               <DropdownContent>
-                <DropdownItem icon={<ArrowUp />} disabled={index === 0} onSelect={() => move(index, -1)}>
+                <DropdownItem
+                  icon={<ArrowUp />}
+                  disabled={index === 0}
+                  onSelect={() => move(index, -1)}
+                >
                   Move up
                 </DropdownItem>
-                <DropdownItem icon={<ArrowDown />} disabled={index === items.length - 1} onSelect={() => move(index, 1)}>
+                <DropdownItem
+                  icon={<ArrowDown />}
+                  disabled={index === items.length - 1}
+                  onSelect={() => move(index, 1)}
+                >
                   Move down
                 </DropdownItem>
                 <DropdownItem icon={<Copy />} onSelect={() => duplicate(index)}>
@@ -165,8 +175,14 @@ export function LineItemsEditor({
 
           if (item.kind === 'heading') {
             return (
-              <li key={item.id} className="flex items-start gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50/70 p-3">
-                <GripVertical className="mt-2.5 hidden size-4 shrink-0 text-slate-300 @xl:block" aria-hidden />
+              <li
+                key={item.id}
+                className="flex items-start gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50/70 p-3"
+              >
+                <GripVertical
+                  className="mt-2.5 hidden size-4 shrink-0 text-slate-300 @xl:block"
+                  aria-hidden
+                />
                 <div className="flex-1 space-y-2">
                   <Input
                     aria-label="Section heading"
@@ -193,7 +209,10 @@ export function LineItemsEditor({
             <li key={item.id} className="rounded-lg border border-slate-200 bg-white p-3 shadow-xs">
               <div className="grid grid-cols-12 gap-x-3 gap-y-2">
                 <div className="col-span-12 flex items-start gap-2 @xl:col-span-6">
-                  <GripVertical className="mt-2.5 hidden size-4 shrink-0 text-slate-300 @xl:block" aria-hidden />
+                  <GripVertical
+                    className="mt-2.5 hidden size-4 shrink-0 text-slate-300 @xl:block"
+                    aria-hidden
+                  />
                   <div className="min-w-0 flex-1">
                     <ItemNameInput
                       ariaLabel={`Item ${index + 1} name`}
@@ -224,7 +243,10 @@ export function LineItemsEditor({
                 <div className="col-span-4 flex items-start justify-end gap-1 @xl:col-span-2">
                   <div className="min-w-0 flex-1 text-right">
                     <MiniLabel>Amount</MiniLabel>
-                    <p className="tabular truncate pt-2 text-sm font-semibold text-slate-900" aria-label={`Item ${index + 1} amount`}>
+                    <p
+                      className="tabular truncate pt-2 text-sm font-semibold text-slate-900"
+                      aria-label={`Item ${index + 1} amount`}
+                    >
                       {formatMoney(line?.net ?? 0)}
                     </p>
                   </div>
@@ -277,7 +299,11 @@ export function LineItemsEditor({
       </ol>
 
       <div className="mt-3 flex flex-wrap gap-2">
-        <Button variant="outline" size="sm" onClick={() => onChange([...items, newLineItem(showTaxes ? defaultTaxes : [])])}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onChange([...items, newLineItem(showTaxes ? defaultTaxes : [])])}
+        >
           <Plus /> Add item
         </Button>
         <Button variant="ghost" size="sm" onClick={() => onChange([...items, newHeading()])}>

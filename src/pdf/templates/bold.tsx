@@ -40,7 +40,11 @@ function Bold({ model, theme }: TemplateProps) {
   };
 
   return (
-    <DocShell model={model} theme={theme} pageStyle={{ paddingTop: 38, paddingHorizontal: 42, paddingBottom: 70 }}>
+    <DocShell
+      model={model}
+      theme={theme}
+      pageStyle={{ paddingTop: 38, paddingHorizontal: 42, paddingBottom: 70 }}
+    >
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 18 }}>
         <View style={{ width: '52%' }}>
           <Text
@@ -78,7 +82,13 @@ function Bold({ model, theme }: TemplateProps) {
           </Text>
           <Lines
             lines={[...c.addressLines, ...companyContactLines(model), companyIdLine(model)]}
-            style={{ fontSize: 7.5, color: theme.muted, lineHeight: 1.45, textAlign: 'right', marginTop: 2 }}
+            style={{
+              fontSize: 7.5,
+              color: theme.muted,
+              lineHeight: 1.45,
+              textAlign: 'right',
+              marginTop: 2,
+            }}
           />
         </View>
       </View>
@@ -97,7 +107,10 @@ function Bold({ model, theme }: TemplateProps) {
           <Text style={{ fontSize: 10.5, fontWeight: 700, color: '#ffffff', marginBottom: 3 }}>
             {model.client.name || '—'}
           </Text>
-          <Lines lines={clientLines(model, false)} style={{ fontSize: 8, color: '#d1d5db', lineHeight: 1.45 }} />
+          <Lines
+            lines={clientLines(model, false)}
+            style={{ fontSize: 8, color: '#d1d5db', lineHeight: 1.45 }}
+          />
         </View>
         {model.shipTo ? (
           <View style={{ flex: 1, paddingRight: 14 }}>
@@ -105,14 +118,19 @@ function Bold({ model, theme }: TemplateProps) {
             <Text style={{ fontSize: 9.5, fontWeight: 700, color: '#ffffff', marginBottom: 3 }}>
               {model.shipTo.name}
             </Text>
-            <Lines lines={model.shipTo.lines} style={{ fontSize: 8, color: '#d1d5db', lineHeight: 1.45 }} />
+            <Lines
+              lines={model.shipTo.lines}
+              style={{ fontSize: 8, color: '#d1d5db', lineHeight: 1.45 }}
+            />
           </View>
         ) : null}
         <View style={{ flex: 0.9, paddingRight: 14 }}>
           {model.meta.map((m) => (
             <View key={m.label} style={{ marginBottom: 8 }}>
               <Text style={sx(darkLabel, { marginBottom: 2 })}>{m.label}</Text>
-              <Text style={sx({ fontSize: 9, fontWeight: 600, color: '#ffffff' }, TNUM)}>{m.value}</Text>
+              <Text style={sx({ fontSize: 9, fontWeight: 600, color: '#ffffff' }, TNUM)}>
+                {m.value}
+              </Text>
             </View>
           ))}
         </View>
@@ -121,7 +139,13 @@ function Bold({ model, theme }: TemplateProps) {
             <Text style={sx(darkLabel, { textAlign: 'right' })}>{model.amountDue.label}</Text>
             <Text
               style={sx(
-                { fontFamily: theme.fonts.heading, fontSize: 20, fontWeight: 700, color: theme.accentBright, textAlign: 'right' },
+                {
+                  fontFamily: theme.fonts.heading,
+                  fontSize: 20,
+                  fontWeight: 700,
+                  color: theme.accentBright,
+                  textAlign: 'right',
+                },
                 TNUM,
               )}
             >
@@ -134,7 +158,12 @@ function Bold({ model, theme }: TemplateProps) {
             ) : null}
           </View>
           {model.deposit ? (
-            <Text style={sx({ fontSize: 7.5, color: '#d1d5db', marginTop: 8, textAlign: 'right' }, TNUM)}>
+            <Text
+              style={sx(
+                { fontSize: 7.5, color: '#d1d5db', marginTop: 8, textAlign: 'right' },
+                TNUM,
+              )}
+            >
               {`${model.deposit.label}: ${model.deposit.value}${model.deposit.caption ? ` · ${model.deposit.caption}` : ''}`}
             </Text>
           ) : null}
@@ -150,7 +179,13 @@ function Bold({ model, theme }: TemplateProps) {
         styles={{
           cellPaddingX: 6,
           header: { borderBottomWidth: 2, borderBottomColor: DARK, paddingTop: 2 },
-          headerText: { color: DARK, fontSize: 7.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.7 },
+          headerText: {
+            color: DARK,
+            fontSize: 7.5,
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: 0.7,
+          },
           row: { borderBottomWidth: 0.75, borderBottomColor: '#e5e7eb', paddingVertical: 7.5 },
           title: { fontWeight: 700, color: DARK },
           amount: { fontWeight: 700, color: DARK },
@@ -168,9 +203,25 @@ function Bold({ model, theme }: TemplateProps) {
         totals={{
           width: 240,
           row: { paddingHorizontal: 6, paddingVertical: 3.5 },
-          strongRow: { paddingHorizontal: 6, borderTopWidth: 0.75, borderTopColor: '#e5e7eb', marginTop: 3, paddingTop: 6 },
-          grandRow: { backgroundColor: theme.accent, paddingHorizontal: 12, paddingVertical: 11, marginTop: 6 },
-          grandLabel: { color: theme.onAccent, fontSize: 10.5, textTransform: 'uppercase', letterSpacing: 0.6 },
+          strongRow: {
+            paddingHorizontal: 6,
+            borderTopWidth: 0.75,
+            borderTopColor: '#e5e7eb',
+            marginTop: 3,
+            paddingTop: 6,
+          },
+          grandRow: {
+            backgroundColor: theme.accent,
+            paddingHorizontal: 12,
+            paddingVertical: 11,
+            marginTop: 6,
+          },
+          grandLabel: {
+            color: theme.onAccent,
+            fontSize: 10.5,
+            textTransform: 'uppercase',
+            letterSpacing: 0.6,
+          },
           grandValue: { color: theme.onAccent, fontSize: 16, fontFamily: theme.fonts.heading },
           note: { paddingHorizontal: 6 },
         }}
@@ -178,7 +229,14 @@ function Bold({ model, theme }: TemplateProps) {
 
       <View
         fixed
-        style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 8, backgroundColor: theme.accent }}
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          height: 8,
+          backgroundColor: theme.accent,
+        }}
       />
       <RunningHeader model={model} theme={theme} marginX={42} />
       <PageFooter model={model} theme={theme} marginX={42} style={{ bottom: 24 }} />

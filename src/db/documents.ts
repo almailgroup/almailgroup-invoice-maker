@@ -83,7 +83,8 @@ export async function paidAmount(doc: Pick<InvoiceDocument, 'id' | 'type'>): Pro
     const payments = await db.payments.where('documentIds').equals(doc.id).toArray();
     return payments.reduce(
       (sum, p) =>
-        sum + p.allocations.filter((a) => a.documentId === doc.id).reduce((s, a) => s + a.amount, 0),
+        sum +
+        p.allocations.filter((a) => a.documentId === doc.id).reduce((s, a) => s + a.amount, 0),
       0,
     );
   }
@@ -133,7 +134,11 @@ export async function recalculateDocuments(ids: Iterable<ID>): Promise<void> {
   }
 }
 
-async function takenNumbers(companyId: ID, type: DocumentType, exceptId?: ID): Promise<Set<string>> {
+async function takenNumbers(
+  companyId: ID,
+  type: DocumentType,
+  exceptId?: ID,
+): Promise<Set<string>> {
   const docs = await db.documents.where('[companyId+type]').equals([companyId, type]).toArray();
   return new Set(docs.filter((d) => d.id !== exceptId).map((d) => d.number.trim().toLowerCase()));
 }
@@ -149,9 +154,19 @@ export async function isNumberTaken(
 }
 
 /** Next number that would be assigned, for display before saving. */
-export async function suggestNumber(company: Company, type: DocumentType, issueDate: string, clientNumber = '') {
+export async function suggestNumber(
+  company: Company,
+  type: DocumentType,
+  issueDate: string,
+  clientNumber = '',
+) {
   const taken = await takenNumbers(company.id, type);
-  return allocateNumber(company.numbering[type], issueDate, (n) => taken.has(n.toLowerCase()), clientNumber).number;
+  return allocateNumber(
+    company.numbering[type],
+    issueDate,
+    (n) => taken.has(n.toLowerCase()),
+    clientNumber,
+  ).number;
 }
 
 export class DuplicateNumberError extends Error {
@@ -165,45 +180,58 @@ export class DuplicateNumberError extends Error {
  * advances the company's counter. Returns the stored document.
  */
 export async function saveDocument(input: InvoiceDocument): Promise<InvoiceDocument> {
-  return db.transaction('rw', [db.documents, db.companies, db.clients, db.payments, db.activities], async () => {
-    const company = await db.companies.get(input.companyId);
-    if (!company) throw new Error('Company not found');
-    const existing = await db.documents.get(input.id);
-    const client = input.clientId ? await db.clients.get(input.clientId) : undefined;
-    let doc: InvoiceDocument = { ...input, number: input.number.trim() };
+  return db.transaction(
+    'rw',
+    [db.documents, db.companies, db.clients, db.payments, db.activities],
+    async () => {
+      const company = await db.companies.get(input.companyId);
+      if (!company) throw new Error('Company not found');
+      const existing = await db.documents.get(input.id);
+      const client = input.clientId ? await db.clients.get(input.clientId) : undefined;
+      let doc: InvoiceDocument = { ...input, number: input.number.trim() };
 
-    const taken = await takenNumbers(company.id, doc.type, doc.id);
-    if (!doc.number) {
-      const rule = company.numbering[doc.type];
-      const allocated = allocateNumber(rule, doc.issueDate, (n) => taken.has(n.toLowerCase()), client?.number ?? '');
-      doc.number = allocated.number;
-      await db.companies.put({
-        ...company,
-        numbering: { ...company.numbering, [doc.type]: allocated.rule },
-      });
-    } else if (taken.has(doc.number.toLowerCase())) {
-      throw new DuplicateNumberError(doc.number);
-    }
+      const taken = await takenNumbers(company.id, doc.type, doc.id);
+      if (!doc.number) {
+        const rule = company.numbering[doc.type];
+        const allocated = allocateNumber(
+          rule,
+          doc.issueDate,
+          (n) => taken.has(n.toLowerCase()),
+          client?.number ?? '',
+        );
+        doc.number = allocated.number;
+        await db.companies.put({
+          ...company,
+          numbering: { ...company.numbering, [doc.type]: allocated.rule },
+        });
+      } else if (taken.has(doc.number.toLowerCase())) {
+        throw new DuplicateNumberError(doc.number);
+      }
 
-    doc = applyTotals(doc, existing ? await paidAmount(existing) : 0, client ?? null);
-    doc.updatedAt = nowStamp();
-    if (!existing) doc.createdAt = doc.updatedAt;
-    await db.documents.put(doc);
+      doc = applyTotals(doc, existing ? await paidAmount(existing) : 0, client ?? null);
+      doc.updatedAt = nowStamp();
+      if (!existing) doc.createdAt = doc.updatedAt;
+      await db.documents.put(doc);
 
-    const noun = DOCUMENT_NOUN[doc.type];
-    await logActivity(
-      company.id,
-      doc.type,
-      doc.id,
-      existing ? 'updated' : 'created',
-      `${noun} ${doc.number} ${existing ? 'updated' : 'created'}`,
-      { clientId: doc.clientId || null, documentId: doc.id },
-    );
-    return doc;
-  });
+      const noun = DOCUMENT_NOUN[doc.type];
+      await logActivity(
+        company.id,
+        doc.type,
+        doc.id,
+        existing ? 'updated' : 'created',
+        `${noun} ${doc.number} ${existing ? 'updated' : 'created'}`,
+        { clientId: doc.clientId || null, documentId: doc.id },
+      );
+      return doc;
+    },
+  );
 }
 
-export async function setDocumentStatus(id: ID, status: DocumentStatus, message?: string): Promise<void> {
+export async function setDocumentStatus(
+  id: ID,
+  status: DocumentStatus,
+  message?: string,
+): Promise<void> {
   await db.transaction('rw', [db.documents, db.clients, db.payments, db.activities], async () => {
     const doc = await db.documents.get(id);
     if (!doc) return;
@@ -240,7 +268,11 @@ export async function deleteDocument(id: ID): Promise<void> {
     const payments = await db.payments.where('documentIds').equals(id).toArray();
     for (const p of payments) {
       const allocations = p.allocations.filter((a) => a.documentId !== id);
-      await db.payments.put({ ...p, allocations, documentIds: allocations.map((a) => a.documentId) });
+      await db.payments.put({
+        ...p,
+        allocations,
+        documentIds: allocations.map((a) => a.documentId),
+      });
     }
     if (doc.type === 'credit') {
       const uses = await db.payments.where('creditId').equals(id).toArray();
@@ -249,13 +281,24 @@ export async function deleteDocument(id: ID): Promise<void> {
       await recalculateDocuments(touched);
     }
     if (doc.type === 'quote') {
-      const fromQuote = await db.documents.where('companyId').equals(doc.companyId).filter((d) => d.sourceId === id).toArray();
+      const fromQuote = await db.documents
+        .where('companyId')
+        .equals(doc.companyId)
+        .filter((d) => d.sourceId === id)
+        .toArray();
       for (const d of fromQuote) await db.documents.put({ ...d, sourceId: null });
     }
     await db.documents.delete(id);
-    await logActivity(doc.companyId, doc.type, doc.id, 'deleted', `${DOCUMENT_NOUN[doc.type]} ${doc.number} deleted`, {
-      clientId: doc.clientId || null,
-    });
+    await logActivity(
+      doc.companyId,
+      doc.type,
+      doc.id,
+      'deleted',
+      `${DOCUMENT_NOUN[doc.type]} ${doc.number} deleted`,
+      {
+        clientId: doc.clientId || null,
+      },
+    );
   });
 }
 
@@ -299,11 +342,22 @@ export async function convertQuoteToInvoice(quoteId: ID): Promise<InvoiceDocumen
   const quote = await db.documents.get(quoteId);
   if (!quote || quote.type !== 'quote') throw new Error('Quote not found');
   const linked = await duplicateDocument(quoteId, 'invoice', { sourceId: quote.id });
-  await db.documents.update(quote.id, { status: 'invoiced', convertedToId: linked.id, updatedAt: nowStamp() });
-  await logActivity(quote.companyId, 'quote', quote.id, 'converted', `Quote ${quote.number} converted to invoice ${linked.number}`, {
-    clientId: quote.clientId || null,
-    documentId: quote.id,
+  await db.documents.update(quote.id, {
+    status: 'invoiced',
+    convertedToId: linked.id,
+    updatedAt: nowStamp(),
   });
+  await logActivity(
+    quote.companyId,
+    'quote',
+    quote.id,
+    'converted',
+    `Quote ${quote.number} converted to invoice ${linked.number}`,
+    {
+      clientId: quote.clientId || null,
+      documentId: quote.id,
+    },
+  );
   return linked;
 }
 

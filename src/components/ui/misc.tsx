@@ -24,7 +24,12 @@ export function CardHeader({
   className?: string;
 }) {
   return (
-    <div className={cn('flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4', className)}>
+    <div
+      className={cn(
+        'flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4',
+        className,
+      )}
+    >
       <div className="min-w-0">
         <h2 className="text-base font-semibold text-slate-900">{title}</h2>
         {description ? <p className="mt-0.5 text-sm text-slate-500">{description}</p> : null}
@@ -102,9 +107,11 @@ export function EmptyState({
   className?: string;
 }) {
   return (
-    <div className={cn('flex flex-col items-center justify-center px-6 py-14 text-center', className)}>
+    <div
+      className={cn('flex flex-col items-center justify-center px-6 py-14 text-center', className)}
+    >
       {icon ? (
-        <div className="mb-4 flex size-12 items-center justify-center rounded-full bg-primary-50 text-primary-600 [&_svg]:size-6">
+        <div className="bg-primary-50 text-primary-600 mb-4 flex size-12 items-center justify-center rounded-full [&_svg]:size-6">
           {icon}
         </div>
       ) : null}
@@ -155,7 +162,10 @@ export function Segmented<T extends string>({
   return (
     <div
       role="tablist"
-      className={cn('inline-flex max-w-full overflow-x-auto rounded-lg bg-slate-100 p-1', className)}
+      className={cn(
+        'inline-flex max-w-full overflow-x-auto rounded-lg bg-slate-100 p-1',
+        className,
+      )}
     >
       {options.map((o) => (
         <button
@@ -177,7 +187,9 @@ export function Segmented<T extends string>({
             <span
               className={cn(
                 'rounded-full px-1.5 text-xs',
-                value === o.value ? 'bg-slate-100 text-slate-700' : 'bg-slate-200/70 text-slate-600',
+                value === o.value
+                  ? 'bg-slate-100 text-slate-700'
+                  : 'bg-slate-200/70 text-slate-600',
               )}
             >
               {o.count}
@@ -211,7 +223,11 @@ export function Stat({
       <p
         className={cn(
           'mt-2 text-2xl font-semibold tracking-tight',
-          tone === 'danger' ? 'text-red-600' : tone === 'success' ? 'text-emerald-600' : 'text-slate-900',
+          tone === 'danger'
+            ? 'text-red-600'
+            : tone === 'success'
+              ? 'text-emerald-600'
+              : 'text-slate-900',
         )}
       >
         {value}

@@ -91,7 +91,12 @@ function Corporate({ model, theme }: TemplateProps) {
             {model.title}
           </Text>
           {model.number ? (
-            <Text style={sx({ fontSize: 9.5, color: theme.onAccent, opacity: 0.85, marginTop: 2 }, TNUM)}>
+            <Text
+              style={sx(
+                { fontSize: 9.5, color: theme.onAccent, opacity: 0.85, marginTop: 2 },
+                TNUM,
+              )}
+            >
               {model.number}
             </Text>
           ) : null}
@@ -104,10 +109,22 @@ function Corporate({ model, theme }: TemplateProps) {
               opacity: 1,
             }}
           >
-            <Text style={{ fontSize: 7, color: theme.onAccent, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+            <Text
+              style={{
+                fontSize: 7,
+                color: theme.onAccent,
+                textTransform: 'uppercase',
+                letterSpacing: 0.8,
+              }}
+            >
               {model.amountDue.label}
             </Text>
-            <Text style={sx({ fontSize: 16, fontWeight: 700, color: theme.onAccent, marginTop: 2 }, TNUM)}>
+            <Text
+              style={sx(
+                { fontSize: 16, fontWeight: 700, color: theme.onAccent, marginTop: 2 },
+                TNUM,
+              )}
+            >
               {model.amountDue.value}
             </Text>
             <StatusPill model={model} color={theme.onAccent} style={{ marginTop: 6 }} />
@@ -157,7 +174,6 @@ function Corporate({ model, theme }: TemplateProps) {
         </View>
       </View>
 
-
       <ItemsTable
         model={model}
         theme={theme}
@@ -186,7 +202,12 @@ function Corporate({ model, theme }: TemplateProps) {
         totals={{
           width: 240,
           container: { borderWidth: 0.75, borderColor: '#dbe2ea', borderRadius: 3 },
-          row: { paddingHorizontal: 10, paddingVertical: 4, borderBottomWidth: 0.5, borderBottomColor: '#eef2f7' },
+          row: {
+            paddingHorizontal: 10,
+            paddingVertical: 4,
+            borderBottomWidth: 0.5,
+            borderBottomColor: '#eef2f7',
+          },
           strongRow: { paddingHorizontal: 10, paddingVertical: 5, backgroundColor: '#f8fafc' },
           grandRow: { backgroundColor: theme.accent, paddingHorizontal: 10, paddingVertical: 8 },
           grandLabel: { color: theme.onAccent },
@@ -215,7 +236,14 @@ function Corporate({ model, theme }: TemplateProps) {
       {companyIdLine(model) ? (
         <Text
           fixed
-          style={{ position: 'absolute', left: 40, right: 40, bottom: 33, fontSize: 7, color: theme.muted }}
+          style={{
+            position: 'absolute',
+            left: 40,
+            right: 40,
+            bottom: 33,
+            fontSize: 7,
+            color: theme.muted,
+          }}
         >
           {companyIdLine(model)}
         </Text>

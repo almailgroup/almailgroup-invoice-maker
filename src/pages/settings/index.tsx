@@ -39,7 +39,10 @@ const SECTIONS = [
 export default function SettingsPage() {
   return (
     <div>
-      <PageHeader title="Settings" description="Your company details and how your documents are created." />
+      <PageHeader
+        title="Settings"
+        description="Your company details and how your documents are created."
+      />
       <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
         <nav aria-label="Settings sections" className="lg:sticky lg:top-20 lg:self-start">
           <ul className="flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0">
@@ -51,7 +54,7 @@ export default function SettingsPage() {
                     cn(
                       'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap [&_svg]:size-4',
                       isActive
-                        ? 'bg-white text-primary-700 shadow-xs ring-1 ring-slate-200 [&_svg]:text-primary-600'
+                        ? 'text-primary-700 [&_svg]:text-primary-600 bg-white shadow-xs ring-1 ring-slate-200'
                         : 'text-slate-600 hover:bg-white hover:text-slate-900 [&_svg]:text-slate-400',
                     )
                   }

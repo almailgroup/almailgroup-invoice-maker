@@ -55,7 +55,9 @@ export function useLivePdf(
 ) {
   const { delay = 350, accent } = options;
   // The latest finished render; `loading` is derived by comparing keys.
-  const [done, setDone] = useState<{ key: string; blob: Blob | null; error: string | null } | null>(null);
+  const [done, setDone] = useState<{ key: string; blob: Blob | null; error: string | null } | null>(
+    null,
+  );
   const latest = useRef<string | null>(null);
 
   // A stable key so re-renders with equal data don't regenerate the PDF.

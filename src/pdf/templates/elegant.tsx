@@ -47,9 +47,7 @@ function Elegant({ model, theme }: TemplateProps) {
       pageStyle={{ paddingTop: 36, paddingHorizontal: 50, color: BODY }}
     >
       <View style={{ alignItems: 'center' }}>
-        {c.logo ? (
-          <Logo src={c.logo} width={160} height={44} align="center" />
-        ) : null}
+        {c.logo ? <Logo src={c.logo} width={160} height={44} align="center" /> : null}
         <Text
           style={{
             fontFamily: theme.fonts.heading,
@@ -93,7 +91,13 @@ function Elegant({ model, theme }: TemplateProps) {
         {model.number ? (
           <Text
             style={sx(
-              { fontSize: 8, color: MUTED, letterSpacing: 2.2, marginTop: 4, textTransform: 'uppercase' },
+              {
+                fontSize: 8,
+                color: MUTED,
+                letterSpacing: 2.2,
+                marginTop: 4,
+                textTransform: 'uppercase',
+              },
               TNUM,
             )}
           >
@@ -119,7 +123,12 @@ function Elegant({ model, theme }: TemplateProps) {
             name={model.shipTo.name}
             lines={model.shipTo.lines}
             labelStyle={smallCaps}
-            nameStyle={{ fontFamily: theme.fonts.heading, fontSize: 11, fontWeight: 400, color: INK }}
+            nameStyle={{
+              fontFamily: theme.fonts.heading,
+              fontSize: 11,
+              fontWeight: 400,
+              color: INK,
+            }}
             linesStyle={{ color: BODY }}
           />
         ) : null}
@@ -127,7 +136,9 @@ function Elegant({ model, theme }: TemplateProps) {
           <MetaRows
             rows={[
               ...model.meta,
-              ...(model.deposit ? [{ label: model.deposit.label, value: model.deposit.value }] : []),
+              ...(model.deposit
+                ? [{ label: model.deposit.label, value: model.deposit.value }]
+                : []),
             ]}
             labelStyle={{ fontSize: 8.5, color: MUTED, fontStyle: 'italic' }}
             valueStyle={{ fontSize: 8.5, color: INK }}
@@ -135,12 +146,7 @@ function Elegant({ model, theme }: TemplateProps) {
           />
           <View style={{ marginTop: 10, alignItems: 'flex-end' }}>
             <Text style={sx(smallCaps, { marginBottom: 2 })}>{model.amountDue.label}</Text>
-            <Text
-              style={sx(
-                { fontFamily: theme.fonts.heading, fontSize: 18, color: INK },
-                TNUM,
-              )}
-            >
+            <Text style={sx({ fontFamily: theme.fonts.heading, fontSize: 18, color: INK }, TNUM)}>
               {model.amountDue.value}
             </Text>
           </View>
@@ -205,8 +211,19 @@ function Elegant({ model, theme }: TemplateProps) {
             marginTop: 8,
             paddingVertical: 8,
           },
-          grandLabel: { fontFamily: theme.fonts.heading, fontStyle: 'italic', fontWeight: 400, fontSize: 12, color: INK },
-          grandValue: { fontFamily: theme.fonts.heading, fontSize: 15, fontWeight: 700, color: INK },
+          grandLabel: {
+            fontFamily: theme.fonts.heading,
+            fontStyle: 'italic',
+            fontWeight: 400,
+            fontSize: 12,
+            color: INK,
+          },
+          grandValue: {
+            fontFamily: theme.fonts.heading,
+            fontSize: 15,
+            fontWeight: 700,
+            color: INK,
+          },
         }}
       />
 

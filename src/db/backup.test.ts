@@ -53,13 +53,22 @@ describe('backup', () => {
     expect(() => parseBackup('nope')).toThrow(BackupError);
     expect(() => parseBackup(JSON.stringify({ app: 'other' }))).toThrow(BackupError);
     expect(() =>
-      parseBackup(JSON.stringify({ app: 'invoice-maker', format: 99, exportedAt: '', data: { companies: [] } })),
+      parseBackup(
+        JSON.stringify({
+          app: 'invoice-maker',
+          format: 99,
+          exportedAt: '',
+          data: { companies: [] },
+        }),
+      ),
     ).toThrow(/newer version/);
   });
 
   it('sanitizes logos on import', async () => {
     const a = await setupCompany({ name: 'A' });
-    await db.companies.update(a.id, { branding: { ...a.branding, logo: 'data:image/png;base64,broken' } });
+    await db.companies.update(a.id, {
+      branding: { ...a.branding, logo: 'data:image/png;base64,broken' },
+    });
     const backup = await exportBackup();
     await importBackup(backup, 'replace', async () => null);
     expect((await db.companies.get(a.id))?.branding.logo).toBeNull();

@@ -19,7 +19,15 @@ import { displayStatus } from '@/lib/status';
 import { daysBetween, today } from '@/lib/dates';
 import { paymentMethodLabel } from '@/db/payments';
 import { ButtonLink } from '@/components/ui/button';
-import { Card, CardBody, CardHeader, PageHeader, Spinner, Stat, StatusBadge } from '@/components/ui/misc';
+import {
+  Card,
+  CardBody,
+  CardHeader,
+  PageHeader,
+  Spinner,
+  Stat,
+  StatusBadge,
+} from '@/components/ui/misc';
 import { ColumnChart } from '@/components/charts/column-chart';
 
 // Validated categorical slots 1 and 2 (dataviz reference palette, light surface).
@@ -62,10 +70,22 @@ export default function DashboardPage() {
   const fmt = useFormat();
   const now = today();
 
-  const docs = useLiveQuery(() => db.documents.where('companyId').equals(company.id).toArray(), [company.id]);
-  const payments = useLiveQuery(() => db.payments.where('companyId').equals(company.id).toArray(), [company.id]);
-  const clients = useLiveQuery(() => db.clients.where('companyId').equals(company.id).toArray(), [company.id]);
-  const taxRateCount = useLiveQuery(() => db.taxRates.where('companyId').equals(company.id).count(), [company.id]);
+  const docs = useLiveQuery(
+    () => db.documents.where('companyId').equals(company.id).toArray(),
+    [company.id],
+  );
+  const payments = useLiveQuery(
+    () => db.payments.where('companyId').equals(company.id).toArray(),
+    [company.id],
+  );
+  const clients = useLiveQuery(
+    () => db.clients.where('companyId').equals(company.id).toArray(),
+    [company.id],
+  );
+  const taxRateCount = useLiveQuery(
+    () => db.taxRates.where('companyId').equals(company.id).count(),
+    [company.id],
+  );
   const activity = useLiveQuery(
     () =>
       db.activities
@@ -94,7 +114,8 @@ export default function DashboardPage() {
 
     const otherCurrencies = new Map<string, number>();
     for (const d of open) {
-      if (d.currency !== base) otherCurrencies.set(d.currency, (otherCurrencies.get(d.currency) ?? 0) + d.totals.balance);
+      if (d.currency !== base)
+        otherCurrencies.set(d.currency, (otherCurrencies.get(d.currency) ?? 0) + d.totals.balance);
     }
 
     const cash = payments.filter((p) => p.method !== 'credit_note' && p.currency === base);
@@ -104,9 +125,13 @@ export default function DashboardPage() {
 
     const keys = monthKeys(12, now);
     const invoicedByMonth = keys.map((k) =>
-      issued.filter((d) => d.currency === base && d.issueDate.startsWith(k)).reduce((s, d) => s + d.totals.total, 0),
+      issued
+        .filter((d) => d.currency === base && d.issueDate.startsWith(k))
+        .reduce((s, d) => s + d.totals.total, 0),
     );
-    const collectedByMonth = keys.map((k) => cash.filter((p) => p.date.startsWith(k)).reduce((s, p) => s + p.amount, 0));
+    const collectedByMonth = keys.map((k) =>
+      cash.filter((p) => p.date.startsWith(k)).reduce((s, p) => s + p.amount, 0),
+    );
     const monthFormat = new Intl.DateTimeFormat(fmt.locale, { month: 'short' });
     const labels = keys.map((k) => {
       const [yy, mm] = k.split('-').map(Number);
@@ -114,7 +139,9 @@ export default function DashboardPage() {
       return mm === 1 ? `${label} ’${String(yy).slice(2)}` : label;
     });
 
-    const quotesWaiting = docs.filter((d) => d.type === 'quote' && displayStatus(d, now) === 'sent');
+    const quotesWaiting = docs.filter(
+      (d) => d.type === 'quote' && displayStatus(d, now) === 'sent',
+    );
 
     return {
       clientsById,
@@ -122,12 +149,23 @@ export default function DashboardPage() {
       openCount: open.filter((d) => d.currency === base).length,
       otherCurrencies: [...otherCurrencies.entries()],
       overdue,
-      overdueTotal: overdue.filter((o) => o.doc.currency === base).reduce((s, o) => s + o.doc.totals.balance, 0),
-      collectedThisMonth: cash.filter((p) => p.date.startsWith(month)).reduce((s, p) => s + p.amount, 0),
-      invoicedThisYear: sum(issued.filter((d) => d.issueDate.startsWith(year)), (d) => d.totals.total),
+      overdueTotal: overdue
+        .filter((o) => o.doc.currency === base)
+        .reduce((s, o) => s + o.doc.totals.balance, 0),
+      collectedThisMonth: cash
+        .filter((p) => p.date.startsWith(month))
+        .reduce((s, p) => s + p.amount, 0),
+      invoicedThisYear: sum(
+        issued.filter((d) => d.issueDate.startsWith(year)),
+        (d) => d.totals.total,
+      ),
       drafts: invoices.filter((d) => d.status === 'draft').length,
-      recentInvoices: [...invoices].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 5),
-      recentPayments: [...payments].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt)).slice(0, 5),
+      recentInvoices: [...invoices]
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+        .slice(0, 5),
+      recentPayments: [...payments]
+        .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))
+        .slice(0, 5),
       quotesWaiting,
       chart: { labels, invoiced: invoicedByMonth, collected: collectedByMonth },
       hasClients: clients.length > 0,
@@ -145,8 +183,16 @@ export default function DashboardPage() {
   });
 
   const checklist = [
-    { done: Boolean(company.branding.logo) && Boolean(company.address.line1), label: 'Add your logo and address', to: '/settings/company' },
-    { done: Boolean(company.payment.bankDetails || company.payment.paymentLink), label: 'Add payment details', to: '/settings/payments' },
+    {
+      done: Boolean(company.branding.logo) && Boolean(company.address.line1),
+      label: 'Add your logo and address',
+      to: '/settings/company',
+    },
+    {
+      done: Boolean(company.payment.bankDetails || company.payment.paymentLink),
+      label: 'Add payment details',
+      to: '/settings/payments',
+    },
     { done: (taxRateCount ?? 0) > 0, label: 'Set up your tax rates', to: '/settings/taxes' },
     { done: data.hasClients, label: 'Add your first client', to: '/clients/new' },
     { done: data.hasInvoices, label: 'Create your first invoice', to: '/invoices/new' },
@@ -171,7 +217,7 @@ export default function DashboardPage() {
       />
 
       {showChecklist ? (
-        <Card className="relative overflow-hidden border-primary-100 bg-gradient-to-br from-primary-50 to-white">
+        <Card className="border-primary-100 from-primary-50 relative overflow-hidden bg-gradient-to-br to-white">
           <button
             type="button"
             onClick={dismissChecklist}
@@ -182,20 +228,24 @@ export default function DashboardPage() {
           </button>
           <CardBody>
             <h2 className="font-semibold text-slate-900">Finish setting up</h2>
-            <p className="mt-0.5 text-sm text-slate-600">A few details make your invoices look complete and professional.</p>
+            <p className="mt-0.5 text-sm text-slate-600">
+              A few details make your invoices look complete and professional.
+            </p>
             <ul className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
               {checklist.map((item) => (
                 <li key={item.label}>
                   <Link
                     to={item.to}
-                    className="flex h-full items-center gap-2 rounded-lg bg-white px-3 py-2.5 text-sm shadow-xs ring-1 ring-slate-200 hover:ring-primary-300"
+                    className="hover:ring-primary-300 flex h-full items-center gap-2 rounded-lg bg-white px-3 py-2.5 text-sm shadow-xs ring-1 ring-slate-200"
                   >
                     {item.done ? (
                       <CheckCircle2 className="size-4 shrink-0 text-emerald-600" />
                     ) : (
                       <Circle className="size-4 shrink-0 text-slate-300" />
                     )}
-                    <span className={item.done ? 'text-slate-400 line-through' : 'text-slate-700'}>{item.label}</span>
+                    <span className={item.done ? 'text-slate-400 line-through' : 'text-slate-700'}>
+                      {item.label}
+                    </span>
                   </Link>
                 </li>
               ))}
@@ -233,21 +283,38 @@ export default function DashboardPage() {
         <Stat
           label={`Invoiced in ${now.slice(0, 4)}`}
           value={fmt.money(data.invoicedThisYear)}
-          hint={data.drafts ? `${data.drafts} draft${data.drafts === 1 ? '' : 's'} not yet sent` : 'Excludes drafts'}
+          hint={
+            data.drafts
+              ? `${data.drafts} draft${data.drafts === 1 ? '' : 's'} not yet sent`
+              : 'Excludes drafts'
+          }
           icon={<FileText />}
         />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-3">
         <Card className="xl:col-span-2">
-          <CardHeader title="Invoiced vs collected" description={`Last 12 months · ${company.currency}`} />
+          <CardHeader
+            title="Invoiced vs collected"
+            description={`Last 12 months · ${company.currency}`}
+          />
           <CardBody>
             <ColumnChart
               title="Invoiced and collected per month"
               labels={data.chart.labels}
               series={[
-                { key: 'invoiced', label: 'Invoiced', color: SERIES_INVOICED, values: data.chart.invoiced },
-                { key: 'collected', label: 'Collected', color: SERIES_COLLECTED, values: data.chart.collected },
+                {
+                  key: 'invoiced',
+                  label: 'Invoiced',
+                  color: SERIES_INVOICED,
+                  values: data.chart.invoiced,
+                },
+                {
+                  key: 'collected',
+                  label: 'Collected',
+                  color: SERIES_COLLECTED,
+                  values: data.chart.collected,
+                },
               ]}
               formatValue={(v) => fmt.money(v)}
               formatTick={(v) => compact.format(v)}
@@ -260,7 +327,10 @@ export default function DashboardPage() {
             title="Needs attention"
             actions={
               data.overdue.length ? (
-                <Link to="/invoices?status=overdue" className="text-sm font-medium text-primary-700 hover:underline">
+                <Link
+                  to="/invoices?status=overdue"
+                  className="text-primary-700 text-sm font-medium hover:underline"
+                >
                   View all
                 </Link>
               ) : null
@@ -277,7 +347,10 @@ export default function DashboardPage() {
               <ul className="divide-y divide-slate-100">
                 {data.overdue.slice(0, 5).map(({ doc, days }) => (
                   <li key={doc.id}>
-                    <Link to={`/invoices/${doc.id}`} className="flex items-center justify-between gap-3 py-2.5">
+                    <Link
+                      to={`/invoices/${doc.id}`}
+                      className="flex items-center justify-between gap-3 py-2.5"
+                    >
                       <span className="min-w-0">
                         <span className="block truncate text-sm font-medium text-slate-800">
                           {data.clientsById.get(doc.clientId)?.name ?? '—'}
@@ -294,7 +367,10 @@ export default function DashboardPage() {
                 ))}
                 {data.quotesWaiting.slice(0, 3).map((q) => (
                   <li key={q.id}>
-                    <Link to={`/quotes/${q.id}`} className="flex items-center justify-between gap-3 py-2.5">
+                    <Link
+                      to={`/quotes/${q.id}`}
+                      className="flex items-center justify-between gap-3 py-2.5"
+                    >
                       <span className="min-w-0">
                         <span className="block truncate text-sm font-medium text-slate-800">
                           {data.clientsById.get(q.clientId)?.name ?? '—'}
@@ -303,7 +379,9 @@ export default function DashboardPage() {
                           <Clock className="size-3" /> Quote {q.number} awaiting reply
                         </span>
                       </span>
-                      <span className="tabular shrink-0 text-sm text-slate-700">{fmt.money(q.totals.total, q.currency)}</span>
+                      <span className="tabular shrink-0 text-sm text-slate-700">
+                        {fmt.money(q.totals.total, q.currency)}
+                      </span>
                     </Link>
                   </li>
                 ))}
@@ -318,7 +396,10 @@ export default function DashboardPage() {
           <CardHeader
             title="Recent invoices"
             actions={
-              <Link to="/invoices" className="flex items-center gap-1 text-sm font-medium text-primary-700 hover:underline">
+              <Link
+                to="/invoices"
+                className="text-primary-700 flex items-center gap-1 text-sm font-medium hover:underline"
+              >
                 All <ArrowRight className="size-3.5" />
               </Link>
             }
@@ -330,7 +411,10 @@ export default function DashboardPage() {
               <ul className="divide-y divide-slate-100">
                 {data.recentInvoices.map((d) => (
                   <li key={d.id}>
-                    <Link to={`/invoices/${d.id}`} className="flex items-center justify-between gap-3 py-2.5">
+                    <Link
+                      to={`/invoices/${d.id}`}
+                      className="flex items-center justify-between gap-3 py-2.5"
+                    >
                       <span className="min-w-0">
                         <span className="block truncate text-sm font-medium text-slate-800">
                           {data.clientsById.get(d.clientId)?.name ?? '—'}
@@ -340,7 +424,9 @@ export default function DashboardPage() {
                         </span>
                       </span>
                       <span className="flex shrink-0 flex-col items-end gap-1">
-                        <span className="tabular text-sm font-semibold text-slate-900">{fmt.money(d.totals.total, d.currency)}</span>
+                        <span className="tabular text-sm font-semibold text-slate-900">
+                          {fmt.money(d.totals.total, d.currency)}
+                        </span>
                         <StatusBadge status={displayStatus(d, now)} />
                       </span>
                     </Link>
@@ -355,7 +441,10 @@ export default function DashboardPage() {
           <CardHeader
             title="Recent payments"
             actions={
-              <Link to="/payments" className="flex items-center gap-1 text-sm font-medium text-primary-700 hover:underline">
+              <Link
+                to="/payments"
+                className="text-primary-700 flex items-center gap-1 text-sm font-medium hover:underline"
+              >
                 All <ArrowRight className="size-3.5" />
               </Link>
             }
@@ -367,7 +456,10 @@ export default function DashboardPage() {
               <ul className="divide-y divide-slate-100">
                 {data.recentPayments.map((p) => (
                   <li key={p.id}>
-                    <Link to={`/payments/${p.id}`} className="flex items-center justify-between gap-3 py-2.5">
+                    <Link
+                      to={`/payments/${p.id}`}
+                      className="flex items-center justify-between gap-3 py-2.5"
+                    >
                       <span className="min-w-0">
                         <span className="block truncate text-sm font-medium text-slate-800">
                           {data.clientsById.get(p.clientId)?.name ?? '—'}
@@ -394,7 +486,7 @@ export default function DashboardPage() {
               <ol className="space-y-3">
                 {activity.map((a) => (
                   <li key={a.id} className="flex gap-3">
-                    <span className="mt-1.5 size-2 shrink-0 rounded-full bg-primary-400" />
+                    <span className="bg-primary-400 mt-1.5 size-2 shrink-0 rounded-full" />
                     <span className="min-w-0">
                       <span className="block text-sm text-slate-700">{a.message}</span>
                       <span className="text-xs text-slate-400">{fmt.dateTime(a.at)}</span>

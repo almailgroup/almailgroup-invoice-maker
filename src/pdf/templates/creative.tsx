@@ -54,7 +54,6 @@ function Creative({ model, theme }: TemplateProps) {
         }
       />
 
-
       <View style={{ width: '62%', marginBottom: 20 }}>
         {c.logo ? (
           <Logo src={c.logo} width={150} height={46} />
@@ -94,7 +93,9 @@ function Creative({ model, theme }: TemplateProps) {
       <View style={{ flexDirection: 'row', marginBottom: 20 }}>
         <View style={sx(card, { flex: 1.2, backgroundColor: theme.surface, marginRight: 10 })}>
           <Text style={label}>{model.labels.from}</Text>
-          <Text style={{ fontSize: 9.5, fontWeight: 700, color: theme.ink, marginBottom: 2 }}>{c.name}</Text>
+          <Text style={{ fontSize: 9.5, fontWeight: 700, color: theme.ink, marginBottom: 2 }}>
+            {c.name}
+          </Text>
           <Lines
             lines={[...c.addressLines, ...companyContactLines(model, false), companyIdLine(model)]}
             style={{ fontSize: 7.5, color: theme.body, lineHeight: 1.45 }}
@@ -105,17 +106,25 @@ function Creative({ model, theme }: TemplateProps) {
           <Text style={{ fontSize: 9.5, fontWeight: 700, color: theme.ink, marginBottom: 2 }}>
             {model.client.name || '—'}
           </Text>
-          <Lines lines={clientLines(model, false)} style={{ fontSize: 7.5, color: theme.body, lineHeight: 1.45 }} />
+          <Lines
+            lines={clientLines(model, false)}
+            style={{ fontSize: 7.5, color: theme.body, lineHeight: 1.45 }}
+          />
           {model.shipTo ? (
             <View style={{ marginTop: 8 }}>
               <Text style={label}>{model.labels.shipTo}</Text>
-              <Lines lines={model.shipTo.lines} style={{ fontSize: 7.5, color: theme.body, lineHeight: 1.45 }} />
+              <Lines
+                lines={model.shipTo.lines}
+                style={{ fontSize: 7.5, color: theme.body, lineHeight: 1.45 }}
+              />
             </View>
           ) : null}
         </View>
         <View style={{ flex: 1 }}>
           <View style={sx(card, { backgroundColor: theme.accent, marginBottom: 10 })}>
-            <Text style={sx(label, { color: theme.onAccent, opacity: 0.85 })}>{model.amountDue.label}</Text>
+            <Text style={sx(label, { color: theme.onAccent, opacity: 0.85 })}>
+              {model.amountDue.label}
+            </Text>
             <Text style={sx({ fontSize: 17, fontWeight: 800, color: theme.onAccent }, TNUM)}>
               {model.amountDue.value}
             </Text>
@@ -128,7 +137,9 @@ function Creative({ model, theme }: TemplateProps) {
           <MetaRows
             rows={[
               ...model.meta,
-              ...(model.deposit ? [{ label: model.deposit.label, value: model.deposit.value }] : []),
+              ...(model.deposit
+                ? [{ label: model.deposit.label, value: model.deposit.value }]
+                : []),
             ]}
             labelStyle={{ fontSize: 8, color: theme.muted }}
             valueStyle={{ fontSize: 8, fontWeight: 700, color: theme.ink }}
@@ -145,7 +156,13 @@ function Creative({ model, theme }: TemplateProps) {
         theme={theme}
         styles={{
           header: { backgroundColor: theme.accentSoft, borderRadius: 8 },
-          headerText: { color: theme.accentInk, fontSize: 7.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6 },
+          headerText: {
+            color: theme.accentInk,
+            fontSize: 7.5,
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: 0.6,
+          },
           row: { borderBottomWidth: 0.75, borderBottomColor: theme.line, paddingVertical: 7.5 },
           headingText: { color: theme.accentInk },
         }}
@@ -159,8 +176,20 @@ function Creative({ model, theme }: TemplateProps) {
         totals={{
           width: 236,
           row: { paddingHorizontal: 10, paddingVertical: 3.5 },
-          strongRow: { paddingHorizontal: 10, borderTopWidth: 0.75, borderTopColor: theme.line, marginTop: 3, paddingTop: 6 },
-          grandRow: { backgroundColor: theme.accent, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 9, marginTop: 6 },
+          strongRow: {
+            paddingHorizontal: 10,
+            borderTopWidth: 0.75,
+            borderTopColor: theme.line,
+            marginTop: 3,
+            paddingTop: 6,
+          },
+          grandRow: {
+            backgroundColor: theme.accent,
+            borderRadius: 10,
+            paddingHorizontal: 12,
+            paddingVertical: 9,
+            marginTop: 6,
+          },
           grandLabel: { color: theme.onAccent },
           grandValue: { color: theme.onAccent, fontSize: 13 },
           note: { paddingHorizontal: 10 },

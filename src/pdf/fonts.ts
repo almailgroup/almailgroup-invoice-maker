@@ -1,14 +1,7 @@
 import { Font } from '@react-pdf/renderer';
 
 export type FontId =
-  | 'inter'
-  | 'manrope'
-  | 'plexsans'
-  | 'plexmono'
-  | 'playfair'
-  | 'lora'
-  | 'spacegrotesk'
-  | 'dmserif';
+  'inter' | 'manrope' | 'plexsans' | 'plexmono' | 'playfair' | 'lora' | 'spacegrotesk' | 'dmserif';
 
 interface FontFile {
   weight: number;
@@ -26,7 +19,11 @@ export interface FontFamilyDefinition {
 }
 
 const files = (prefix: string, weights: number[], italic: number[] = []): FontFile[] => [
-  ...weights.map((weight) => ({ weight, style: 'normal' as const, file: `${prefix}-${weight}.ttf` })),
+  ...weights.map((weight) => ({
+    weight,
+    style: 'normal' as const,
+    file: `${prefix}-${weight}.ttf`,
+  })),
   ...italic.map((weight) => ({
     weight,
     style: 'italic' as const,

@@ -71,10 +71,23 @@ const NAV: { title?: string; items: NavItem[] }[] = [
   },
 ];
 
-function CompanyLogo({ name, logo, className }: { name: string; logo: string | null; className?: string }) {
+function CompanyLogo({
+  name,
+  logo,
+  className,
+}: {
+  name: string;
+  logo: string | null;
+  className?: string;
+}) {
   if (logo) {
     return (
-      <span className={cn('flex size-8 items-center justify-center overflow-hidden rounded-md bg-white ring-1 ring-slate-200', className)}>
+      <span
+        className={cn(
+          'flex size-8 items-center justify-center overflow-hidden rounded-md bg-white ring-1 ring-slate-200',
+          className,
+        )}
+      >
         <img src={logo} alt="" className="max-h-full max-w-full object-contain" />
       </span>
     );
@@ -86,7 +99,12 @@ function CompanyLogo({ name, logo, className }: { name: string; logo: string | n
     .map((w) => w[0]?.toUpperCase())
     .join('');
   return (
-    <span className={cn('flex size-8 items-center justify-center rounded-md bg-primary-600 text-xs font-semibold text-white', className)}>
+    <span
+      className={cn(
+        'bg-primary-600 flex size-8 items-center justify-center rounded-md text-xs font-semibold text-white',
+        className,
+      )}
+    >
       {initials || <Building2 className="size-4" />}
     </span>
   );
@@ -105,8 +123,12 @@ function CompanySwitcher() {
         >
           <CompanyLogo name={company.name} logo={company.branding.logo} />
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-sm font-semibold text-slate-900">{company.name}</span>
-            <span className="block truncate text-xs text-slate-500">{company.currency} · Invoice Maker</span>
+            <span className="block truncate text-sm font-semibold text-slate-900">
+              {company.name}
+            </span>
+            <span className="block truncate text-xs text-slate-500">
+              {company.currency} · Invoice Maker
+            </span>
           </span>
           <ChevronsUpDown className="size-4 shrink-0 text-slate-400" />
         </button>
@@ -175,7 +197,11 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       </nav>
       <div className="border-t border-slate-200 px-5 py-3 text-xs text-slate-400">
         Data is stored in this browser.{' '}
-        <Link to="/settings/data" onClick={onNavigate} className="font-medium text-slate-500 underline-offset-2 hover:underline">
+        <Link
+          to="/settings/data"
+          onClick={onNavigate}
+          className="font-medium text-slate-500 underline-offset-2 hover:underline"
+        >
           Back up
         </Link>
       </div>
@@ -248,7 +274,9 @@ export function AppLayout() {
   useRecurringGeneration();
   const location = useLocation();
   // Full-width pages (the document editor) manage their own layout.
-  const wide = /\/(new|edit)$/.test(location.pathname) || /^\/(invoices|quotes|credits)\/[^/]+$/.test(location.pathname);
+  const wide =
+    /\/(new|edit)$/.test(location.pathname) ||
+    /^\/(invoices|quotes|credits)\/[^/]+$/.test(location.pathname);
 
   return (
     <div className="min-h-dvh">
@@ -261,7 +289,9 @@ export function AppLayout() {
           <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-slate-900/40 lg:hidden" />
           <DialogPrimitive.Content className="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-xl lg:hidden">
             <DialogPrimitive.Title className="sr-only">Navigation</DialogPrimitive.Title>
-            <DialogPrimitive.Description className="sr-only">Main navigation</DialogPrimitive.Description>
+            <DialogPrimitive.Description className="sr-only">
+              Main navigation
+            </DialogPrimitive.Description>
             <DialogPrimitive.Close className="absolute top-3 -right-11 rounded-md bg-white p-1.5 text-slate-500">
               <X className="size-5" />
               <span className="sr-only">Close menu</span>
@@ -285,7 +315,9 @@ export function AppLayout() {
           <div className="flex-1" />
           <NewMenu />
         </header>
-        <main className={cn('mx-auto px-4 py-6 sm:px-6 lg:py-8', wide ? 'max-w-[1600px]' : 'max-w-7xl')}>
+        <main
+          className={cn('mx-auto px-4 py-6 sm:px-6 lg:py-8', wide ? 'max-w-[1600px]' : 'max-w-7xl')}
+        >
           <Suspense fallback={<Spinner className="py-24" label="Loading…" />}>
             <Outlet />
           </Suspense>

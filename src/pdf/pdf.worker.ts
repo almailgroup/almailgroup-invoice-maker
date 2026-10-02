@@ -13,8 +13,7 @@ export interface PdfRequest {
 }
 
 export type PdfResponse =
-  | { id: number; ok: true; buffer: ArrayBuffer }
-  | { id: number; ok: false; error: string };
+  { id: number; ok: true; buffer: ArrayBuffer } | { id: number; ok: false; error: string };
 
 const scope = self as unknown as DedicatedWorkerGlobalScope;
 

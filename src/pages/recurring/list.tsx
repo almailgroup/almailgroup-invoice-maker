@@ -26,8 +26,14 @@ export default function RecurringListPage() {
   const fmt = useFormat();
   const navigate = useNavigate();
   const confirm = useConfirm();
-  const profiles = useLiveQuery(() => db.recurring.where('companyId').equals(company.id).toArray(), [company.id]);
-  const clients = useLiveQuery(() => db.clients.where('companyId').equals(company.id).toArray(), [company.id]);
+  const profiles = useLiveQuery(
+    () => db.recurring.where('companyId').equals(company.id).toArray(),
+    [company.id],
+  );
+  const clients = useLiveQuery(
+    () => db.clients.where('companyId').equals(company.id).toArray(),
+    [company.id],
+  );
 
   const rows = useMemo(() => {
     if (!profiles || !clients) return null;
@@ -37,9 +43,16 @@ export default function RecurringListPage() {
       .map((p) => ({
         profile: p,
         client: byId.get(p.clientId) ?? null,
-        total: computeDocument({ ...p.template, deposit: 0 }, { taxExempt: byId.get(p.clientId)?.taxExempt }).total,
+        total: computeDocument(
+          { ...p.template, deposit: 0 },
+          { taxExempt: byId.get(p.clientId)?.taxExempt },
+        ).total,
       }))
-      .sort((a, b) => order[a.profile.status] - order[b.profile.status] || (a.profile.nextIssueDate ?? '').localeCompare(b.profile.nextIssueDate ?? ''));
+      .sort(
+        (a, b) =>
+          order[a.profile.status] - order[b.profile.status] ||
+          (a.profile.nextIssueDate ?? '').localeCompare(b.profile.nextIssueDate ?? ''),
+      );
   }, [profiles, clients]);
 
   if (!rows) return <Spinner className="py-24" label="Loading…" />;
@@ -97,22 +110,35 @@ export default function RecurringListPage() {
         <Card>
           <ul className="divide-y divide-slate-100">
             {rows.map(({ profile, client, total }) => (
-              <li key={profile.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center">
+              <li
+                key={profile.id}
+                className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center"
+              >
                 <Link to={`/recurring/${profile.id}`} className="min-w-0 flex-1">
                   <span className="flex items-center gap-2">
-                    <span className="truncate font-medium text-slate-900">{profile.name || client?.name || 'Recurring invoice'}</span>
-                    <Badge tone={STATUS_TONE[profile.status]}>{profile.status[0].toUpperCase() + profile.status.slice(1)}</Badge>
+                    <span className="truncate font-medium text-slate-900">
+                      {profile.name || client?.name || 'Recurring invoice'}
+                    </span>
+                    <Badge tone={STATUS_TONE[profile.status]}>
+                      {profile.status[0].toUpperCase() + profile.status.slice(1)}
+                    </Badge>
                   </span>
                   <span className="block text-sm text-slate-500">
                     {client?.name ?? 'No client'} · {FREQUENCY_LABEL[profile.frequency]}
-                    {profile.remainingCycles !== null ? ` · ${profile.remainingCycles} left` : ''} · {profile.issuedCount} issued
+                    {profile.remainingCycles !== null
+                      ? ` · ${profile.remainingCycles} left`
+                      : ''} · {profile.issuedCount} issued
                   </span>
                 </Link>
                 <div className="flex items-center gap-4 sm:justify-end">
                   <div className="text-right">
-                    <span className="tabular block font-semibold text-slate-900">{fmt.money(total, profile.template.currency)}</span>
+                    <span className="tabular block font-semibold text-slate-900">
+                      {fmt.money(total, profile.template.currency)}
+                    </span>
                     <span className="block text-xs text-slate-500">
-                      {profile.nextIssueDate ? `Next: ${fmt.date(profile.nextIssueDate)}` : 'Finished'}
+                      {profile.nextIssueDate
+                        ? `Next: ${fmt.date(profile.nextIssueDate)}`
+                        : 'Finished'}
                     </span>
                   </div>
                   <DropdownMenu>
@@ -122,7 +148,10 @@ export default function RecurringListPage() {
                       </Button>
                     </DropdownTrigger>
                     <DropdownContent>
-                      <DropdownItem icon={<Pencil />} onSelect={() => navigate(`/recurring/${profile.id}`)}>
+                      <DropdownItem
+                        icon={<Pencil />}
+                        onSelect={() => navigate(`/recurring/${profile.id}`)}
+                      >
                         Edit
                       </DropdownItem>
                       {profile.status !== 'completed' ? (
@@ -131,11 +160,17 @@ export default function RecurringListPage() {
                         </DropdownItem>
                       ) : null}
                       {profile.status === 'active' ? (
-                        <DropdownItem icon={<Pause />} onSelect={() => void setStatus(profile, 'paused')}>
+                        <DropdownItem
+                          icon={<Pause />}
+                          onSelect={() => void setStatus(profile, 'paused')}
+                        >
                           Pause
                         </DropdownItem>
                       ) : profile.status === 'paused' ? (
-                        <DropdownItem icon={<Play />} onSelect={() => void setStatus(profile, 'active')}>
+                        <DropdownItem
+                          icon={<Play />}
+                          onSelect={() => void setStatus(profile, 'active')}
+                        >
                           Resume
                         </DropdownItem>
                       ) : null}
@@ -152,8 +187,8 @@ export default function RecurringListPage() {
         </Card>
       )}
       <p className="mt-4 text-sm text-slate-500">
-        Due invoices are created automatically whenever you open the app. Because everything runs in your browser,
-        invoices for a period are created the next time you open it.
+        Due invoices are created automatically whenever you open the app. Because everything runs in
+        your browser, invoices for a period are created the next time you open it.
       </p>
     </div>
   );

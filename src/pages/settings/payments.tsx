@@ -6,12 +6,19 @@ export default function PaymentSettingsPage() {
   const { draft, update, dirty, saving, save, reset } = useCompanyDraft();
   const p = draft.payment;
   const set = (patch: Partial<PaymentSettings>) => update({ payment: { ...p, ...patch } });
-  const linkInvalid = p.paymentLink.trim() !== '' && !/^https?:\/\/\S+$/i.test(p.paymentLink.trim());
+  const linkInvalid =
+    p.paymentLink.trim() !== '' && !/^https?:\/\/\S+$/i.test(p.paymentLink.trim());
 
   return (
     <div className="space-y-6">
-      <SettingsSection title="Payment details" description="Printed on invoices while a balance is due.">
-        <Field label="Bank details" hint="Bank name, account name, account number / IBAN, SWIFT/BIC, sort code…">
+      <SettingsSection
+        title="Payment details"
+        description="Printed on invoices while a balance is due."
+      >
+        <Field
+          label="Bank details"
+          hint="Bank name, account name, account number / IBAN, SWIFT/BIC, sort code…"
+        >
           {(id) => (
             <Textarea
               id={id}
@@ -38,7 +45,11 @@ export default function PaymentSettingsPage() {
         title="Online payment link"
         description="A link where clients can pay by card, e.g. a Stripe Payment Link, PayPal.me or your bank's pay page."
       >
-        <Field label="Payment link" optional error={linkInvalid ? 'Enter a full link starting with https://' : undefined}>
+        <Field
+          label="Payment link"
+          optional
+          error={linkInvalid ? 'Enter a full link starting with https://' : undefined}
+        >
           {(id) => (
             <Input
               id={id}

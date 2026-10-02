@@ -12,7 +12,9 @@ beforeEach(async () => {
 
 describe('date placeholders', () => {
   it('replaces month, quarter and year with offsets', () => {
-    expect(replaceDatePlaceholders('Services for :MONTH :YEAR', '2026-03-15')).toBe('Services for March 2026');
+    expect(replaceDatePlaceholders('Services for :MONTH :YEAR', '2026-03-15')).toBe(
+      'Services for March 2026',
+    );
     expect(replaceDatePlaceholders('Retainer :MONTH+1', '2026-12-01')).toBe('Retainer January');
     expect(replaceDatePlaceholders(':QUARTER :YEAR-1', '2026-08-01')).toBe('Q3 2025');
     expect(replaceDatePlaceholders(':MONTHYEAR', '2026-10-02', 'en-GB')).toBe('October 2026');
@@ -66,7 +68,12 @@ describe('recurring invoices', () => {
     expect(stored?.recurringId).toBe('r1');
 
     const profile = await db.recurring.get('r1');
-    expect(profile).toMatchObject({ status: 'completed', remainingCycles: 0, issuedCount: 3, nextIssueDate: null });
+    expect(profile).toMatchObject({
+      status: 'completed',
+      remainingCycles: 0,
+      issuedCount: 3,
+      nextIssueDate: null,
+    });
     expect(await generateDueInvoices(company.id, '2026-12-31')).toHaveLength(0);
   });
 
@@ -74,8 +81,17 @@ describe('recurring invoices', () => {
     const company = await setupCompany({ name: 'Acme', currency: 'USD', locale: 'en-US' });
     const client = await saveClient(createClient(company.id, { name: 'Client' }));
     await db.recurring.bulkPut([
-      createRecurring(company.id, { clientId: client.id, status: 'paused', startDate: '2026-01-01', nextIssueDate: '2026-01-01' }),
-      createRecurring(company.id, { clientId: client.id, startDate: '2026-09-01', nextIssueDate: '2026-09-01' }),
+      createRecurring(company.id, {
+        clientId: client.id,
+        status: 'paused',
+        startDate: '2026-01-01',
+        nextIssueDate: '2026-01-01',
+      }),
+      createRecurring(company.id, {
+        clientId: client.id,
+        startDate: '2026-09-01',
+        nextIssueDate: '2026-09-01',
+      }),
     ]);
     expect(await generateDueInvoices(company.id, '2026-05-01')).toHaveLength(0);
   });

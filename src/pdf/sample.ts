@@ -136,9 +136,7 @@ export function sampleDocument(
   overrides: Partial<InvoiceDocument> = {},
 ): InvoiceDocument {
   const issue = today();
-  const number = { invoice: 'INV-2026-0042', quote: 'QUO-2026-0018', credit: 'CN-2026-0003' }[
-    type
-  ];
+  const number = { invoice: 'INV-2026-0042', quote: 'QUO-2026-0018', credit: 'CN-2026-0003' }[type];
   return createDocument(company.id, type, {
     id: `sample-${type}`,
     number,

@@ -26,14 +26,16 @@ export function Textarea({
   ref,
   ...props
 }: TextareaHTMLAttributes<HTMLTextAreaElement> & { ref?: Ref<HTMLTextAreaElement> }) {
-  return <textarea ref={ref} className={cn(control, 'min-h-20 py-2 leading-relaxed', className)} {...props} />;
+  return (
+    <textarea
+      ref={ref}
+      className={cn(control, 'min-h-20 py-2 leading-relaxed', className)}
+      {...props}
+    />
+  );
 }
 
-export function Select({
-  className,
-  children,
-  ...props
-}: SelectHTMLAttributes<HTMLSelectElement>) {
+export function Select({ className, children, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
   return (
     <div className="relative">
       <select className={cn(control, 'h-9 appearance-none pr-9', className)} {...props}>
@@ -91,14 +93,17 @@ export function Checkbox({
   description,
   className,
   ...props
-}: Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> & { label: ReactNode; description?: ReactNode }) {
+}: Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> & {
+  label: ReactNode;
+  description?: ReactNode;
+}) {
   const id = useId();
   return (
     <div className={cn('flex items-start gap-3', className)}>
       <input
         id={id}
         type="checkbox"
-        className="mt-0.5 size-4 shrink-0 rounded border-slate-300 accent-primary-600"
+        className="accent-primary-600 mt-0.5 size-4 shrink-0 rounded border-slate-300"
         {...props}
       />
       <label htmlFor={id} className="text-sm">
@@ -179,7 +184,10 @@ export function NumberInput({
     if (s === '' || s === '-' || s === '.' || s === ',') return 0;
     // "1.234,56" -> "1234.56"; "1,5" -> "1.5"; "1,234.5" -> "1234.5"
     if (s.includes(',') && s.includes('.')) {
-      s = s.lastIndexOf(',') > s.lastIndexOf('.') ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
+      s =
+        s.lastIndexOf(',') > s.lastIndexOf('.')
+          ? s.replace(/\./g, '').replace(',', '.')
+          : s.replace(/,/g, '');
     } else if (s.includes(',')) {
       const parts = s.split(',');
       s = parts.length === 2 && parts[1].length !== 3 ? s.replace(',', '.') : s.replace(/,/g, '');

@@ -49,11 +49,27 @@ import { downloadBlob, pdfFileName, printBlob } from '@/pdf/client';
 import { SendDialog, type EmailKind } from '@/features/documents/send-dialog';
 import { ApplyCreditDialog, RecordPaymentDialog } from '@/features/documents/payment-dialogs';
 
-function SummaryRow({ label, value, tone }: { label: string; value: React.ReactNode; tone?: 'danger' | 'strong' }) {
+function SummaryRow({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: React.ReactNode;
+  tone?: 'danger' | 'strong';
+}) {
   return (
     <div className="flex items-center justify-between py-1.5 text-sm">
       <span className="text-slate-500">{label}</span>
-      <span className={tone === 'danger' ? 'tabular font-semibold text-red-600' : tone === 'strong' ? 'tabular font-semibold text-slate-900' : 'tabular text-slate-700'}>
+      <span
+        className={
+          tone === 'danger'
+            ? 'tabular font-semibold text-red-600'
+            : tone === 'strong'
+              ? 'tabular font-semibold text-slate-900'
+              : 'tabular text-slate-700'
+        }
+      >
         {value}
       </span>
     </div>
@@ -71,18 +87,18 @@ export default function DocumentViewPage({ type }: { type: DocumentType }) {
   const base = DOCUMENT_ROUTES[type];
 
   const doc = useLiveQuery(() => db.documents.get(id), [id]);
-  const client = useLiveQuery(async () => (doc?.clientId ? ((await db.clients.get(doc.clientId)) ?? null) : null), [doc?.clientId]);
-  const payments = useLiveQuery(
-    async () => {
-      if (!doc) return [];
-      const list =
-        doc.type === 'credit'
-          ? await db.payments.where('creditId').equals(doc.id).toArray()
-          : await db.payments.where('documentIds').equals(doc.id).toArray();
-      return list.sort((a, b) => b.date.localeCompare(a.date));
-    },
-    [doc?.id, doc?.type],
+  const client = useLiveQuery(
+    async () => (doc?.clientId ? ((await db.clients.get(doc.clientId)) ?? null) : null),
+    [doc?.clientId],
   );
+  const payments = useLiveQuery(async () => {
+    if (!doc) return [];
+    const list =
+      doc.type === 'credit'
+        ? await db.payments.where('creditId').equals(doc.id).toArray()
+        : await db.payments.where('documentIds').equals(doc.id).toArray();
+    return list.sort((a, b) => b.date.localeCompare(a.date));
+  }, [doc?.id, doc?.type]);
   const activity = useLiveQuery(
     () => db.activities.where('documentId').equals(id).reverse().sortBy('at'),
     [id],
@@ -99,12 +115,19 @@ export default function DocumentViewPage({ type }: { type: DocumentType }) {
   const [busy, setBusy] = useState<string | null>(null);
 
   const ready = doc && client !== undefined;
-  const pdf = useLivePdf(ready ? doc : null, company, client ?? null, doc?.templateId ?? company.branding.templateId, { delay: 0 });
+  const pdf = useLivePdf(
+    ready ? doc : null,
+    company,
+    client ?? null,
+    doc?.templateId ?? company.branding.templateId,
+    { delay: 0 },
+  );
 
   // "Save and download" from the editor lands here with a flag.
   const autoDownload = useRef((location.state as { download?: boolean } | null)?.download ?? false);
   const fileName = useMemo(
-    () => (doc ? pdfFileName(`${labels.singular} ${doc.number}`, client?.name ?? '') : 'document.pdf'),
+    () =>
+      doc ? pdfFileName(`${labels.singular} ${doc.number}`, client?.name ?? '') : 'document.pdf',
     [doc, client, labels.singular],
   );
   useEffect(() => {
@@ -119,7 +142,7 @@ export default function DocumentViewPage({ type }: { type: DocumentType }) {
     return (
       <Card className="p-10 text-center">
         <p className="text-slate-600">This {labels.singular.toLowerCase()} could not be found.</p>
-        <Link to={base} className="mt-4 inline-block text-sm font-medium text-primary-700">
+        <Link to={base} className="text-primary-700 mt-4 inline-block text-sm font-medium">
           Back to {labels.plural.toLowerCase()}
         </Link>
       </Card>
@@ -170,7 +193,8 @@ export default function DocumentViewPage({ type }: { type: DocumentType }) {
   const voidDoc = async () => {
     const ok = await confirm({
       title: `Void ${doc.number}?`,
-      description: 'A void document stays in your records for reference but no longer counts as owed.',
+      description:
+        'A void document stays in your records for reference but no longer counts as owed.',
       confirmLabel: 'Void',
       danger: true,
     });
@@ -195,7 +219,9 @@ export default function DocumentViewPage({ type }: { type: DocumentType }) {
       >
         <FileText /> Convert to invoice
       </Button>
-    ) : type === 'credit' && (doc.status === 'sent' || doc.status === 'partial') && doc.totals.balance > 0 ? (
+    ) : type === 'credit' &&
+      (doc.status === 'sent' || doc.status === 'partial') &&
+      doc.totals.balance > 0 ? (
       <Button onClick={() => setApplyCredit(true)}>
         <CreditCard /> Apply to invoice
       </Button>
@@ -223,7 +249,10 @@ export default function DocumentViewPage({ type }: { type: DocumentType }) {
           {client ? (
             <p className="mt-1 text-sm text-slate-500">
               for{' '}
-              <Link to={`/clients/${client.id}`} className="font-medium text-slate-700 hover:text-primary-700">
+              <Link
+                to={`/clients/${client.id}`}
+                className="hover:text-primary-700 font-medium text-slate-700"
+              >
                 {client.name}
               </Link>
             </p>
@@ -233,7 +262,13 @@ export default function DocumentViewPage({ type }: { type: DocumentType }) {
           <Button variant="outline" onClick={download} loading={busy === 'download'}>
             <Download /> Download PDF
           </Button>
-          <Button variant="outline" size="icon" onClick={print} loading={busy === 'print'} aria-label="Print">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={print}
+            loading={busy === 'print'}
+            aria-label="Print"
+          >
             <Printer />
           </Button>
           <Button variant="outline" onClick={() => navigate(`${base}/${doc.id}/edit`)}>
@@ -252,23 +287,33 @@ export default function DocumentViewPage({ type }: { type: DocumentType }) {
                   Send by email
                 </DropdownItem>
               ) : null}
-              {type === 'invoice' && (status === 'overdue' || doc.status === 'partial' || doc.status === 'sent') ? (
+              {type === 'invoice' &&
+              (status === 'overdue' || doc.status === 'partial' || doc.status === 'sent') ? (
                 <DropdownItem icon={<BellRing />} onSelect={() => setSend('reminder')}>
                   Send reminder
                 </DropdownItem>
               ) : null}
               {doc.status === 'draft' ? (
-                <DropdownItem icon={<CheckCircle2 />} onSelect={() => void run('sent', () => markSent(doc.id))}>
+                <DropdownItem
+                  icon={<CheckCircle2 />}
+                  onSelect={() => void run('sent', () => markSent(doc.id))}
+                >
                   Mark as sent
                 </DropdownItem>
               ) : null}
               {type === 'quote' && doc.status !== 'accepted' && doc.status !== 'invoiced' ? (
-                <DropdownItem icon={<ThumbsUp />} onSelect={() => void run('accept', () => setDocumentStatus(doc.id, 'accepted'))}>
+                <DropdownItem
+                  icon={<ThumbsUp />}
+                  onSelect={() => void run('accept', () => setDocumentStatus(doc.id, 'accepted'))}
+                >
                   Mark as accepted
                 </DropdownItem>
               ) : null}
               {type === 'quote' && doc.status !== 'declined' && doc.status !== 'invoiced' ? (
-                <DropdownItem icon={<ThumbsDown />} onSelect={() => void run('decline', () => setDocumentStatus(doc.id, 'declined'))}>
+                <DropdownItem
+                  icon={<ThumbsDown />}
+                  onSelect={() => void run('decline', () => setDocumentStatus(doc.id, 'declined'))}
+                >
                   Mark as declined
                 </DropdownItem>
               ) : null}
@@ -277,7 +322,9 @@ export default function DocumentViewPage({ type }: { type: DocumentType }) {
                   icon={<FileMinus />}
                   onSelect={() =>
                     void run('credit', async () => {
-                      const credit = await duplicateDocument(doc.id, 'credit', { sourceId: doc.id });
+                      const credit = await duplicateDocument(doc.id, 'credit', {
+                        sourceId: doc.id,
+                      });
                       toast.success(`Credit note ${credit.number} created`);
                       navigate(`/credits/${credit.id}/edit`);
                     })
@@ -299,7 +346,10 @@ export default function DocumentViewPage({ type }: { type: DocumentType }) {
                 Duplicate
               </DropdownItem>
               {doc.status === 'void' ? (
-                <DropdownItem icon={<Undo2 />} onSelect={() => void run('unvoid', () => setDocumentStatus(doc.id, 'sent'))}>
+                <DropdownItem
+                  icon={<Undo2 />}
+                  onSelect={() => void run('unvoid', () => setDocumentStatus(doc.id, 'sent'))}
+                >
                   Restore (un-void)
                 </DropdownItem>
               ) : type !== 'quote' && doc.status !== 'draft' ? (
@@ -331,14 +381,21 @@ export default function DocumentViewPage({ type }: { type: DocumentType }) {
               {doc.dueDate ? (
                 <SummaryRow
                   label={type === 'quote' ? 'Valid until' : 'Due'}
-                  value={overdueDays > 0 ? `${fmt.date(doc.dueDate)} · ${overdueDays}d late` : fmt.date(doc.dueDate)}
+                  value={
+                    overdueDays > 0
+                      ? `${fmt.date(doc.dueDate)} · ${overdueDays}d late`
+                      : fmt.date(doc.dueDate)
+                  }
                   tone={overdueDays > 0 ? 'danger' : undefined}
                 />
               ) : null}
               <SummaryRow label="Total" value={money(doc.totals.total)} tone="strong" />
               {type !== 'quote' ? (
                 <>
-                  <SummaryRow label={type === 'credit' ? 'Applied' : 'Paid'} value={money(doc.totals.paid)} />
+                  <SummaryRow
+                    label={type === 'credit' ? 'Applied' : 'Paid'}
+                    value={money(doc.totals.paid)}
+                  />
                   <SummaryRow
                     label={type === 'credit' ? 'Remaining' : 'Balance'}
                     value={money(doc.status === 'void' ? 0 : doc.totals.balance)}
@@ -353,15 +410,18 @@ export default function DocumentViewPage({ type }: { type: DocumentType }) {
                     <Link
                       key={r.id}
                       to={`${DOCUMENT_ROUTES[r.type]}/${r.id}`}
-                      className="block py-1 text-sm font-medium text-primary-700 hover:underline"
+                      className="text-primary-700 block py-1 text-sm font-medium hover:underline"
                     >
-                      {r.id === doc.sourceId ? 'Created from' : 'Converted to'} {DOCUMENT_LABELS[r.type].singular.toLowerCase()} {r.number}
+                      {r.id === doc.sourceId ? 'Created from' : 'Converted to'}{' '}
+                      {DOCUMENT_LABELS[r.type].singular.toLowerCase()} {r.number}
                     </Link>
                   ))}
                 </div>
               ) : null}
               {doc.privateNotes ? (
-                <p className="mt-3 rounded-md bg-amber-50 p-3 text-xs whitespace-pre-line text-amber-900">{doc.privateNotes}</p>
+                <p className="mt-3 rounded-md bg-amber-50 p-3 text-xs whitespace-pre-line text-amber-900">
+                  {doc.privateNotes}
+                </p>
               ) : null}
             </CardBody>
           </Card>
@@ -385,12 +445,19 @@ export default function DocumentViewPage({ type }: { type: DocumentType }) {
                       const amount =
                         type === 'credit'
                           ? p.amount
-                          : p.allocations.filter((a) => a.documentId === doc.id).reduce((s, a) => s + a.amount, 0);
+                          : p.allocations
+                              .filter((a) => a.documentId === doc.id)
+                              .reduce((s, a) => s + a.amount, 0);
                       return (
                         <li key={p.id}>
-                          <Link to={`/payments/${p.id}`} className="flex items-center justify-between py-2.5 text-sm hover:text-primary-700">
+                          <Link
+                            to={`/payments/${p.id}`}
+                            className="hover:text-primary-700 flex items-center justify-between py-2.5 text-sm"
+                          >
                             <span>
-                              <span className="block font-medium text-slate-800">{fmt.date(p.date)}</span>
+                              <span className="block font-medium text-slate-800">
+                                {fmt.date(p.date)}
+                              </span>
                               <span className="text-xs text-slate-500">
                                 {paymentMethodLabel(p.method)}
                                 {p.reference ? ` · ${p.reference}` : ''}
@@ -404,7 +471,9 @@ export default function DocumentViewPage({ type }: { type: DocumentType }) {
                   </ul>
                 ) : (
                   <p className="py-3 text-sm text-slate-500">
-                    {type === 'credit' ? 'Not applied to any invoice yet.' : 'No payments recorded yet.'}
+                    {type === 'credit'
+                      ? 'Not applied to any invoice yet.'
+                      : 'No payments recorded yet.'}
                   </p>
                 )}
               </CardBody>
@@ -418,7 +487,7 @@ export default function DocumentViewPage({ type }: { type: DocumentType }) {
                 <ol className="relative space-y-4 border-l border-slate-200 pl-4">
                   {activity.slice(0, 12).map((a) => (
                     <li key={a.id} className="relative">
-                      <span className="absolute top-1.5 -left-[21px] size-2.5 rounded-full border-2 border-white bg-primary-500" />
+                      <span className="bg-primary-500 absolute top-1.5 -left-[21px] size-2.5 rounded-full border-2 border-white" />
                       <p className="text-sm text-slate-700">{a.message}</p>
                       <p className="text-xs text-slate-400">{fmt.dateTime(a.at)}</p>
                     </li>
@@ -447,7 +516,9 @@ export default function DocumentViewPage({ type }: { type: DocumentType }) {
       {recordPayment ? (
         <RecordPaymentDialog open onOpenChange={setRecordPayment} invoice={doc} company={company} />
       ) : null}
-      {applyCredit ? <ApplyCreditDialog open onOpenChange={setApplyCredit} credit={doc} company={company} /> : null}
+      {applyCredit ? (
+        <ApplyCreditDialog open onOpenChange={setApplyCredit} credit={doc} company={company} />
+      ) : null}
     </div>
   );
 }

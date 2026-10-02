@@ -1,11 +1,4 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react';
+import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import * as Menu from '@radix-ui/react-dropdown-menu';
 import { X } from 'lucide-react';
@@ -36,17 +29,19 @@ export function DialogContent({
   const width = { sm: 'max-w-sm', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl' }[size];
   return (
     <DialogPrimitive.Portal>
-      <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-[1px] data-[state=open]:animate-fade-in" />
+      <DialogPrimitive.Overlay className="data-[state=open]:animate-fade-in fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-[1px]" />
       <DialogPrimitive.Content
         className={cn(
-          'fixed top-1/2 left-1/2 z-50 flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col rounded-xl bg-white shadow-xl data-[state=open]:animate-pop-in',
+          'data-[state=open]:animate-pop-in fixed top-1/2 left-1/2 z-50 flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col rounded-xl bg-white shadow-xl',
           width,
           className,
         )}
       >
         <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4">
           <div>
-            <DialogPrimitive.Title className="text-base font-semibold text-slate-900">{title}</DialogPrimitive.Title>
+            <DialogPrimitive.Title className="text-base font-semibold text-slate-900">
+              {title}
+            </DialogPrimitive.Title>
             {description ? (
               <DialogPrimitive.Description className="mt-0.5 text-sm text-slate-500">
                 {description}
@@ -105,7 +100,7 @@ export function DropdownContent({
         align={align}
         sideOffset={6}
         className={cn(
-          'z-50 min-w-48 rounded-lg border border-slate-200 bg-white p-1 shadow-lg data-[state=open]:animate-fade-in',
+          'data-[state=open]:animate-fade-in z-50 min-w-48 rounded-lg border border-slate-200 bg-white p-1 shadow-lg',
           className,
         )}
       >
@@ -146,7 +141,9 @@ export function DropdownItem({
 }
 
 export function DropdownLabel({ children }: { children: ReactNode }) {
-  return <Menu.Label className="px-2.5 py-1.5 text-xs font-medium text-slate-500">{children}</Menu.Label>;
+  return (
+    <Menu.Label className="px-2.5 py-1.5 text-xs font-medium text-slate-500">{children}</Menu.Label>
+  );
 }
 
 export function DropdownSeparator() {
@@ -201,7 +198,11 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
               <Button variant="outline" onClick={() => close(false)}>
                 {options.cancelLabel ?? 'Cancel'}
               </Button>
-              <Button variant={options.danger ? 'danger' : 'primary'} onClick={() => close(true)} autoFocus>
+              <Button
+                variant={options.danger ? 'danger' : 'primary'}
+                onClick={() => close(true)}
+                autoFocus
+              >
                 {options.confirmLabel ?? 'Confirm'}
               </Button>
             </DialogFooter>

@@ -45,7 +45,9 @@ function TaxRow({
           allowNegative={false}
           className="pr-7"
         />
-        <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-slate-400">%</span>
+        <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-slate-400">
+          %
+        </span>
       </div>
       <Button
         variant="ghost"
@@ -64,7 +66,8 @@ function TaxRow({
         onClick={async () => {
           const ok = await confirm({
             title: `Delete ${rate.name} ${rate.rate}%?`,
-            description: 'Existing documents keep their taxes. It will no longer be offered on new items.',
+            description:
+              'Existing documents keep their taxes. It will no longer be offered on new items.',
             confirmLabel: 'Delete',
             danger: true,
           });
@@ -82,7 +85,10 @@ function TaxRow({
 
 export default function TaxSettings() {
   const { draft, update, dirty, saving, save, reset } = useCompanyDraft();
-  const rates = useLiveQuery(() => db.taxRates.where('companyId').equals(draft.id).toArray(), [draft.id]);
+  const rates = useLiveQuery(
+    () => db.taxRates.where('companyId').equals(draft.id).toArray(),
+    [draft.id],
+  );
   const d = draft.defaults;
   const setDefaults = (patch: Partial<typeof d>) => update({ defaults: { ...d, ...patch } });
 
@@ -111,7 +117,9 @@ export default function TaxSettings() {
         }
       >
         {!rates ? null : rates.length === 0 ? (
-          <p className="text-sm text-slate-500">No tax rates. Add one if you charge VAT, GST or sales tax.</p>
+          <p className="text-sm text-slate-500">
+            No tax rates. Add one if you charge VAT, GST or sales tax.
+          </p>
         ) : (
           <ul className="divide-y divide-slate-100">
             {rates

@@ -28,19 +28,23 @@ export default function PaymentDetailPage() {
   const confirm = useConfirm();
 
   const payment = useLiveQuery(() => db.payments.get(id), [id]);
-  const client = useLiveQuery(async () => (payment?.clientId ? ((await db.clients.get(payment.clientId)) ?? null) : null), [payment?.clientId]);
+  const client = useLiveQuery(
+    async () => (payment?.clientId ? ((await db.clients.get(payment.clientId)) ?? null) : null),
+    [payment?.clientId],
+  );
   const docs = useLiveQuery(async () => {
     if (!payment) return [];
     const ids = [...payment.documentIds, ...(payment.creditId ? [payment.creditId] : [])];
     return (await db.documents.bulkGet(ids)).filter((d): d is InvoiceDocument => Boolean(d));
   }, [payment]);
 
-  if (payment === undefined || client === undefined || !docs) return <Spinner className="py-24" label="Loading…" />;
+  if (payment === undefined || client === undefined || !docs)
+    return <Spinner className="py-24" label="Loading…" />;
   if (!payment || payment.companyId !== company.id) {
     return (
       <Card className="p-10 text-center">
         <p className="text-slate-600">This payment could not be found.</p>
-        <Link to="/payments" className="mt-4 inline-block text-sm font-medium text-primary-700">
+        <Link to="/payments" className="text-primary-700 mt-4 inline-block text-sm font-medium">
           Back to payments
         </Link>
       </Card>
@@ -96,11 +100,16 @@ export default function PaymentDetailPage() {
               Payments
             </Link>
           </p>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Payment {payment.number}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+            Payment {payment.number}
+          </h1>
           <p className="mt-1 text-sm text-slate-500">
             {money(payment.amount)} from{' '}
             {client ? (
-              <Link to={`/clients/${client.id}`} className="font-medium text-slate-700 hover:text-primary-700">
+              <Link
+                to={`/clients/${client.id}`}
+                className="hover:text-primary-700 font-medium text-slate-700"
+              >
                 {client.name}
               </Link>
             ) : (
@@ -125,7 +134,10 @@ export default function PaymentDetailPage() {
         <Card>
           <CardHeader title="Details" />
           <CardBody className="divide-y divide-slate-100 py-2">
-            <Row label="Amount" value={<strong className="tabular">{money(payment.amount)}</strong>} />
+            <Row
+              label="Amount"
+              value={<strong className="tabular">{money(payment.amount)}</strong>}
+            />
             <Row label="Date" value={fmt.date(payment.date)} />
             <Row label="Method" value={paymentMethodLabel(payment.method)} />
             {payment.reference ? <Row label="Reference" value={payment.reference} /> : null}
@@ -133,14 +145,27 @@ export default function PaymentDetailPage() {
               <Row
                 label="Credit note"
                 value={
-                  <Link to={`/credits/${credit.id}`} className="font-medium text-primary-700 hover:underline">
+                  <Link
+                    to={`/credits/${credit.id}`}
+                    className="text-primary-700 font-medium hover:underline"
+                  >
                     {credit.number}
                   </Link>
                 }
               />
             ) : null}
-            {unapplied > 0 ? <Row label="Unapplied (client credit)" value={<span className="tabular text-amber-700">{money(unapplied)}</span>} /> : null}
-            {payment.notes ? <Row label="Notes" value={<span className="whitespace-pre-line">{payment.notes}</span>} /> : null}
+            {unapplied > 0 ? (
+              <Row
+                label="Unapplied (client credit)"
+                value={<span className="tabular text-amber-700">{money(unapplied)}</span>}
+              />
+            ) : null}
+            {payment.notes ? (
+              <Row
+                label="Notes"
+                value={<span className="whitespace-pre-line">{payment.notes}</span>}
+              />
+            ) : null}
           </CardBody>
         </Card>
         <Card>
@@ -153,9 +178,15 @@ export default function PaymentDetailPage() {
                 {payment.allocations.map((a) => {
                   const doc = docs.find((d) => d.id === a.documentId);
                   return (
-                    <li key={a.documentId} className="flex items-center justify-between py-2.5 text-sm">
+                    <li
+                      key={a.documentId}
+                      className="flex items-center justify-between py-2.5 text-sm"
+                    >
                       {doc ? (
-                        <Link to={`${DOCUMENT_ROUTES[doc.type]}/${doc.id}`} className="font-medium text-primary-700 hover:underline">
+                        <Link
+                          to={`${DOCUMENT_ROUTES[doc.type]}/${doc.id}`}
+                          className="text-primary-700 font-medium hover:underline"
+                        >
                           {doc.number}
                         </Link>
                       ) : (

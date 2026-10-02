@@ -3,7 +3,13 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/db/db';
 import { getCurrentCompanyId, setCurrentCompanyId } from '@/db/records';
 import type { Company, DocumentType, ISODate } from '@/db/types';
-import { formatDate, formatDateTime, formatMoney, formatPercent, formatQuantity } from '@/lib/format';
+import {
+  formatDate,
+  formatDateTime,
+  formatMoney,
+  formatPercent,
+  formatQuantity,
+} from '@/lib/format';
 
 interface CompanyContextValue {
   company: Company;

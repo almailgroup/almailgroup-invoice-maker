@@ -78,7 +78,7 @@ export function ItemNameInput({
               setOpen(false);
             }
           }}
-          className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-900 shadow-xs placeholder:font-normal placeholder:text-slate-400 focus:border-primary-500 focus:ring-3 focus:ring-primary-500/15"
+          className="focus:border-primary-500 focus:ring-primary-500/15 h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-900 shadow-xs placeholder:font-normal placeholder:text-slate-400 focus:ring-3"
         />
       </Popover.Anchor>
       <Popover.Portal>
@@ -89,7 +89,9 @@ export function ItemNameInput({
           onCloseAutoFocus={(e) => e.preventDefault()}
           className="z-50 w-[var(--radix-popover-trigger-width)] min-w-72 rounded-lg border border-slate-200 bg-white p-1 shadow-lg"
         >
-          <p className="px-2.5 pt-1.5 pb-1 text-xs font-medium text-slate-500">Products & services</p>
+          <p className="px-2.5 pt-1.5 pb-1 text-xs font-medium text-slate-500">
+            Products & services
+          </p>
           {matches.map((p, i) => (
             <button
               key={p.id}

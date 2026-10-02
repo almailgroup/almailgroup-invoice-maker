@@ -51,7 +51,10 @@ const variants: Variant[] = [
   },
   { name: 'quote', doc: () => sampleDocument(company, client, 'quote') },
   { name: 'credit', doc: () => sampleDocument(company, client, 'credit') },
-  { name: 'multi-page', doc: () => sampleDocument(company, client, 'invoice', { items: sampleLongItems() }) },
+  {
+    name: 'multi-page',
+    doc: () => sampleDocument(company, client, 'invoice', { items: sampleLongItems() }),
+  },
   {
     name: 'bare',
     company: () => ({

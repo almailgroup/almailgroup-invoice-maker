@@ -20,7 +20,12 @@ export function invoiceFromProfile(
     issueDate,
     dueDate: addDaysISO(issueDate, profile.dueDays),
     currency: t.currency,
-    items: t.items.map((i) => ({ ...i, id: shortId(), name: fill(i.name), description: fill(i.description) })),
+    items: t.items.map((i) => ({
+      ...i,
+      id: shortId(),
+      name: fill(i.name),
+      description: fill(i.description),
+    })),
     discount: t.discount,
     discountType: t.discountType,
     taxes: t.taxes,
@@ -40,7 +45,8 @@ export function invoiceFromProfile(
 /** Moves a profile forward by one issued invoice. */
 export function advanceProfile(profile: RecurringProfile): RecurringProfile {
   const issuedCount = profile.issuedCount + 1;
-  const remainingCycles = profile.remainingCycles === null ? null : Math.max(0, profile.remainingCycles - 1);
+  const remainingCycles =
+    profile.remainingCycles === null ? null : Math.max(0, profile.remainingCycles - 1);
   const done = remainingCycles === 0;
   return {
     ...profile,
@@ -63,10 +69,17 @@ export async function issueNow(profileId: ID): Promise<InvoiceDocument | null> {
   const invoice = await saveDocument(invoiceFromProfile(profile, issueDate, company.locale));
   if (profile.markSent) await markSent(invoice.id);
   await db.recurring.put(advanceProfile(profile));
-  await logActivity(company.id, 'recurring', profile.id, 'issued', `Recurring invoice ${invoice.number} created from “${profile.name || 'recurring profile'}”`, {
-    clientId: profile.clientId || null,
-    documentId: invoice.id,
-  });
+  await logActivity(
+    company.id,
+    'recurring',
+    profile.id,
+    'issued',
+    `Recurring invoice ${invoice.number} created from “${profile.name || 'recurring profile'}”`,
+    {
+      clientId: profile.clientId || null,
+      documentId: invoice.id,
+    },
+  );
   return invoice;
 }
 
@@ -74,7 +87,10 @@ export async function issueNow(profileId: ID): Promise<InvoiceDocument | null> {
  * Creates every invoice that is due (catching up missed periods) for active
  * profiles. Runs when the app opens, since there is no server to schedule it.
  */
-export async function generateDueInvoices(companyId: ID, asOf: ISODate = today()): Promise<InvoiceDocument[]> {
+export async function generateDueInvoices(
+  companyId: ID,
+  asOf: ISODate = today(),
+): Promise<InvoiceDocument[]> {
   const created: InvoiceDocument[] = [];
   const profiles = await db.recurring.where('companyId').equals(companyId).toArray();
   for (const p of profiles) {

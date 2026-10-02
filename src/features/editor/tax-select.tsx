@@ -40,7 +40,9 @@ export function TaxSelect({
 
   // Rates only, so the control stays readable when narrow; names are in the tooltip.
   const summary =
-    value.length === 0 ? placeholder : value.map((t) => `${Number(t.rate.toFixed(4))}%`).join(' + ');
+    value.length === 0
+      ? placeholder
+      : value.map((t) => `${Number(t.rate.toFixed(4))}%`).join(' + ');
 
   return (
     <Popover.Root>
@@ -63,7 +65,7 @@ export function TaxSelect({
         <Popover.Content
           align="end"
           sideOffset={4}
-          className="z-50 w-56 rounded-lg border border-slate-200 bg-white p-1 shadow-lg data-[state=open]:animate-fade-in"
+          className="data-[state=open]:animate-fade-in z-50 w-56 rounded-lg border border-slate-200 bg-white p-1 shadow-lg"
         >
           {options.length === 0 ? (
             <p className="px-3 py-3 text-sm text-slate-500">

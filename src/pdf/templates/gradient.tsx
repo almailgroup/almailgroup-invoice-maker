@@ -27,7 +27,8 @@ function Gradient({ model, theme }: TemplateProps) {
   const W = theme.pageWidth;
   const from = theme.accent;
   const to = shiftHue(theme.accent, 38);
-  const onHeader = readableOn(from) === '#ffffff' && readableOn(to) === '#ffffff' ? '#ffffff' : theme.ink;
+  const onHeader =
+    readableOn(from) === '#ffffff' && readableOn(to) === '#ffffff' ? '#ffffff' : theme.ink;
   const label: Style = {
     fontSize: 7,
     fontWeight: 700,
@@ -86,7 +87,16 @@ function Gradient({ model, theme }: TemplateProps) {
               {model.number}
             </Text>
           ) : null}
-          <Text style={sx({ fontSize: 7, color: onHeader, opacity: 0.85, marginTop: 14, textTransform: 'uppercase', letterSpacing: 0.9 })}>
+          <Text
+            style={sx({
+              fontSize: 7,
+              color: onHeader,
+              opacity: 0.85,
+              marginTop: 14,
+              textTransform: 'uppercase',
+              letterSpacing: 0.9,
+            })}
+          >
             {model.amountDue.label}
           </Text>
           <Text style={sx({ fontSize: 18, fontWeight: 800, color: onHeader, marginTop: 1 }, TNUM)}>
@@ -109,7 +119,10 @@ function Gradient({ model, theme }: TemplateProps) {
           style={{ flex: 1, paddingRight: 14 }}
           label={model.recipientLabel}
           name={model.client.name}
-          lines={[...clientLines(model, false), ...(model.shipTo ? ['', `${model.labels.shipTo}:`, ...model.shipTo.lines] : [])]}
+          lines={[
+            ...clientLines(model, false),
+            ...(model.shipTo ? ['', `${model.labels.shipTo}:`, ...model.shipTo.lines] : []),
+          ]}
           labelStyle={label}
           nameStyle={{ fontSize: 9.5, color: theme.ink }}
           linesStyle={{ fontSize: 7.5, color: theme.body, lineHeight: 1.45 }}
@@ -119,14 +132,18 @@ function Gradient({ model, theme }: TemplateProps) {
             <MetaRows
               rows={[
                 ...model.meta,
-                ...(model.deposit ? [{ label: model.deposit.label, value: model.deposit.value }] : []),
+                ...(model.deposit
+                  ? [{ label: model.deposit.label, value: model.deposit.value }]
+                  : []),
               ]}
               labelStyle={{ fontSize: 7.5, color: theme.muted }}
               valueStyle={{ fontSize: 8, fontWeight: 700, color: theme.ink }}
               rowStyle={{ paddingVertical: 2.5 }}
             />
             {model.amountDue.caption ? (
-              <Text style={{ fontSize: 7, color: theme.accentInk, marginTop: 5, textAlign: 'right' }}>
+              <Text
+                style={{ fontSize: 7, color: theme.accentInk, marginTop: 5, textAlign: 'right' }}
+              >
                 {model.amountDue.caption}
               </Text>
             ) : null}
@@ -142,7 +159,13 @@ function Gradient({ model, theme }: TemplateProps) {
         theme={theme}
         styles={{
           header: { backgroundColor: theme.accentSoft, borderRadius: 6 },
-          headerText: { color: theme.accentInk, fontSize: 7.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 },
+          headerText: {
+            color: theme.accentInk,
+            fontSize: 7.5,
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: 0.5,
+          },
           row: { borderBottomWidth: 0.75, borderBottomColor: theme.line, paddingVertical: 7.5 },
           headingText: { color: theme.accentInk },
         }}
@@ -167,8 +190,20 @@ function Gradient({ model, theme }: TemplateProps) {
         totals={{
           width: 236,
           row: { paddingHorizontal: 10, paddingVertical: 3.5 },
-          strongRow: { paddingHorizontal: 10, borderTopWidth: 0.75, borderTopColor: theme.line, marginTop: 3, paddingTop: 6 },
-          grandRow: { height: 34, alignItems: 'center', paddingHorizontal: 12, paddingVertical: 0, marginTop: 6 },
+          strongRow: {
+            paddingHorizontal: 10,
+            borderTopWidth: 0.75,
+            borderTopColor: theme.line,
+            marginTop: 3,
+            paddingTop: 6,
+          },
+          grandRow: {
+            height: 34,
+            alignItems: 'center',
+            paddingHorizontal: 12,
+            paddingVertical: 0,
+            marginTop: 6,
+          },
           grandLabel: { color: onHeader },
           grandValue: { color: onHeader, fontSize: 13 },
           note: { paddingHorizontal: 10 },

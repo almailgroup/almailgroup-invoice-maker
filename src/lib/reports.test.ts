@@ -33,11 +33,26 @@ function invoice(overrides: Partial<InvoiceDocument>, price = 100, paid = 0): In
 
 describe('reports', () => {
   it('computes date presets', () => {
-    expect(presetRange('this-month', '2026-02-10')).toEqual({ from: '2026-02-01', to: '2026-02-28' });
-    expect(presetRange('last-month', '2026-01-10')).toEqual({ from: '2025-12-01', to: '2025-12-31' });
-    expect(presetRange('this-quarter', '2026-05-10')).toEqual({ from: '2026-04-01', to: '2026-06-30' });
-    expect(presetRange('last-quarter', '2026-02-10')).toEqual({ from: '2025-10-01', to: '2025-12-31' });
-    expect(presetRange('last-year', '2026-02-10')).toEqual({ from: '2025-01-01', to: '2025-12-31' });
+    expect(presetRange('this-month', '2026-02-10')).toEqual({
+      from: '2026-02-01',
+      to: '2026-02-28',
+    });
+    expect(presetRange('last-month', '2026-01-10')).toEqual({
+      from: '2025-12-01',
+      to: '2025-12-31',
+    });
+    expect(presetRange('this-quarter', '2026-05-10')).toEqual({
+      from: '2026-04-01',
+      to: '2026-06-30',
+    });
+    expect(presetRange('last-quarter', '2026-02-10')).toEqual({
+      from: '2025-10-01',
+      to: '2025-12-31',
+    });
+    expect(presetRange('last-year', '2026-02-10')).toEqual({
+      from: '2025-01-01',
+      to: '2025-12-31',
+    });
   });
 
   it('buckets open invoices by days overdue', () => {
@@ -63,12 +78,17 @@ describe('reports', () => {
       invoice({ issueDate: '2026-04-25', type: 'credit' }, 30),
     ];
     const r = taxReport(docs, [client], 'USD', { from: '2026-04-01', to: '2026-04-30' });
-    expect(r.rows).toEqual([expect.objectContaining({ name: 'VAT', rate: 20, base: 120, tax: 24 })]);
+    expect(r.rows).toEqual([
+      expect.objectContaining({ name: 'VAT', rate: 20, base: 120, tax: 24 }),
+    ]);
     expect(r).toMatchObject({ net: 120, tax: 24, gross: 144, documents: 3 });
   });
 
   it('totals sales per client', () => {
-    const docs = [invoice({ issueDate: '2026-04-02' }, 100, 50), invoice({ issueDate: '2026-04-03' }, 100)];
+    const docs = [
+      invoice({ issueDate: '2026-04-02' }, 100, 50),
+      invoice({ issueDate: '2026-04-03' }, 100),
+    ];
     const r = salesByClient(docs, [client], 'USD', { from: '2026-04-01', to: '2026-04-30' });
     expect(r.totals).toEqual({ invoices: 2, invoiced: 240, paid: 50, outstanding: 190 });
   });

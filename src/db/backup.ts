@@ -46,14 +46,26 @@ export async function exportBackup(companyId?: ID): Promise<Backup> {
         : companyId
           ? await db[table].where('companyId').equals(companyId).toArray()
           : await db[table].toArray();
-    data[table] = (companyId && table === 'companies' ? rows.filter((r) => r.id === companyId) : rows) as unknown as Record<string, unknown>[];
+    data[table] = (companyId && table === 'companies'
+      ? rows.filter((r) => r.id === companyId)
+      : rows) as unknown as Record<string, unknown>[];
   }
-  return { app: 'invoice-maker', format: BACKUP_FORMAT, exportedAt: new Date().toISOString(), data };
+  return {
+    app: 'invoice-maker',
+    format: BACKUP_FORMAT,
+    exportedAt: new Date().toISOString(),
+    data,
+  };
 }
 
 export function backupFileName(company?: Pick<Company, 'name'>): string {
   const stamp = new Date().toISOString().slice(0, 10);
-  const name = company?.name ? `-${company.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}` : '';
+  const name = company?.name
+    ? `-${company.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '')}`
+    : '';
   return `invoice-maker-backup${name}-${stamp}.json`;
 }
 
@@ -69,13 +81,18 @@ export function parseBackup(text: string): Backup {
     throw new BackupError('This file is not an Invoice Maker backup, or it is damaged.');
   }
   if (result.data.format > BACKUP_FORMAT) {
-    throw new BackupError('This backup was made by a newer version of the app. Please update first.');
+    throw new BackupError(
+      'This backup was made by a newer version of the app. Please update first.',
+    );
   }
   return result.data as Backup;
 }
 
 export function summarizeBackup(backup: Backup): Record<DataTable, number> {
-  return Object.fromEntries(DATA_TABLES.map((t) => [t, backup.data[t].length])) as Record<DataTable, number>;
+  return Object.fromEntries(DATA_TABLES.map((t) => [t, backup.data[t].length])) as Record<
+    DataTable,
+    number
+  >;
 }
 
 /**
@@ -107,7 +124,10 @@ export async function importBackup(
     for (const table of DATA_TABLES) {
       const rows = backup.data[table];
       // Dexie's typing is per table; the rows were validated above.
-      if (rows.length) await (db[table] as unknown as { bulkPut: (r: unknown[]) => Promise<unknown> }).bulkPut(rows);
+      if (rows.length)
+        await (db[table] as unknown as { bulkPut: (r: unknown[]) => Promise<unknown> }).bulkPut(
+          rows,
+        );
     }
     const current = await getMeta<string | null>(CURRENT_COMPANY_KEY, null);
     const exists = current ? await db.companies.get(current) : undefined;

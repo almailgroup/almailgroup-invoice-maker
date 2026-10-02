@@ -51,10 +51,18 @@ export default function LabelSettings() {
 
   return (
     <div className="space-y-6">
-      <SettingsSection title="Document language" description="Language of the words printed on invoices, quotes and credit notes.">
+      <SettingsSection
+        title="Document language"
+        description="Language of the words printed on invoices, quotes and credit notes."
+      >
         <Field label="Language" hint="Clients can have their own language (Clients → edit).">
           {(id) => (
-            <Select id={id} value={draft.language} onChange={(e) => update({ language: e.target.value as DocumentLanguage })} className="max-w-xs">
+            <Select
+              id={id}
+              value={draft.language}
+              onChange={(e) => update({ language: e.target.value as DocumentLanguage })}
+              className="max-w-xs"
+            >
               {LANGUAGES.map((l) => (
                 <option key={l.value} value={l.value}>
                   {l.label}

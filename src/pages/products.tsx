@@ -1,7 +1,17 @@
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Archive, ArchiveRestore, Download, MoreHorizontal, Package, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import {
+  Archive,
+  ArchiveRestore,
+  Download,
+  MoreHorizontal,
+  Package,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { db } from '@/db/db';
 import { createProduct } from '@/db/defaults';
@@ -79,24 +89,48 @@ function ProductDialog({
               )}
             </Field>
             <Field label="SKU / code" optional>
-              {(id) => <Input id={id} value={draft.sku} onChange={(e) => set({ sku: e.target.value })} />}
+              {(id) => (
+                <Input id={id} value={draft.sku} onChange={(e) => set({ sku: e.target.value })} />
+              )}
             </Field>
           </div>
           <Field label="Description" optional hint="Copied onto invoice lines.">
-            {(id) => <Textarea id={id} value={draft.description} onChange={(e) => set({ description: e.target.value })} rows={2} />}
+            {(id) => (
+              <Textarea
+                id={id}
+                value={draft.description}
+                onChange={(e) => set({ description: e.target.value })}
+                rows={2}
+              />
+            )}
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Unit price" hint="Up to 6 decimals, e.g. 0.537 per piece.">
-              {(id) => <NumberInput id={id} value={draft.unitPrice} onValueChange={(unitPrice) => set({ unitPrice })} />}
+              {(id) => (
+                <NumberInput
+                  id={id}
+                  value={draft.unitPrice}
+                  onValueChange={(unitPrice) => set({ unitPrice })}
+                />
+              )}
             </Field>
             <Field label="Unit" optional>
-              {(id) => <Input id={id} value={draft.unit} onChange={(e) => set({ unit: e.target.value })} placeholder="pcs, hrs, kg, job…" />}
+              {(id) => (
+                <Input
+                  id={id}
+                  value={draft.unit}
+                  onChange={(e) => set({ unit: e.target.value })}
+                  placeholder="pcs, hrs, kg, job…"
+                />
+              )}
             </Field>
           </div>
           <div>
             <p className="mb-2 text-sm font-medium text-slate-700">Default taxes</p>
             {taxRates.length === 0 ? (
-              <p className="text-sm text-slate-500">No tax rates yet — add them in Settings → Taxes.</p>
+              <p className="text-sm text-slate-500">
+                No tax rates yet — add them in Settings → Taxes.
+              </p>
             ) : (
               <div className="flex flex-wrap gap-2">
                 {taxRates.map((rate) => {
@@ -106,11 +140,17 @@ function ProductDialog({
                       key={rate.id}
                       type="button"
                       onClick={() =>
-                        set({ taxRateIds: on ? draft.taxRateIds.filter((t) => t !== rate.id) : [...draft.taxRateIds, rate.id] })
+                        set({
+                          taxRateIds: on
+                            ? draft.taxRateIds.filter((t) => t !== rate.id)
+                            : [...draft.taxRateIds, rate.id],
+                        })
                       }
                       className={cn(
                         'rounded-full px-3 py-1 text-sm ring-1 transition-colors',
-                        on ? 'bg-primary-600 text-white ring-primary-600' : 'bg-white text-slate-700 ring-slate-300 hover:ring-slate-400',
+                        on
+                          ? 'bg-primary-600 ring-primary-600 text-white'
+                          : 'bg-white text-slate-700 ring-slate-300 hover:ring-slate-400',
                       )}
                       aria-pressed={on}
                     >
@@ -146,8 +186,14 @@ export default function ProductsPage() {
     params.get('new') ? createProduct(company.id) : null,
   );
 
-  const products = useLiveQuery(() => db.products.where('companyId').equals(company.id).toArray(), [company.id]);
-  const taxRates = useLiveQuery(() => db.taxRates.where('companyId').equals(company.id).toArray(), [company.id]);
+  const products = useLiveQuery(
+    () => db.products.where('companyId').equals(company.id).toArray(),
+    [company.id],
+  );
+  const taxRates = useLiveQuery(
+    () => db.taxRates.where('companyId').equals(company.id).toArray(),
+    [company.id],
+  );
 
   const filtered = useMemo(() => {
     if (!products) return [];
@@ -168,7 +214,8 @@ export default function ProductsPage() {
       .map((t) => `${t!.name} ${t!.rate}%`)
       .join(', ');
 
-  const openNew = () => setEditing(createProduct(company.id, { taxRateIds: company.defaults.defaultTaxRateIds }));
+  const openNew = () =>
+    setEditing(createProduct(company.id, { taxRateIds: company.defaults.defaultTaxRateIds }));
   const close = () => {
     setEditing(null);
     if (params.get('new')) setParams({}, { replace: true });
@@ -200,7 +247,15 @@ export default function ProductsPage() {
                   downloadCsv(
                     `products-${today()}`,
                     ['SKU', 'Name', 'Description', 'Unit price', 'Unit', 'Taxes', 'Archived'],
-                    filtered.map((p) => [p.sku, p.name, p.description, p.unitPrice, p.unit, rateLabel(p), p.archived ? 'yes' : 'no']),
+                    filtered.map((p) => [
+                      p.sku,
+                      p.name,
+                      p.description,
+                      p.unitPrice,
+                      p.unit,
+                      rateLabel(p),
+                      p.archived ? 'yes' : 'no',
+                    ]),
                   )
                 }
               >
@@ -240,7 +295,13 @@ export default function ProductsPage() {
             />
             <div className="relative sm:w-72">
               <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
-              <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search…" className="pl-9" aria-label="Search products" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search…"
+                className="pl-9"
+                aria-label="Search products"
+              />
             </div>
           </div>
           {filtered.length === 0 ? (
@@ -249,7 +310,11 @@ export default function ProductsPage() {
             <ul className="divide-y divide-slate-100">
               {filtered.map((p) => (
                 <li key={p.id} className="flex items-center gap-4 px-5 py-3">
-                  <button type="button" onClick={() => setEditing(p)} className="min-w-0 flex-1 text-left">
+                  <button
+                    type="button"
+                    onClick={() => setEditing(p)}
+                    className="min-w-0 flex-1 text-left"
+                  >
                     <span className="block truncate font-medium text-slate-900">{p.name}</span>
                     <span className="block truncate text-xs text-slate-500">
                       {[p.sku, p.description, rateLabel(p)].filter(Boolean).join(' · ') || '—'}
@@ -288,7 +353,9 @@ export default function ProductsPage() {
         </Card>
       )}
 
-      {editing ? <ProductDialog key={editing.id} product={editing} taxRates={taxRates} onClose={close} /> : null}
+      {editing ? (
+        <ProductDialog key={editing.id} product={editing} taxRates={taxRates} onClose={close} />
+      ) : null}
     </div>
   );
 }
