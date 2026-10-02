@@ -28,6 +28,7 @@ export function TotalsPanel({
   money,
   percent,
   taxExempt,
+  allowDeposit = doc.type === 'invoice',
 }: {
   doc: InvoiceDocument;
   onChange: (patch: Partial<InvoiceDocument>) => void;
@@ -40,6 +41,7 @@ export function TotalsPanel({
   money: (amount: number) => string;
   percent: (value: number) => string;
   taxExempt: boolean;
+  allowDeposit?: boolean;
 }) {
   const setCharge = (index: number, patch: Partial<Charge>) =>
     onChange({ charges: doc.charges.map((c, i) => (i === index ? { ...c, ...patch } : c)) });
@@ -155,7 +157,7 @@ export function TotalsPanel({
           label="Prices include tax"
           description="Tax is calculated backwards from the entered prices."
         />
-        {doc.type === 'invoice' ? (
+        {allowDeposit ? (
           <>
             <Switch
               checked={doc.deposit > 0}

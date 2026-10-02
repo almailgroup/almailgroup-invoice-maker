@@ -1,4 +1,4 @@
-import { Suspense, useState, type ReactNode } from 'react';
+import { Suspense, useEffect, useState, type ReactNode } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import {
@@ -32,6 +32,8 @@ import {
   DropdownTrigger,
 } from '@/components/ui/overlay';
 import { Spinner } from '@/components/ui/misc';
+import { toast } from 'sonner';
+import { generateDueInvoices } from '@/db/recurring';
 
 interface NavItem {
   to: string;
@@ -218,8 +220,32 @@ function NewMenu() {
   );
 }
 
+// Recurring invoices are generated client-side, once per company per visit.
+const recurringChecked = new Set<string>();
+
+function useRecurringGeneration() {
+  const { company } = useCompanyContext();
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (recurringChecked.has(company.id)) return;
+    recurringChecked.add(company.id);
+    void generateDueInvoices(company.id)
+      .then((created) => {
+        if (created.length === 0) return;
+        toast.success(
+          `${created.length} recurring invoice${created.length === 1 ? '' : 's'} created`,
+          { action: { label: 'View', onClick: () => navigate('/invoices') } },
+        );
+      })
+      .catch(() => {
+        recurringChecked.delete(company.id);
+      });
+  }, [company.id, navigate]);
+}
+
 export function AppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  useRecurringGeneration();
   const location = useLocation();
   // Full-width pages (the document editor) manage their own layout.
   const wide = /\/(new|edit)$/.test(location.pathname) || /^\/(invoices|quotes|credits)\/[^/]+$/.test(location.pathname);
