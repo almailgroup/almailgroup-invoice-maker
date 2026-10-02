@@ -1,0 +1,173 @@
+import { db, setMeta, getMeta, DATA_TABLES } from './db';
+import { createCompany, createTaxRate, nowStamp } from './defaults';
+import { logActivity } from './activity';
+import type { Client, Company, ID, Product, TaxRate } from './types';
+import { allocateNumber } from '@/lib/numbering';
+
+/* -------------------------------------------------------------------------- */
+/* Companies                                                                  */
+/* -------------------------------------------------------------------------- */
+
+export const CURRENT_COMPANY_KEY = 'currentCompanyId';
+
+export async function getCurrentCompanyId(): Promise<ID | null> {
+  return getMeta<ID | null>(CURRENT_COMPANY_KEY, null);
+}
+
+export async function setCurrentCompanyId(id: ID): Promise<void> {
+  await setMeta(CURRENT_COMPANY_KEY, id);
+}
+
+export async function saveCompany(company: Company): Promise<Company> {
+  const updated = { ...company, updatedAt: nowStamp() };
+  await db.companies.put(updated);
+  return updated;
+}
+
+/** Creates a company with optional starter tax rates and makes it current. */
+export async function setupCompany(
+  partial: Partial<Company>,
+  taxRates: { name: string; rate: number }[] = [],
+): Promise<Company> {
+  return db.transaction('rw', [db.companies, db.taxRates, db.meta, db.activities], async () => {
+    const company = createCompany(partial);
+    const rates = taxRates
+      .filter((t) => t.name.trim())
+      .map((t) => createTaxRate(company.id, { name: t.name.trim(), rate: t.rate }));
+    company.defaults.defaultTaxRateIds = rates.slice(0, 1).map((r) => r.id);
+    await db.companies.add(company);
+    if (rates.length) await db.taxRates.bulkAdd(rates);
+    await setCurrentCompanyId(company.id);
+    await logActivity(company.id, 'company', company.id, 'created', `Company ${company.name} created`);
+    return company;
+  });
+}
+
+/** Deletes a company and everything that belongs to it. */
+export async function deleteCompany(id: ID): Promise<void> {
+  await db.transaction(
+    'rw',
+    [...DATA_TABLES.map((t) => db[t]), db.meta],
+    async () => {
+      for (const table of DATA_TABLES) {
+        if (table === 'companies') continue;
+        await db[table].where('companyId').equals(id).delete();
+      }
+      await db.companies.delete(id);
+      const current = await getCurrentCompanyId();
+      if (current === id) {
+        const next = await db.companies.toCollection().first();
+        if (next) await setCurrentCompanyId(next.id);
+        else await db.meta.delete(CURRENT_COMPANY_KEY);
+      }
+    },
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Clients                                                                    */
+/* -------------------------------------------------------------------------- */
+
+export async function saveClient(input: Client): Promise<Client> {
+  return db.transaction('rw', [db.clients, db.companies, db.activities], async () => {
+    const existing = await db.clients.get(input.id);
+    let client: Client = { ...input, name: input.name.trim(), updatedAt: nowStamp() };
+    if (!client.number.trim()) {
+      const company = await db.companies.get(client.companyId);
+      if (company) {
+        const taken = new Set(
+          (await db.clients.where('companyId').equals(company.id).toArray()).map((c) => c.number.toLowerCase()),
+        );
+        const allocated = allocateNumber(
+          company.numbering.client,
+          client.createdAt.slice(0, 10),
+          (n) => taken.has(n.toLowerCase()),
+        );
+        client = { ...client, number: allocated.number };
+        await db.companies.put({ ...company, numbering: { ...company.numbering, client: allocated.rule } });
+      }
+    }
+    // Keep the contact flagged as primary first and make sure one exists.
+    if (client.contacts.length && !client.contacts.some((c) => c.primary)) {
+      client.contacts = client.contacts.map((c, i) => ({ ...c, primary: i === 0 }));
+    }
+    const primary = client.contacts.find((c) => c.primary);
+    if (!client.email && primary?.email) client.email = primary.email;
+    await db.clients.put(client);
+    if (!existing) {
+      await logActivity(client.companyId, 'client', client.id, 'created', `Client ${client.name} added`, {
+        clientId: client.id,
+      });
+    }
+    return client;
+  });
+}
+
+export async function clientHasRecords(id: ID): Promise<boolean> {
+  const [docs, payments, recurring] = await Promise.all([
+    db.documents.where('clientId').equals(id).count(),
+    db.payments.where('clientId').equals(id).count(),
+    db.recurring.where('clientId').equals(id).count(),
+  ]);
+  return docs + payments + recurring > 0;
+}
+
+export async function deleteClient(id: ID): Promise<void> {
+  if (await clientHasRecords(id)) {
+    throw new Error('This client has invoices, quotes or payments. Archive the client instead.');
+  }
+  const client = await db.clients.get(id);
+  await db.clients.delete(id);
+  if (client) {
+    await logActivity(client.companyId, 'client', id, 'deleted', `Client ${client.name} deleted`);
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Products                                                                   */
+/* -------------------------------------------------------------------------- */
+
+export async function saveProduct(product: Product): Promise<Product> {
+  const updated = { ...product, name: product.name.trim(), updatedAt: nowStamp() };
+  await db.products.put(updated);
+  return updated;
+}
+
+export async function deleteProduct(id: ID): Promise<void> {
+  await db.products.delete(id);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Tax rates                                                                  */
+/* -------------------------------------------------------------------------- */
+
+export async function saveTaxRate(rate: TaxRate): Promise<TaxRate> {
+  const updated = { ...rate, name: rate.name.trim(), updatedAt: nowStamp() };
+  await db.taxRates.put(updated);
+  return updated;
+}
+
+/** Deletes a tax rate. Existing documents keep their own copy of the rate. */
+export async function deleteTaxRate(id: ID): Promise<void> {
+  await db.transaction('rw', [db.taxRates, db.companies, db.products], async () => {
+    const rate = await db.taxRates.get(id);
+    if (!rate) return;
+    await db.taxRates.delete(id);
+    const company = await db.companies.get(rate.companyId);
+    if (company?.defaults.defaultTaxRateIds.includes(id)) {
+      await db.companies.put({
+        ...company,
+        defaults: {
+          ...company.defaults,
+          defaultTaxRateIds: company.defaults.defaultTaxRateIds.filter((t) => t !== id),
+        },
+      });
+    }
+    const products = await db.products.where('companyId').equals(rate.companyId).toArray();
+    for (const p of products) {
+      if (p.taxRateIds.includes(id)) {
+        await db.products.put({ ...p, taxRateIds: p.taxRateIds.filter((t) => t !== id) });
+      }
+    }
+  });
+}
