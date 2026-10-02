@@ -1,12 +1,16 @@
-import { Card, EmptyState, PageHeader } from '@/components/ui/misc';
+import { FileQuestion } from 'lucide-react';
+import { ButtonLink } from '@/components/ui/button';
+import { Card, EmptyState } from '@/components/ui/misc';
 
-export default function Page() {
+export default function NotFoundPage() {
   return (
-    <div>
-      <PageHeader title="not-found" />
-      <Card>
-        <EmptyState title="Coming soon" />
-      </Card>
-    </div>
+    <Card>
+      <EmptyState
+        icon={<FileQuestion />}
+        title="Page not found"
+        description="The page you were looking for doesn't exist or has moved."
+        action={<ButtonLink to="/">Go to dashboard</ButtonLink>}
+      />
+    </Card>
   );
 }

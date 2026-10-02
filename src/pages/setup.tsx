@@ -65,25 +65,28 @@ export default function SetupPage({ firstRun = false }: { firstRun?: boolean }) 
     }
     setBusy('create');
     try {
-      const company = await setupCompany(
-        {
-          name: name.trim(),
-          email: email.trim(),
-          phone: phone.trim(),
-          address,
-          currency,
-          locale,
-          dateFormat,
-          language,
-          taxIdLabel,
-          taxId: taxId.trim(),
-        },
-        chargesTax ? [{ name: taxName, rate: taxRate }] : [],
-      );
-      // Branding and page size live in nested settings.
-      await db.companies.update(company.id, {
-        branding: { ...company.branding, logo, accentColor: accent },
-        defaults: { ...company.defaults, pageSize },
+      // One transaction, so the app appears only once the company is complete.
+      const company = await db.transaction('rw', [db.companies, db.taxRates, db.meta, db.activities], async () => {
+        const created = await setupCompany(
+          {
+            name: name.trim(),
+            email: email.trim(),
+            phone: phone.trim(),
+            address,
+            currency,
+            locale,
+            dateFormat,
+            language,
+            taxIdLabel,
+            taxId: taxId.trim(),
+          },
+          chargesTax ? [{ name: taxName, rate: taxRate }] : [],
+        );
+        await db.companies.update(created.id, {
+          branding: { ...created.branding, logo, accentColor: accent },
+          defaults: { ...created.defaults, pageSize },
+        });
+        return created;
       });
       void requestPersistentStorage();
       toast.success(`${company.name} is ready. Create your first invoice!`);

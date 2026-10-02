@@ -108,8 +108,19 @@ async function pay(company: Company, doc: InvoiceDocument, amount: number, daysA
   );
 }
 
-/** Creates a fully populated demo company to explore the app with. */
+/**
+ * Creates a fully populated demo company to explore the app with. Runs as one
+ * transaction so the app only switches over once everything is in place.
+ */
 export async function seedDemoCompany(): Promise<Company> {
+  return db.transaction(
+    'rw',
+    [db.companies, db.clients, db.products, db.taxRates, db.documents, db.payments, db.recurring, db.activities, db.meta],
+    seed,
+  );
+}
+
+async function seed(): Promise<Company> {
   const region = regionDefaults('GB');
   const company = await setupCompany(
     {

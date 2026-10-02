@@ -22,7 +22,9 @@ import {
 
 const outDir = resolve(process.argv[2] ?? 'template-previews');
 const only = process.argv[3];
-const logoPath = process.env.SAMPLE_LOGO;
+const logoPath = process.env.SAMPLE_LOGO ?? resolve('scripts/assets/sample-logo.png');
+const onlyVariants = process.env.VARIANTS?.split(',');
+const resolution = process.env.DPI ?? '80';
 mkdirSync(outDir, { recursive: true });
 
 const fontDir = resolve('src/pdf/fonts');
@@ -51,6 +53,7 @@ const variants = [
 for (const template of TEMPLATES) {
   if (only && template.id !== only) continue;
   for (const variant of variants) {
+    if (onlyVariants && !onlyVariants.includes(variant.name)) continue;
     const model = buildRenderModel(variant.doc, company, client, {
       qrCode: qr,
       accent: template.defaultAccent,
@@ -62,7 +65,7 @@ for (const template of TEMPLATES) {
     await renderToFile(element, file);
     console.log(`${template.id}-${variant.name}: ${Date.now() - t0}ms`);
     try {
-      execFileSync('pdftoppm', ['-png', '-r', '80', file, file.replace(/\.pdf$/, '')]);
+      execFileSync('pdftoppm', ['-png', '-r', resolution, file, file.replace(/\.pdf$/, '')]);
     } catch {
       // pdftoppm not installed; PDFs only.
     }
