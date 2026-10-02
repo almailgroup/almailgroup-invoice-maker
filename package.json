@@ -51,6 +51,7 @@
     "@expo-google-fonts/playfair-display": "^0.4.2",
     "@expo-google-fonts/space-grotesk": "^0.4.1",
     "@playwright/test": "^1.56.1",
+    "@react-pdf/types": "^2.14.0",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",

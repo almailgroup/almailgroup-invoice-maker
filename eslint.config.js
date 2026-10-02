@@ -26,4 +26,9 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    // PDF templates are rendered by react-pdf, never hot-reloaded in the DOM.
+    files: ['src/pdf/**/*.{ts,tsx}', 'scripts/**/*.{ts,tsx}'],
+    rules: { 'react-refresh/only-export-components': 'off' },
+  },
 );

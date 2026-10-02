@@ -52,6 +52,9 @@ export type DateFormat =
 
 export type PageSize = 'A4' | 'LETTER';
 
+/** Language used for the words printed on documents. */
+export type DocumentLanguage = 'en' | 'fr' | 'es' | 'de' | 'pt' | 'it' | 'nl';
+
 export interface DocumentDefaults {
   /** Days between issue date and due date for new invoices. */
   paymentTermsDays: number;
@@ -83,6 +86,8 @@ export interface Branding {
   logo: string | null;
   /** Font override; null uses the template's own font pairing. */
   fontId: string | null;
+  /** Print a PAID / VOID stamp on settled or cancelled documents. */
+  showStatusStamp: boolean;
 }
 
 export interface PaymentSettings {
@@ -126,6 +131,7 @@ export interface Company {
   /** BCP 47 locale used for number and date formatting, e.g. "en-US". */
   locale: string;
   dateFormat: DateFormat;
+  language: DocumentLanguage;
   branding: Branding;
   defaults: DocumentDefaults;
   numbering: Record<NumberedEntity, NumberingRule>;
@@ -162,6 +168,8 @@ export interface Client {
   currency: string | null;
   /** Overrides the company payment terms (days). */
   paymentTermsDays: number | null;
+  /** Overrides the company document language. */
+  language: DocumentLanguage | null;
   /** Taxes are not applied to this client's documents. */
   taxExempt: boolean;
   /** Internal notes, never printed. */
