@@ -252,6 +252,6 @@ function Elegant({ model, theme }: TemplateProps) {
 
 export const elegant: TemplateDefinition = {
   ...templateMeta('elegant'),
-  fonts: { body: 'lora', heading: 'playfair', mono: 'plexmono' },
+  fonts: { body: 'lora', heading: 'playfair', mono: 'jetbrainsmono' },
   render: (props) => <Elegant {...props} />,
 };

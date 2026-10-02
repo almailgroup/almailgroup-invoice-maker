@@ -276,6 +276,6 @@ function Mono({ model, theme }: TemplateProps) {
 
 export const mono: TemplateDefinition = {
   ...templateMeta('mono'),
-  fonts: { body: 'plexsans', heading: 'plexsans', mono: 'plexmono' },
+  fonts: { body: 'plexsans', heading: 'plexsans', mono: 'jetbrainsmono' },
   render: (props) => <Mono {...props} />,
 };

@@ -187,6 +187,6 @@ function Minimal({ model, theme }: TemplateProps) {
 
 export const minimal: TemplateDefinition = {
   ...templateMeta('minimal'),
-  fonts: { body: 'manrope', heading: 'manrope', mono: 'plexmono' },
+  fonts: { body: 'manrope', heading: 'manrope', mono: 'jetbrainsmono' },
   render: (props) => <Minimal {...props} />,
 };

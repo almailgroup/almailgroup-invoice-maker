@@ -218,6 +218,6 @@ function Gradient({ model, theme }: TemplateProps) {
 
 export const gradient: TemplateDefinition = {
   ...templateMeta('gradient'),
-  fonts: { body: 'manrope', heading: 'manrope', mono: 'plexmono' },
+  fonts: { body: 'manrope', heading: 'manrope', mono: 'jetbrainsmono' },
   render: (props) => <Gradient {...props} />,
 };

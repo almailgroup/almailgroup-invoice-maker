@@ -45,9 +45,9 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@expo-google-fonts/dm-serif-display": "^0.4.2",
-    "@expo-google-fonts/ibm-plex-mono": "^0.4.1",
     "@expo-google-fonts/ibm-plex-sans": "^0.4.1",
     "@expo-google-fonts/inter": "^0.4.2",
+    "@expo-google-fonts/jetbrains-mono": "^0.4.1",
     "@expo-google-fonts/lora": "^0.4.2",
     "@expo-google-fonts/manrope": "^0.4.2",
     "@expo-google-fonts/playfair-display": "^0.4.2",

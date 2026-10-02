@@ -283,6 +283,6 @@ function Classic({ model, theme }: TemplateProps) {
 
 export const classic: TemplateDefinition = {
   ...templateMeta('classic'),
-  fonts: { body: 'inter', heading: 'inter', mono: 'plexmono' },
+  fonts: { body: 'inter', heading: 'inter', mono: 'jetbrainsmono' },
   render: (props) => <Classic {...props} />,
 };

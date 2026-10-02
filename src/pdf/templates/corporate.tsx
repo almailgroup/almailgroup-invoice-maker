@@ -255,6 +255,6 @@ function Corporate({ model, theme }: TemplateProps) {
 
 export const corporate: TemplateDefinition = {
   ...templateMeta('corporate'),
-  fonts: { body: 'plexsans', heading: 'plexsans', mono: 'plexmono' },
+  fonts: { body: 'plexsans', heading: 'plexsans', mono: 'jetbrainsmono' },
   render: (props) => <Corporate {...props} />,
 };

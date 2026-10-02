@@ -1,7 +1,14 @@
 import { Font } from '@react-pdf/renderer';
 
 export type FontId =
-  'inter' | 'manrope' | 'plexsans' | 'plexmono' | 'playfair' | 'lora' | 'spacegrotesk' | 'dmserif';
+  | 'inter'
+  | 'manrope'
+  | 'plexsans'
+  | 'jetbrainsmono'
+  | 'playfair'
+  | 'lora'
+  | 'spacegrotesk'
+  | 'dmserif';
 
 interface FontFile {
   weight: number;
@@ -53,12 +60,12 @@ export const FONT_FAMILIES: Record<FontId, FontFamilyDefinition> = {
     category: 'sans',
     files: files('plexsans', [400, 500, 600, 700], [400]),
   },
-  plexmono: {
-    id: 'plexmono',
-    family: 'IBM Plex Mono',
-    label: 'IBM Plex Mono',
+  jetbrainsmono: {
+    id: 'jetbrainsmono',
+    family: 'JetBrains Mono',
+    label: 'JetBrains Mono',
     category: 'mono',
-    files: files('plexmono', [400, 500, 600]),
+    files: files('jetbrainsmono', [400, 500, 600]),
   },
   playfair: {
     id: 'playfair',

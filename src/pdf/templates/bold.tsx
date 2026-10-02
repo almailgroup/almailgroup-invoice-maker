@@ -246,6 +246,6 @@ function Bold({ model, theme }: TemplateProps) {
 
 export const bold: TemplateDefinition = {
   ...templateMeta('bold'),
-  fonts: { body: 'spacegrotesk', heading: 'spacegrotesk', mono: 'plexmono' },
+  fonts: { body: 'spacegrotesk', heading: 'spacegrotesk', mono: 'jetbrainsmono' },
   render: (props) => <Bold {...props} />,
 };

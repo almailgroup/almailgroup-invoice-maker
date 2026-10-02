@@ -20,7 +20,7 @@ const allFonts: FontId[] = [
   'inter',
   'manrope',
   'plexsans',
-  'plexmono',
+  'jetbrainsmono',
   'playfair',
   'lora',
   'spacegrotesk',

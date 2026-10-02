@@ -211,6 +211,6 @@ function Modern({ model, theme }: TemplateProps) {
 
 export const modern: TemplateDefinition = {
   ...templateMeta('modern'),
-  fonts: { body: 'inter', heading: 'inter', mono: 'plexmono' },
+  fonts: { body: 'inter', heading: 'inter', mono: 'jetbrainsmono' },
   render: (props) => <Modern {...props} />,
 };

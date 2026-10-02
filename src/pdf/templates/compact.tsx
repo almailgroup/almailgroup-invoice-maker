@@ -213,6 +213,6 @@ function Compact({ model, theme }: TemplateProps) {
 
 export const compact: TemplateDefinition = {
   ...templateMeta('compact'),
-  fonts: { body: 'plexsans', heading: 'plexsans', mono: 'plexmono' },
+  fonts: { body: 'plexsans', heading: 'plexsans', mono: 'jetbrainsmono' },
   render: (props) => <Compact {...props} />,
 };

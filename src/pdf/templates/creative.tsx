@@ -204,6 +204,6 @@ function Creative({ model, theme }: TemplateProps) {
 
 export const creative: TemplateDefinition = {
   ...templateMeta('creative'),
-  fonts: { body: 'manrope', heading: 'manrope', mono: 'plexmono' },
+  fonts: { body: 'manrope', heading: 'manrope', mono: 'jetbrainsmono' },
   render: (props) => <Creative {...props} />,
 };
