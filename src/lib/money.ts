@@ -38,7 +38,7 @@ export function currencyPrecision(currency: string): number {
   const code = currency.toUpperCase();
   const cached = precisionCache.get(code);
   if (cached !== undefined) return cached;
-  let digits = 2;
+  let digits: number;
   try {
     digits =
       new Intl.NumberFormat('en', { style: 'currency', currency: code }).resolvedOptions()

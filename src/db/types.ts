@@ -132,7 +132,7 @@ export interface Company {
   payment: PaymentSettings;
   /** Overrides for words printed on documents (see pdf/labels.ts). */
   labels: Record<string, string>;
-  email: EmailTemplates;
+  emailTemplates: EmailTemplates;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
