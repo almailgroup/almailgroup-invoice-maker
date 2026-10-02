@@ -1,0 +1,77 @@
+import type { ButtonHTMLAttributes, ReactNode, Ref } from 'react';
+import { Link, type LinkProps } from 'react-router';
+import { Loader2 } from 'lucide-react';
+import { cn } from '@/lib/cn';
+
+export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'subtle';
+export type ButtonSize = 'xs' | 'sm' | 'md' | 'lg' | 'icon' | 'icon-sm';
+
+const base =
+  'inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0';
+
+const variants: Record<ButtonVariant, string> = {
+  primary: 'bg-primary-600 text-white shadow-sm hover:bg-primary-700 active:bg-primary-800',
+  secondary: 'bg-slate-900 text-white shadow-sm hover:bg-slate-800',
+  outline:
+    'border border-slate-300 bg-white text-slate-700 shadow-xs hover:bg-slate-50 hover:text-slate-900',
+  ghost: 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
+  danger: 'bg-red-600 text-white shadow-sm hover:bg-red-700',
+  subtle: 'bg-primary-50 text-primary-700 hover:bg-primary-100',
+};
+
+const sizes: Record<ButtonSize, string> = {
+  xs: 'h-7 px-2 text-xs',
+  sm: 'h-8 px-3 text-sm',
+  md: 'h-9 px-4 text-sm',
+  lg: 'h-11 px-5 text-base',
+  icon: 'size-9',
+  'icon-sm': 'size-8',
+};
+
+export function buttonClass(variant: ButtonVariant = 'primary', size: ButtonSize = 'md', className?: string) {
+  return cn(base, variants[variant], sizes[size], className);
+}
+
+export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  loading?: boolean;
+  ref?: Ref<HTMLButtonElement>;
+}
+
+export function Button({
+  variant = 'primary',
+  size = 'md',
+  loading = false,
+  className,
+  children,
+  disabled,
+  type = 'button',
+  ...props
+}: ButtonProps) {
+  return (
+    <button
+      type={type}
+      className={buttonClass(variant, size, className)}
+      disabled={disabled || loading}
+      {...props}
+    >
+      {loading ? <Loader2 className="animate-spin" aria-hidden /> : null}
+      {children}
+    </button>
+  );
+}
+
+export function ButtonLink({
+  variant = 'primary',
+  size = 'md',
+  className,
+  children,
+  ...props
+}: LinkProps & { variant?: ButtonVariant; size?: ButtonSize; children: ReactNode }) {
+  return (
+    <Link className={buttonClass(variant, size, className)} {...props}>
+      {children}
+    </Link>
+  );
+}

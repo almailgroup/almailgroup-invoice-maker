@@ -17,6 +17,7 @@ import {
   companyIdLine,
   sx,
 } from './shared';
+import { templateMeta } from '../template-meta';
 import type { TemplateDefinition, TemplateProps } from './types';
 
 /** Dense layout for documents with many line items. */
@@ -184,11 +185,7 @@ function Compact({ model, theme }: TemplateProps) {
 }
 
 export const compact: TemplateDefinition = {
-  id: 'compact',
-  name: 'Compact',
-  description: 'Dense, efficient layout that fits many line items per page — great for itemised services.',
-  tags: ['Many items', 'Efficient'],
-  defaultAccent: '#2563eb',
+  ...templateMeta('compact'),
   fonts: { body: 'plexsans', heading: 'plexsans', mono: 'plexmono' },
   render: (props) => <Compact {...props} />,
 };

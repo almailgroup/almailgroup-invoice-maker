@@ -1,7 +1,13 @@
+import { RouterProvider } from 'react-router';
+import { Toaster } from 'sonner';
+import { ConfirmProvider } from '@/components/ui/overlay';
+import { router } from '@/app/router';
+
 export default function App() {
   return (
-    <main className="grid min-h-screen place-items-center bg-slate-50 text-slate-900">
-      <h1 className="text-2xl font-semibold">Invoice Maker</h1>
-    </main>
+    <ConfirmProvider>
+      <RouterProvider router={router} />
+      <Toaster position="bottom-right" richColors closeButton />
+    </ConfirmProvider>
   );
 }

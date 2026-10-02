@@ -17,6 +17,7 @@ import {
   companyIdLine,
   sx,
 } from './shared';
+import { templateMeta } from '../template-meta';
 import type { TemplateDefinition, TemplateProps } from './types';
 
 const HEADER_HEIGHT = 150;
@@ -181,11 +182,7 @@ function Gradient({ model, theme }: TemplateProps) {
 }
 
 export const gradient: TemplateDefinition = {
-  id: 'gradient',
-  name: 'Gradient',
-  description: 'Vibrant gradient header in your brand colour, with the logo on a clean white card.',
-  tags: ['Colorful', 'Modern'],
-  defaultAccent: '#7c3aed',
+  ...templateMeta('gradient'),
   fonts: { body: 'manrope', heading: 'manrope', mono: 'plexmono' },
   render: (props) => <Gradient {...props} />,
 };

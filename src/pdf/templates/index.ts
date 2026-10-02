@@ -25,7 +25,8 @@ export const TEMPLATES: TemplateDefinition[] = [
   mono,
 ];
 
-export const DEFAULT_TEMPLATE_ID = 'modern';
+export { DEFAULT_TEMPLATE_ID } from '../template-meta';
+import { DEFAULT_TEMPLATE_ID } from '../template-meta';
 
 export function getTemplate(id: string | null | undefined): TemplateDefinition {
   return TEMPLATES.find((t) => t.id === id) ?? TEMPLATES.find((t) => t.id === DEFAULT_TEMPLATE_ID)!;

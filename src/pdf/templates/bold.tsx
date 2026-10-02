@@ -15,6 +15,7 @@ import {
   companyIdLine,
   sx,
 } from './shared';
+import { templateMeta } from '../template-meta';
 import type { TemplateDefinition, TemplateProps } from './types';
 
 const DARK = '#111827';
@@ -186,11 +187,7 @@ function Bold({ model, theme }: TemplateProps) {
 }
 
 export const bold: TemplateDefinition = {
-  id: 'bold',
-  name: 'Bold',
-  description: 'Big, confident type with a dark summary band — makes the amount due impossible to miss.',
-  tags: ['Striking', 'Dark'],
-  defaultAccent: '#f97316',
+  ...templateMeta('bold'),
   fonts: { body: 'spacegrotesk', heading: 'spacegrotesk', mono: 'plexmono' },
   render: (props) => <Bold {...props} />,
 };

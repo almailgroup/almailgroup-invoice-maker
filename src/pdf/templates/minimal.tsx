@@ -16,6 +16,7 @@ import {
   companyIdLine,
   sx,
 } from './shared';
+import { templateMeta } from '../template-meta';
 import type { TemplateDefinition, TemplateProps } from './types';
 
 function Minimal({ model, theme }: TemplateProps) {
@@ -169,11 +170,7 @@ function Minimal({ model, theme }: TemplateProps) {
 }
 
 export const minimal: TemplateDefinition = {
-  id: 'minimal',
-  name: 'Minimal',
-  description: 'Quiet, typographic and spacious — hairline rules with a single touch of colour.',
-  tags: ['Clean', 'Monochrome'],
-  defaultAccent: '#0f766e',
+  ...templateMeta('minimal'),
   fonts: { body: 'manrope', heading: 'manrope', mono: 'plexmono' },
   render: (props) => <Minimal {...props} />,
 };

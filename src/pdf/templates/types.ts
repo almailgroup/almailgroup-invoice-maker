@@ -2,6 +2,7 @@ import type { ReactElement } from 'react';
 import type { DocumentProps } from '@react-pdf/renderer';
 import type { FontId } from '../fonts';
 import type { RenderModel } from '../model';
+import type { TemplateMeta } from '../template-meta';
 
 export interface TemplateTheme {
   /** Brand accent as chosen by the user. */
@@ -33,13 +34,7 @@ export interface TemplateProps {
   theme: TemplateTheme;
 }
 
-export interface TemplateDefinition {
-  id: string;
-  name: string;
-  description: string;
-  tags: string[];
-  /** Accent used in gallery previews before the user picks their own. */
-  defaultAccent: string;
+export interface TemplateDefinition extends TemplateMeta {
   fonts: { body: FontId; heading: FontId; mono: FontId };
   /** Must return a react-pdf <Document>. */
   render: (props: TemplateProps) => ReactElement<DocumentProps>;

@@ -16,6 +16,7 @@ import {
   companyIdLine,
   sx,
 } from './shared';
+import { templateMeta } from '../template-meta';
 import type { TemplateDefinition, TemplateProps } from './types';
 
 const INK = '#1c1917';
@@ -233,11 +234,7 @@ function Elegant({ model, theme }: TemplateProps) {
 }
 
 export const elegant: TemplateDefinition = {
-  id: 'elegant',
-  name: 'Elegant',
-  description: 'Refined serif letterhead with fine double rules — ideal for premium services.',
-  tags: ['Serif', 'Premium'],
-  defaultAccent: '#a16207',
+  ...templateMeta('elegant'),
   fonts: { body: 'lora', heading: 'playfair', mono: 'plexmono' },
   render: (props) => <Elegant {...props} />,
 };

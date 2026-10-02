@@ -15,6 +15,7 @@ import {
   companyIdLine,
   sx,
 } from './shared';
+import { templateMeta } from '../template-meta';
 import type { TemplateDefinition, TemplateProps } from './types';
 
 function Modern({ model, theme }: TemplateProps) {
@@ -209,11 +210,7 @@ function Modern({ model, theme }: TemplateProps) {
 }
 
 export const modern: TemplateDefinition = {
-  id: 'modern',
-  name: 'Modern',
-  description: 'Crisp layout with an accent summary panel and a highlighted amount due.',
-  tags: ['Popular', 'Clean'],
-  defaultAccent: '#4f46e5',
+  ...templateMeta('modern'),
   fonts: { body: 'inter', heading: 'inter', mono: 'plexmono' },
   render: (props) => <Modern {...props} />,
 };

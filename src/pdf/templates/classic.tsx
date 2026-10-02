@@ -17,6 +17,7 @@ import {
   companyIdLine,
   sx,
 } from './shared';
+import { templateMeta } from '../template-meta';
 import type { TemplateDefinition, TemplateProps } from './types';
 
 const BORDER = '#cbd5e1';
@@ -219,11 +220,7 @@ function Classic({ model, theme }: TemplateProps) {
 }
 
 export const classic: TemplateDefinition = {
-  id: 'classic',
-  name: 'Classic',
-  description: 'Traditional boxed layout with ruled tables — familiar to every accounts department.',
-  tags: ['Traditional', 'Structured'],
-  defaultAccent: '#0e7490',
+  ...templateMeta('classic'),
   fonts: { body: 'inter', heading: 'inter', mono: 'plexmono' },
   render: (props) => <Classic {...props} />,
 };

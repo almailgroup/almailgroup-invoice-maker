@@ -17,6 +17,7 @@ import {
   companyIdLine,
   sx,
 } from './shared';
+import { templateMeta } from '../template-meta';
 import type { TemplateDefinition, TemplateProps } from './types';
 
 function Creative({ model, theme }: TemplateProps) {
@@ -173,11 +174,7 @@ function Creative({ model, theme }: TemplateProps) {
 }
 
 export const creative: TemplateDefinition = {
-  id: 'creative',
-  name: 'Creative',
-  description: 'Playful geometric accents and rounded cards — friendly but still professional.',
-  tags: ['Colorful', 'Friendly'],
-  defaultAccent: '#db2777',
+  ...templateMeta('creative'),
   fonts: { body: 'manrope', heading: 'manrope', mono: 'plexmono' },
   render: (props) => <Creative {...props} />,
 };

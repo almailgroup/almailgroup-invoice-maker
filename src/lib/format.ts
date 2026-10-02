@@ -116,6 +116,7 @@ export const DATE_FORMATS: { value: DateFormat; label: string }[] = [
   { value: 'MM/dd/yyyy', label: '12/31/2026' },
   { value: 'yyyy-MM-dd', label: '2026-12-31' },
   { value: 'dd.MM.yyyy', label: '31.12.2026' },
+  { value: 'dd-MM-yyyy', label: '31-12-2026' },
   { value: 'd MMM yyyy', label: '31 Dec 2026' },
   { value: 'MMM d, yyyy', label: 'Dec 31, 2026' },
 ];

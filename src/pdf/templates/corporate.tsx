@@ -17,6 +17,7 @@ import {
   companyIdLine,
   sx,
 } from './shared';
+import { templateMeta } from '../template-meta';
 import type { TemplateDefinition, TemplateProps } from './types';
 
 const SLATE = '#1e293b';
@@ -225,11 +226,7 @@ function Corporate({ model, theme }: TemplateProps) {
 }
 
 export const corporate: TemplateDefinition = {
-  id: 'corporate',
-  name: 'Corporate',
-  description: 'Structured and businesslike, with a bold title block and boxed details.',
-  tags: ['Business', 'Structured'],
-  defaultAccent: '#1d4ed8',
+  ...templateMeta('corporate'),
   fonts: { body: 'plexsans', heading: 'plexsans', mono: 'plexmono' },
   render: (props) => <Corporate {...props} />,
 };

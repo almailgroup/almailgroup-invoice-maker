@@ -14,6 +14,7 @@ import {
   companyIdLine,
   sx,
 } from './shared';
+import { templateMeta } from '../template-meta';
 import type { TemplateDefinition, TemplateProps } from './types';
 
 const NIGHT = '#0b1220';
@@ -185,11 +186,7 @@ function Mono({ model, theme }: TemplateProps) {
 }
 
 export const mono: TemplateDefinition = {
-  id: 'mono',
-  name: 'Mono',
-  description: 'Technical look with a dark header, grid lines and monospaced figures.',
-  tags: ['Technical', 'Dark'],
-  defaultAccent: '#10b981',
+  ...templateMeta('mono'),
   fonts: { body: 'plexsans', heading: 'plexsans', mono: 'plexmono' },
   render: (props) => <Mono {...props} />,
 };

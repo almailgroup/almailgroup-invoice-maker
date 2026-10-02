@@ -47,6 +47,7 @@ export type DateFormat =
   | 'MM/dd/yyyy'
   | 'yyyy-MM-dd'
   | 'dd.MM.yyyy'
+  | 'dd-MM-yyyy'
   | 'd MMM yyyy'
   | 'MMM d, yyyy';
 

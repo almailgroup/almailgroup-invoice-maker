@@ -19,16 +19,12 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+      // Shared modules export helpers next to components; only dev HMR is affected.
+      'react-refresh/only-export-components': 'off',
       '@typescript-eslint/no-unused-vars': [
         'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
     },
-  },
-  {
-    // PDF templates are rendered by react-pdf, never hot-reloaded in the DOM.
-    files: ['src/pdf/**/*.{ts,tsx}', 'scripts/**/*.{ts,tsx}'],
-    rules: { 'react-refresh/only-export-components': 'off' },
   },
 );
