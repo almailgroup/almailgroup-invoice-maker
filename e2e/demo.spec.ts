@@ -1,0 +1,47 @@
+import { expect, startWithDemoData, test } from './fixtures';
+
+test.beforeEach(async ({ page }) => {
+  await startWithDemoData(page);
+});
+
+test('every page renders without errors', async ({ page }) => {
+  const pages: [path: string, text: string][] = [
+    ['#/invoices', 'INV-'],
+    ['#/quotes', 'QUO-'],
+    ['#/credits', 'CN-'],
+    ['#/recurring', 'Monthly patient mailing'],
+    ['#/payments', 'Record payment'],
+    ['#/payments/new', 'Apply to invoices'],
+    ['#/clients', 'Brightside Retail Group'],
+    ['#/products', 'Courier — next-day delivery'],
+    ['#/reports', 'Aging'],
+    ['#/templates', 'Brand colour'],
+    ['#/settings/company', 'Company profile'],
+    ['#/settings/documents', 'Regional format'],
+    ['#/settings/numbering', 'Number formats'],
+    ['#/settings/taxes', 'Tax rates'],
+    ['#/settings/payments', 'Online payment link'],
+    ['#/settings/emails', 'Email templates'],
+    ['#/settings/labels', 'Custom wording'],
+    ['#/settings/data', 'Back up'],
+    ['#/settings/companies', 'Add company'],
+    ['#/no-such-page', 'Page not found'],
+  ];
+  for (const [path, text] of pages) {
+    await page.goto(path);
+    await expect(page.getByText(text).first(), path).toBeVisible();
+  }
+});
+
+test('an accepted quote becomes an invoice', async ({ page }) => {
+  await page.goto('#/quotes');
+  await page.getByLabel('Search quotes').fill('Orbit');
+  await page.getByRole('link', { name: /^QUO-/ }).first().click();
+  await expect(page.getByText('Accepted', { exact: true }).first()).toBeVisible();
+
+  await page.getByRole('button', { name: 'Convert to invoice' }).click();
+  await expect(page).toHaveURL(/#\/invoices\/[0-9a-f-]{36}$/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(/^Invoice INV-/);
+  await expect(page.getByRole('link', { name: /^Created from quote QUO-/ })).toBeVisible();
+  await expect(page.locator('canvas').first()).toBeVisible({ timeout: 30_000 });
+});
