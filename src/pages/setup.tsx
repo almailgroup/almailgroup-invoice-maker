@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Building2, FileText, Sparkles } from 'lucide-react';
+import { Building2, FileText, Sparkles, Upload } from 'lucide-react';
 import { toast } from 'sonner';
-import { db } from '@/db/db';
+import { db, setMeta } from '@/db/db';
 import { setupCompany } from '@/db/records';
 import { seedDemoCompany } from '@/db/demo';
+import { BackupError, importBackup, LAST_BACKUP_KEY, parseBackup } from '@/db/backup';
 import { emptyAddress } from '@/lib/geo';
+import { normalizeImage } from '@/lib/image';
 import { regionDefaults } from '@/lib/regions';
 import { requestPersistentStorage } from '@/lib/storage';
 import type { Address, DateFormat } from '@/db/types';
@@ -40,8 +42,9 @@ export default function SetupPage({ firstRun = false }: { firstRun?: boolean }) 
   const [taxRate, setTaxRate] = useState(0);
   const [logo, setLogo] = useState<string | null>(null);
   const [accent, setAccent] = useState('#4f46e5');
-  const [busy, setBusy] = useState<'create' | 'demo' | null>(null);
+  const [busy, setBusy] = useState<'create' | 'demo' | 'restore' | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const backupInput = useRef<HTMLInputElement>(null);
 
   const applyCountry = (country: string) => {
     setAddress((a) => ({ ...a, country }));
@@ -66,28 +69,32 @@ export default function SetupPage({ firstRun = false }: { firstRun?: boolean }) 
     setBusy('create');
     try {
       // One transaction, so the app appears only once the company is complete.
-      const company = await db.transaction('rw', [db.companies, db.taxRates, db.meta, db.activities], async () => {
-        const created = await setupCompany(
-          {
-            name: name.trim(),
-            email: email.trim(),
-            phone: phone.trim(),
-            address,
-            currency,
-            locale,
-            dateFormat,
-            language,
-            taxIdLabel,
-            taxId: taxId.trim(),
-          },
-          chargesTax ? [{ name: taxName, rate: taxRate }] : [],
-        );
-        await db.companies.update(created.id, {
-          branding: { ...created.branding, logo, accentColor: accent },
-          defaults: { ...created.defaults, pageSize },
-        });
-        return created;
-      });
+      const company = await db.transaction(
+        'rw',
+        [db.companies, db.taxRates, db.meta, db.activities],
+        async () => {
+          const created = await setupCompany(
+            {
+              name: name.trim(),
+              email: email.trim(),
+              phone: phone.trim(),
+              address,
+              currency,
+              locale,
+              dateFormat,
+              language,
+              taxIdLabel,
+              taxId: taxId.trim(),
+            },
+            chargesTax ? [{ name: taxName, rate: taxRate }] : [],
+          );
+          await db.companies.update(created.id, {
+            branding: { ...created.branding, logo, accentColor: accent },
+            defaults: { ...created.defaults, pageSize },
+          });
+          return created;
+        },
+      );
       void requestPersistentStorage();
       toast.success(`${company.name} is ready. Create your first invoice!`);
       navigate('/');
@@ -112,18 +119,46 @@ export default function SetupPage({ firstRun = false }: { firstRun?: boolean }) 
     }
   };
 
+  // Moving to a new device: load a backup instead of setting up from scratch.
+  const restore = async (file: File | undefined) => {
+    if (!file) return;
+    setBusy('restore');
+    try {
+      const backup = parseBackup(await file.text());
+      if (backup.data.companies.length === 0)
+        throw new BackupError('This backup does not contain a company.');
+      await importBackup(backup, 'merge', (logo) => normalizeImage(logo));
+      await setMeta(LAST_BACKUP_KEY, backup.exportedAt);
+      void requestPersistentStorage();
+      toast.success('Backup restored. Welcome back!');
+      navigate('/');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not restore the backup.');
+    } finally {
+      setBusy(null);
+    }
+  };
+
   return (
-    <div className={firstRun ? 'min-h-dvh bg-gradient-to-b from-primary-50 via-slate-50 to-slate-50 px-4 py-10 sm:py-16' : ''}>
+    <div
+      className={
+        firstRun
+          ? 'from-primary-50 min-h-dvh bg-gradient-to-b via-slate-50 to-slate-50 px-4 py-10 sm:py-16'
+          : ''
+      }
+    >
       <div className="mx-auto max-w-3xl">
         {firstRun ? (
           <div className="mb-8 text-center">
-            <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-2xl bg-primary-600 text-white shadow-lg shadow-primary-600/25">
+            <div className="bg-primary-600 shadow-primary-600/25 mx-auto mb-4 flex size-12 items-center justify-center rounded-2xl text-white shadow-lg">
               <FileText className="size-6" />
             </div>
-            <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Welcome to Invoice Maker</h1>
+            <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
+              Welcome to Invoice Maker
+            </h1>
             <p className="mx-auto mt-2 max-w-xl text-slate-600">
-              Create professional invoices, quotes and credit notes with modern templates. Everything is stored
-              privately in this browser — no account needed.
+              Create professional invoices, quotes and credit notes with modern templates.
+              Everything is stored privately in this browser — no account needed.
             </p>
           </div>
         ) : (
@@ -138,11 +173,15 @@ export default function SetupPage({ firstRun = false }: { firstRun?: boolean }) 
         <Card className="divide-y divide-slate-100">
           <section className="space-y-4 p-6">
             <div className="flex items-center gap-2">
-              <Building2 className="size-5 text-primary-600" />
+              <Building2 className="text-primary-600 size-5" />
               <h2 className="font-semibold text-slate-900">Your business</h2>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Company name" className="sm:col-span-2" error={submitted && !name.trim() ? 'Required' : undefined}>
+              <Field
+                label="Company name"
+                className="sm:col-span-2"
+                error={submitted && !name.trim() ? 'Required' : undefined}
+              >
                 {(id) => (
                   <Input
                     id={id}
@@ -162,10 +201,25 @@ export default function SetupPage({ firstRun = false }: { firstRun?: boolean }) 
                 {(id) => <CurrencySelect id={id} value={currency} onChange={setCurrency} />}
               </Field>
               <Field label="Email" optional>
-                {(id) => <Input id={id} type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />}
+                {(id) => (
+                  <Input
+                    id={id}
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    autoComplete="email"
+                  />
+                )}
               </Field>
               <Field label="Phone" optional>
-                {(id) => <Input id={id} value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" />}
+                {(id) => (
+                  <Input
+                    id={id}
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    autoComplete="tel"
+                  />
+                )}
               </Field>
               <Field label="Date format">
                 {(id) => <DateFormatSelect id={id} value={dateFormat} onChange={setDateFormat} />}
@@ -178,7 +232,12 @@ export default function SetupPage({ firstRun = false }: { firstRun?: boolean }) 
 
           <section className="space-y-4 p-6">
             <h2 className="font-semibold text-slate-900">Address</h2>
-            <AddressFields value={address} onChange={(a) => (a.country !== address.country ? applyCountry(a.country) : setAddress(a))} />
+            <AddressFields
+              value={address}
+              onChange={(a) =>
+                a.country !== address.country ? applyCountry(a.country) : setAddress(a)
+              }
+            />
           </section>
 
           <section className="space-y-4 p-6">
@@ -191,10 +250,19 @@ export default function SetupPage({ firstRun = false }: { firstRun?: boolean }) 
             {chargesTax ? (
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Tax name">
-                  {(id) => <Input id={id} value={taxName} onChange={(e) => setTaxName(e.target.value)} />}
+                  {(id) => (
+                    <Input id={id} value={taxName} onChange={(e) => setTaxName(e.target.value)} />
+                  )}
                 </Field>
                 <Field label="Rate (%)">
-                  {(id) => <NumberInput id={id} value={taxRate} onValueChange={setTaxRate} allowNegative={false} />}
+                  {(id) => (
+                    <NumberInput
+                      id={id}
+                      value={taxRate}
+                      onValueChange={setTaxRate}
+                      allowNegative={false}
+                    />
+                  )}
                 </Field>
               </div>
             ) : null}
@@ -213,9 +281,34 @@ export default function SetupPage({ firstRun = false }: { firstRun?: boolean }) 
 
           <div className="flex flex-col-reverse gap-3 p-6 sm:flex-row sm:items-center sm:justify-between">
             {firstRun ? (
-              <Button variant="ghost" onClick={demo} loading={busy === 'demo'} disabled={busy !== null}>
-                <Sparkles /> Explore with demo data
-              </Button>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Button
+                  variant="ghost"
+                  onClick={demo}
+                  loading={busy === 'demo'}
+                  disabled={busy !== null}
+                >
+                  <Sparkles /> Explore with demo data
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => backupInput.current?.click()}
+                  loading={busy === 'restore'}
+                  disabled={busy !== null}
+                >
+                  <Upload /> Restore a backup
+                </Button>
+                <input
+                  ref={backupInput}
+                  type="file"
+                  accept="application/json,.json"
+                  className="hidden"
+                  onChange={(e) => {
+                    void restore(e.target.files?.[0]);
+                    e.target.value = '';
+                  }}
+                />
+              </div>
             ) : (
               <Button variant="ghost" onClick={() => navigate(-1)}>
                 Cancel
