@@ -210,7 +210,7 @@ export function Stat({
       </div>
       <p
         className={cn(
-          'tabular mt-2 text-2xl font-semibold tracking-tight',
+          'mt-2 text-2xl font-semibold tracking-tight',
           tone === 'danger' ? 'text-red-600' : tone === 'success' ? 'text-emerald-600' : 'text-slate-900',
         )}
       >
