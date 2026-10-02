@@ -304,7 +304,8 @@ export function buildRenderModel(
   }
 
   const pay = company.payment;
-  const showPayment = doc.type === 'invoice' && !isVoid;
+  // Payment instructions only make sense while something is still owed.
+  const showPayment = doc.type === 'invoice' && !isVoid && result.balance > 0;
   const payment =
     showPayment && (clean(pay.bankDetails) || clean(pay.instructions) || clean(pay.paymentLink))
       ? {

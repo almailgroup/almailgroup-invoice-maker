@@ -75,3 +75,50 @@ export function textSafe(color: string, background = '#ffffff'): string {
   for (let i = 0; i < 20 && contrastRatio(c, background) < 4.5; i++) c = shade(c, 0.1);
   return c;
 }
+
+/** Lightens `color` until it reads well on a dark `background` (contrast >= 4.5). */
+export function lightSafe(color: string, background = '#0f172a'): string {
+  let c = normalizeHex(color);
+  for (let i = 0; i < 20 && contrastRatio(c, background) < 4.5; i++) c = tint(c, 0.12);
+  return c;
+}
+
+function rgbToHsl({ r, g, b }: RGB): { h: number; s: number; l: number } {
+  const rn = r / 255;
+  const gn = g / 255;
+  const bn = b / 255;
+  const max = Math.max(rn, gn, bn);
+  const min = Math.min(rn, gn, bn);
+  const l = (max + min) / 2;
+  if (max === min) return { h: 0, s: 0, l };
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let h: number;
+  if (max === rn) h = (gn - bn) / d + (gn < bn ? 6 : 0);
+  else if (max === gn) h = (bn - rn) / d + 2;
+  else h = (rn - gn) / d + 4;
+  return { h: h * 60, s, l };
+}
+
+function hslToRgb({ h, s, l }: { h: number; s: number; l: number }): RGB {
+  const hue = (((h % 360) + 360) % 360) / 360;
+  if (s === 0) return { r: l * 255, g: l * 255, b: l * 255 };
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+  const p = 2 * l - q;
+  const conv = (t: number) => {
+    let x = t;
+    if (x < 0) x += 1;
+    if (x > 1) x -= 1;
+    if (x < 1 / 6) return p + (q - p) * 6 * x;
+    if (x < 1 / 2) return q;
+    if (x < 2 / 3) return p + (q - p) * (2 / 3 - x) * 6;
+    return p;
+  };
+  return { r: conv(hue + 1 / 3) * 255, g: conv(hue) * 255, b: conv(hue - 1 / 3) * 255 };
+}
+
+/** Rotates the hue of `color` by `degrees`, keeping saturation and lightness. */
+export function shiftHue(color: string, degrees: number): string {
+  const hsl = rgbToHsl(hexToRgb(color));
+  return rgbToHex(hslToRgb({ ...hsl, h: hsl.h + degrees }));
+}

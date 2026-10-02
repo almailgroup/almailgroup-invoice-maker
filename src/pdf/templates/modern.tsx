@@ -5,13 +5,11 @@ import {
   ItemsTable,
   Lines,
   Logo,
-  NotesAndTerms,
   PageFooter,
-  PaymentInfo,
   RunningHeader,
   Stamp,
   TNUM,
-  TotalsTable,
+  TotalsSection,
   clientLines,
   companyContactLines,
   companyIdLine,
@@ -158,6 +156,9 @@ function Modern({ model, theme }: TemplateProps) {
         </View>
       </View>
 
+      {/* Placed before the table so it always lands on the first page. */}
+      <Stamp model={model} theme={theme} style={{ top: 112, right: 46 }} />
+
       <ItemsTable
         model={model}
         theme={theme}
@@ -174,54 +175,33 @@ function Modern({ model, theme }: TemplateProps) {
         }}
       />
 
-      {/* Payment details (or notes) beside the totals */}
-      <View wrap={false} style={{ flexDirection: 'row', marginTop: 14 }}>
-        <View style={{ flex: 1, paddingRight: 28 }}>
-          {model.payment ? (
-            <PaymentInfo model={model} theme={theme} titleStyle={sectionTitle} />
-          ) : model.notes ? (
-            <View>
-              <Text style={sectionTitle}>{model.labels.notes}</Text>
-              <Text style={{ fontSize: 8.5, color: theme.body, lineHeight: 1.5 }}>{model.notes}</Text>
-            </View>
-          ) : null}
-        </View>
-        <TotalsTable
-          model={model}
-          theme={theme}
-          styles={{
-            width: 236,
-            row: { paddingHorizontal: 10, paddingVertical: 3.5 },
-            strongRow: {
-              paddingHorizontal: 10,
-              borderTopWidth: 0.75,
-              borderTopColor: theme.line,
-              marginTop: 3,
-              paddingTop: 6,
-            },
-            grandRow: {
-              backgroundColor: theme.accent,
-              borderRadius: 6,
-              paddingHorizontal: 10,
-              paddingVertical: 8,
-              marginTop: 6,
-            },
-            grandLabel: { color: theme.onAccent },
-            grandValue: { color: theme.onAccent, fontSize: 12.5 },
-            note: { paddingHorizontal: 10 },
-          }}
-        />
-      </View>
-
-      <NotesAndTerms
+      <TotalsSection
         model={model}
         theme={theme}
         titleStyle={sectionTitle}
-        includeNotes={Boolean(model.payment)}
-        style={{ marginTop: 16, paddingTop: 12, borderTopWidth: 0.75, borderTopColor: theme.line }}
+        totals={{
+          width: 236,
+          row: { paddingHorizontal: 10, paddingVertical: 3.5 },
+          strongRow: {
+            paddingHorizontal: 10,
+            borderTopWidth: 0.75,
+            borderTopColor: theme.line,
+            marginTop: 3,
+            paddingTop: 6,
+          },
+          grandRow: {
+            backgroundColor: theme.accent,
+            borderRadius: 6,
+            paddingHorizontal: 10,
+            paddingVertical: 8,
+            marginTop: 6,
+          },
+          grandLabel: { color: theme.onAccent },
+          grandValue: { color: theme.onAccent, fontSize: 12.5 },
+          note: { paddingHorizontal: 10 },
+        }}
       />
 
-      <Stamp model={model} theme={theme} style={{ top: 112, right: 46 }} />
       <RunningHeader model={model} theme={theme} />
       <PageFooter model={model} theme={theme} />
     </DocShell>

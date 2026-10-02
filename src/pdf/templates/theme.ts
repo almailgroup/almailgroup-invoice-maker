@@ -1,4 +1,4 @@
-import { normalizeHex, readableOn, textSafe, tint } from '@/lib/color';
+import { lightSafe, normalizeHex, readableOn, textSafe, tint } from '@/lib/color';
 import { FONT_FAMILIES, type FontId } from '../fonts';
 import type { RenderModel } from '../model';
 import type { TemplateDefinition, TemplateTheme } from './types';
@@ -27,6 +27,7 @@ export function buildTheme(def: TemplateDefinition, model: RenderModel): Templat
     accentInk: textSafe(accent),
     accentSoft: tint(accent, 0.93),
     accentLine: tint(accent, 0.75),
+    accentBright: lightSafe(accent, '#0f172a'),
     ink: '#0f172a',
     body: '#334155',
     muted: '#64748b',

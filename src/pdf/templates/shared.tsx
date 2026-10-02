@@ -370,10 +370,13 @@ export function TotalsTable({
   model,
   theme,
   styles = {},
+  grandBackground,
 }: {
   model: RenderModel;
   theme: TemplateTheme;
   styles?: TotalsStyles;
+  /** Drawn behind the emphasised row (e.g. a gradient). */
+  grandBackground?: ReactNode;
 }) {
   const emphasized = emphasizedKind(model);
   const row = sx(
@@ -384,11 +387,15 @@ export function TotalsTable({
   const value = sx({ fontSize: 9, color: theme.ink, textAlign: 'right' }, TNUM, styles.value);
 
   return (
-    <View wrap={false} style={sx({ width: styles.width ?? 230 }, styles.container)}>
+    <View
+      wrap={false}
+      style={sx({ width: styles.width ?? 230, alignSelf: 'flex-start' }, styles.container)}
+    >
       {model.totals.map((t, i) => {
         if (t.kind === emphasized) {
           return (
             <View key={i} style={sx(row, { paddingVertical: 7 }, styles.grandRow)}>
+              {grandBackground}
               <Text style={sx(label, { fontSize: 10, fontWeight: 700, color: theme.ink }, styles.grandLabel)}>
                 {t.label}
               </Text>
@@ -542,6 +549,46 @@ export function Stamp({
           letterSpacing: 2.5,
           textTransform: 'uppercase',
           fontFamily: theme.fonts.heading,
+        }}
+      >
+        {model.stamp.text}
+      </Text>
+    </View>
+  );
+}
+
+/** Compact status badge, an alternative to the rotated stamp. */
+export function StatusPill({
+  model,
+  color,
+  style,
+}: {
+  model: RenderModel;
+  color: string;
+  style?: Style;
+}) {
+  if (!model.stamp) return null;
+  return (
+    <View
+      style={sx(
+        {
+          alignSelf: 'flex-start',
+          borderWidth: 1,
+          borderColor: color,
+          borderRadius: 9,
+          paddingVertical: 2,
+          paddingHorizontal: 8,
+        },
+        style,
+      )}
+    >
+      <Text
+        style={{
+          fontSize: 7,
+          fontWeight: 700,
+          color,
+          textTransform: 'uppercase',
+          letterSpacing: 1.2,
         }}
       >
         {model.stamp.text}
@@ -729,6 +776,133 @@ export function NotesAndTerms({
     <View style={style}>
       {notesBlock ? <View style={{ marginBottom: 12 }}>{notesBlock}</View> : null}
       {termsBlock}
+    </View>
+  );
+}
+
+/**
+ * The block after the items: payment details (or notes) beside the totals,
+ * then notes and terms underneath. Shared so every template behaves the same.
+ */
+export function TotalsSection({
+  model,
+  theme,
+  titleStyle,
+  textStyle,
+  totals,
+  grandBackground,
+  style,
+  bandStyle,
+  linkColor,
+  gap = 28,
+}: {
+  model: RenderModel;
+  theme: TemplateTheme;
+  titleStyle: Style;
+  textStyle?: Style;
+  totals: TotalsStyles;
+  grandBackground?: ReactNode;
+  style?: Style;
+  bandStyle?: Style;
+  linkColor?: string;
+  gap?: number;
+}) {
+  const text = sx({ fontSize: 8.5, color: theme.body, lineHeight: 1.5 }, textStyle);
+  return (
+    <>
+      <View wrap={false} style={sx({ flexDirection: 'row', marginTop: 14 }, style)}>
+        <View style={{ flex: 1, paddingRight: gap }}>
+          {model.payment ? (
+            <PaymentInfo
+              model={model}
+              theme={theme}
+              titleStyle={titleStyle}
+              textStyle={textStyle}
+              linkColor={linkColor}
+            />
+          ) : model.notes ? (
+            <View>
+              <Text style={titleStyle}>{model.labels.notes}</Text>
+              <Text style={text}>{model.notes}</Text>
+            </View>
+          ) : null}
+        </View>
+        <TotalsTable
+          model={model}
+          theme={theme}
+          styles={totals}
+          grandBackground={grandBackground}
+        />
+      </View>
+      <NotesAndTerms
+        model={model}
+        theme={theme}
+        titleStyle={titleStyle}
+        textStyle={textStyle}
+        includeNotes={Boolean(model.payment)}
+        style={sx(
+          { marginTop: 16, paddingTop: 12, borderTopWidth: 0.75, borderTopColor: theme.line },
+          bandStyle,
+        )}
+      />
+    </>
+  );
+}
+
+/** Label, name and address lines of a party (bill to, ship to, from). */
+export function Party({
+  label,
+  name,
+  lines,
+  labelStyle,
+  nameStyle,
+  linesStyle,
+  style,
+}: {
+  label?: string;
+  name: string;
+  lines: string[];
+  labelStyle?: Style;
+  nameStyle?: Style;
+  linesStyle?: Style;
+  style?: Style;
+}) {
+  return (
+    <View style={style}>
+      {label ? <Text style={labelStyle}>{label}</Text> : null}
+      <Text style={sx({ fontSize: 10, fontWeight: 700, marginBottom: 2 }, nameStyle)}>
+        {name || '—'}
+      </Text>
+      <Lines lines={lines} style={sx({ fontSize: 8.5, lineHeight: 1.5 }, linesStyle)} />
+    </View>
+  );
+}
+
+/** Label / value rows, e.g. issue date and due date. */
+export function MetaRows({
+  rows,
+  labelStyle,
+  valueStyle,
+  rowStyle,
+  labelWidth,
+}: {
+  rows: { label: string; value: string }[];
+  labelStyle?: Style;
+  valueStyle?: Style;
+  rowStyle?: Style;
+  labelWidth?: number;
+}) {
+  return (
+    <View>
+      {rows.map((r) => (
+        <View
+          key={r.label}
+          style={sx({ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 2 }, rowStyle)}
+        >
+          <Text style={sx(labelWidth ? { width: labelWidth } : undefined, labelStyle)}>{r.label}</Text>
+          <Text style={sx({ textAlign: 'right' }, TNUM, valueStyle)}>{r.value}</Text>
+        </View>
+      ))}
     </View>
   );
 }

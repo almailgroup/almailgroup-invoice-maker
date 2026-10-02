@@ -14,6 +14,8 @@ export interface TemplateTheme {
   accentSoft: string;
   /** Light accent tint for borders and dividers. */
   accentLine: string;
+  /** Accent lightened when needed so it is readable on dark backgrounds. */
+  accentBright: string;
   ink: string;
   body: string;
   muted: string;
