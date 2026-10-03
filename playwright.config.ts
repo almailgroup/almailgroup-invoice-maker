@@ -3,7 +3,7 @@ import { defineConfig, devices } from '@playwright/test';
 // End-to-end tests run against the production build, served from the same
 // sub-path GitHub Pages uses. Build first: `npm run build` (or `npm run test:e2e`).
 const PORT = 4173;
-const BASE_PATH = '/almailgroup-invoice-maker/';
+const BASE_PATH = '/almail-books/';
 const CI = Boolean(process.env.CI);
 
 export default defineConfig({

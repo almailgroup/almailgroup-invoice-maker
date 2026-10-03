@@ -49,13 +49,24 @@ describe('backup', () => {
     expect(await db.companies.count()).toBe(2);
   });
 
+  it('labels new backups and still reads ones made before the rename', async () => {
+    const a = await setupCompany({ name: 'A' });
+    const backup = await exportBackup(a.id);
+    expect(backup.app).toBe('almail-books');
+    const legacy = JSON.stringify({ ...backup, app: 'invoice-maker' });
+    await db.delete();
+    await db.open();
+    await importBackup(parseBackup(legacy), 'replace');
+    expect((await db.companies.get(a.id))?.name).toBe('A');
+  });
+
   it('rejects files that are not backups', () => {
     expect(() => parseBackup('nope')).toThrow(BackupError);
     expect(() => parseBackup(JSON.stringify({ app: 'other' }))).toThrow(BackupError);
     expect(() =>
       parseBackup(
         JSON.stringify({
-          app: 'invoice-maker',
+          app: 'almail-books',
           format: 99,
           exportedAt: '',
           data: { companies: [] },

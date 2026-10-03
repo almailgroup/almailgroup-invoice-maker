@@ -1,12 +1,11 @@
-# Invoice Maker
+# Almail Books
 
-Create professional invoices, quotes and credit notes with modern templates, for
-AL Mail Group. The whole app runs in the browser and is hosted free on GitHub
-Pages: there is no server, no account and no monthly fee. Your records stay on
-your own computer.
+Invoices, quotes, payments and reports for your business, with modern
+professional templates. Built by AL Mail Group. The whole app runs in the
+browser and is hosted free on GitHub Pages: there is no server, no account and
+no monthly fee. Your records stay on your own computer.
 
-**Open the app:** https://almailgroup.github.io/almailgroup-invoice-maker/
-(after the one-time setup below)
+**Open the app:** https://almailgroup.github.io/almail-books/
 
 ![Invoice editor with live PDF preview](docs/images/editor.png)
 
@@ -60,16 +59,24 @@ your own computer.
 3. Open the **Actions** tab, select **Build and deploy to GitHub Pages**, and
    click **Run workflow**. Pushing any commit to `main` also starts it.
 4. When the run finishes (about 2 minutes), the app is live at
-   https://almailgroup.github.io/almailgroup-invoice-maker/.
+   https://almailgroup.github.io/almail-books/.
 
 From then on, every push to `main` runs the checks (lint, formatting, type
 check, unit tests, build and browser tests) and publishes the new version if
 they pass. Before Pages is switched on, the workflow still runs the checks and
 skips the deployment with a notice.
 
-To use your own domain (e.g. `invoices.almailgroup.com`), enter it under
+To use your own domain (e.g. `books.almailgroup.com`), enter it under
 **Settings → Pages → Custom domain** and follow GitHub's DNS instructions. The
-app uses relative paths, so it works on any domain or sub-path.
+app uses relative paths, so it works on any domain or sub-path. Browsers keep
+data per site, so **back up before switching to a new domain** and restore the
+backup at the new address.
+
+Renaming the repository changes only the path
+(`almailgroup.github.io/<repository>/`). The site stays the same, so saved data
+is still there at the new address. The first visit there also removes the
+offline copy kept for the old address. If you installed the app, install it
+again from the new address.
 
 ## Where your data lives
 

@@ -1,8 +1,8 @@
 {
-  "name": "almailgroup-invoice-maker",
+  "name": "almail-books",
   "private": true,
   "version": "0.1.0",
-  "description": "Invoice generator with modern, professional templates. Runs entirely in the browser and deploys to GitHub Pages.",
+  "description": "Almail Books: invoices, quotes, payments and reports with modern templates. Runs entirely in the browser and deploys to GitHub Pages.",
   "type": "module",
   "engines": {
     "node": ">=22.12.0"

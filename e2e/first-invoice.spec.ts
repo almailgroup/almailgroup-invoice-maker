@@ -2,7 +2,7 @@ import { chooseOption, downloadFrom, expect, test } from './fixtures';
 
 test('set up a company, invoice a new client and get paid', async ({ page }) => {
   await page.goto('./');
-  await expect(page.getByRole('heading', { name: 'Welcome to Invoice Maker' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Welcome to Almail Books' })).toBeVisible();
 
   // Company setup: the country fills in currency and VAT defaults.
   await page.getByLabel('Company name').fill('AL Mail Group');

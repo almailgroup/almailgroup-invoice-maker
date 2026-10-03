@@ -15,9 +15,9 @@ test('a backup restores everything on a fresh device', async ({ page }, testInfo
   const first = await downloadFrom(page, () =>
     page.getByRole('button', { name: /^Back up Northwind/ }).click(),
   );
-  expect(first.file.suggestedFilename()).toMatch(/^invoice-maker-backup-.*\.json$/);
+  expect(first.file.suggestedFilename()).toMatch(/^almail-books-backup-.*\.json$/);
   const backup = JSON.parse(first.content.toString('utf8')) as BackupFile;
-  expect(backup).toMatchObject({ app: 'invoice-maker', format: 1 });
+  expect(backup).toMatchObject({ app: 'almail-books', format: 1 });
   expect(backup.data.companies).toHaveLength(1);
   expect(backup.data.documents.length).toBeGreaterThan(10);
   const backupPath = testInfo.outputPath('backup.json');
@@ -26,7 +26,7 @@ test('a backup restores everything on a fresh device', async ({ page }, testInfo
   // Wipe this browser, as if opening the app on another computer.
   await page.getByRole('button', { name: 'Delete all data' }).click();
   await page.getByRole('button', { name: 'Delete everything' }).click();
-  await expect(page.getByRole('heading', { name: 'Welcome to Invoice Maker' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Welcome to Almail Books' })).toBeVisible();
 
   const chooser = page.waitForEvent('filechooser');
   await page.getByRole('button', { name: 'Restore a backup' }).click();

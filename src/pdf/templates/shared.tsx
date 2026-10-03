@@ -3,6 +3,7 @@ import { Document, Image, Link, Page, Text, View } from '@react-pdf/renderer';
 import type { Style } from '@react-pdf/types';
 import type { RenderModel, RenderTotal } from '../model';
 import type { TemplateTheme } from './types';
+import { APP_NAME } from '@/lib/brand';
 
 /** Tabular figures keep digits aligned in columns. */
 export const TNUM: Style = { fontFeatureSettings: ['tnum'] };
@@ -44,8 +45,8 @@ export function DocShell({
       title={model.documentTitle}
       author={model.company.name}
       subject={model.documentTitle}
-      creator="Invoice Maker"
-      producer="Invoice Maker"
+      creator={APP_NAME}
+      producer={APP_NAME}
       language={model.language}
     >
       <Page

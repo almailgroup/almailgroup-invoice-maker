@@ -2,14 +2,18 @@ import { z } from 'zod';
 import { db, DATA_TABLES, setMeta, getMeta, type DataTable } from './db';
 import { CURRENT_COMPANY_KEY } from './records';
 import type { Company, ID } from './types';
+import { APP_NAME } from '@/lib/brand';
 
 export const BACKUP_FORMAT = 1;
 export const LAST_BACKUP_KEY = 'lastBackupAt';
+export const BACKUP_APP_ID = 'almail-books';
+/** Backups made before the app was renamed to Almail Books. */
+const LEGACY_APP_IDS = ['invoice-maker'] as const;
 
 export type BackupData = Record<DataTable, Record<string, unknown>[]>;
 
 export interface Backup {
-  app: 'invoice-maker';
+  app: typeof BACKUP_APP_ID | (typeof LEGACY_APP_IDS)[number];
   format: number;
   exportedAt: string;
   data: BackupData;
@@ -19,7 +23,7 @@ const row = z.looseObject({ id: z.string().min(1) });
 const ownedRow = z.looseObject({ id: z.string().min(1), companyId: z.string().min(1) });
 
 const backupSchema = z.object({
-  app: z.literal('invoice-maker'),
+  app: z.enum([BACKUP_APP_ID, ...LEGACY_APP_IDS]),
   format: z.number().int().min(1),
   exportedAt: z.string(),
   data: z.object({
@@ -51,7 +55,7 @@ export async function exportBackup(companyId?: ID): Promise<Backup> {
       : rows) as unknown as Record<string, unknown>[];
   }
   return {
-    app: 'invoice-maker',
+    app: BACKUP_APP_ID,
     format: BACKUP_FORMAT,
     exportedAt: new Date().toISOString(),
     data,
@@ -66,7 +70,7 @@ export function backupFileName(company?: Pick<Company, 'name'>): string {
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-|-$/g, '')}`
     : '';
-  return `invoice-maker-backup${name}-${stamp}.json`;
+  return `${BACKUP_APP_ID}-backup${name}-${stamp}.json`;
 }
 
 export function parseBackup(text: string): Backup {
@@ -78,7 +82,7 @@ export function parseBackup(text: string): Backup {
   }
   const result = backupSchema.safeParse(json);
   if (!result.success) {
-    throw new BackupError('This file is not an Invoice Maker backup, or it is damaged.');
+    throw new BackupError(`This file is not an ${APP_NAME} backup, or it is damaged.`);
   }
   if (result.data.format > BACKUP_FORMAT) {
     throw new BackupError(

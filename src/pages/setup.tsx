@@ -8,6 +8,7 @@ import { seedDemoCompany } from '@/db/demo';
 import { BackupError, importBackup, LAST_BACKUP_KEY, parseBackup } from '@/db/backup';
 import { emptyAddress } from '@/lib/geo';
 import { normalizeImage } from '@/lib/image';
+import { APP_NAME } from '@/lib/brand';
 import { regionDefaults } from '@/lib/regions';
 import { requestPersistentStorage } from '@/lib/storage';
 import type { Address, DateFormat } from '@/db/types';
@@ -154,7 +155,7 @@ export default function SetupPage({ firstRun = false }: { firstRun?: boolean }) 
               <FileText className="size-6" />
             </div>
             <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
-              Welcome to Invoice Maker
+              Welcome to {APP_NAME}
             </h1>
             <p className="mx-auto mt-2 max-w-xl text-slate-600">
               Create professional invoices, quotes and credit notes with modern templates.

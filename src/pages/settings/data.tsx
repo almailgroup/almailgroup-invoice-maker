@@ -16,6 +16,7 @@ import {
 } from '@/db/backup';
 import { useCompany, useFormat } from '@/app/company';
 import { normalizeImage } from '@/lib/image';
+import { APP_NAME } from '@/lib/brand';
 import { formatBytes, requestPersistentStorage, storageStatus } from '@/lib/storage';
 import { daysBetween, today } from '@/lib/dates';
 import { Button } from '@/components/ui/button';
@@ -165,7 +166,7 @@ export default function DataSettings() {
 
       <SettingsSection
         title="Restore"
-        description="Load a backup file made with Invoice Maker (.json)."
+        description={`Load a backup file made with ${APP_NAME} (.json).`}
       >
         <Button variant="outline" onClick={() => input.current?.click()}>
           <Upload /> Choose backup file…

@@ -4,12 +4,12 @@ test.use({ serviceWorkers: 'allow' });
 
 test('keeps working without a connection once loaded', async ({ page, context }) => {
   await page.goto('./');
-  await expect(page.getByText('Invoice Maker now works offline')).toBeVisible();
+  await expect(page.getByText('Almail Books now works offline')).toBeVisible();
   await page.evaluate(() => navigator.serviceWorker.ready.then(() => undefined));
 
   await context.setOffline(true);
   await page.reload();
-  await expect(page.getByRole('heading', { name: 'Welcome to Invoice Maker' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Welcome to Almail Books' })).toBeVisible();
   await page.getByRole('button', { name: 'Explore with demo data' }).click();
   await expect(page.getByText('Invoiced vs collected')).toBeVisible();
 

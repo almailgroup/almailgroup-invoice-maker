@@ -23,9 +23,10 @@ export default defineConfig({
       includeManifestIcons: false,
       manifest: {
         id: './',
-        name: 'Invoice Maker',
-        short_name: 'Invoices',
-        description: 'Create professional invoices, quotes and credit notes with modern templates.',
+        name: 'Almail Books',
+        short_name: 'Almail Books',
+        description:
+          'Invoices, quotes, payments and reports for your business, with modern professional templates.',
         lang: 'en',
         start_url: './',
         scope: './',

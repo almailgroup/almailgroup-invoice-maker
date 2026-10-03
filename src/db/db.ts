@@ -26,6 +26,8 @@ export class InvoiceDatabase extends Dexie {
   activities!: Table<Activity, string>;
   meta!: Table<KeyValue, string>;
 
+  // The database keeps the app's original name, so data saved before the
+  // rename to Almail Books is still found.
   constructor(name = 'invoice-maker') {
     super(name);
     this.version(1).stores({

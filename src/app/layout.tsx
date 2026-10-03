@@ -21,6 +21,7 @@ import {
   Check,
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
+import { APP_NAME } from '@/lib/brand';
 import { useCompanyContext } from './company';
 import { Button } from '@/components/ui/button';
 import {
@@ -127,7 +128,7 @@ function CompanySwitcher() {
               {company.name}
             </span>
             <span className="block truncate text-xs text-slate-500">
-              {company.currency} · Invoice Maker
+              {company.currency} · {APP_NAME}
             </span>
           </span>
           <ChevronsUpDown className="size-4 shrink-0 text-slate-400" />
