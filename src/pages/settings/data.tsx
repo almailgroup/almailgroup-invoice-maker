@@ -51,6 +51,8 @@ const TABLE_LABELS: Record<string, string> = {
   payments: 'Payments',
   recurring: 'Recurring invoices',
   activities: 'Activity entries',
+  accounts: 'Chart of accounts',
+  journals: 'Manual journals',
 };
 
 export default function DataSettings() {

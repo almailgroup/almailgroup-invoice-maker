@@ -9,7 +9,9 @@ import {
   FileMinus,
   FileText,
   LayoutDashboard,
+  ListTree,
   Menu as MenuIcon,
+  NotebookPen,
   Package,
   Palette,
   Plus,
@@ -63,9 +65,16 @@ const NAV: { title?: string; items: NavItem[] }[] = [
     ],
   },
   {
-    title: 'Business',
+    title: 'Accounting',
     items: [
       { to: '/reports', label: 'Reports', icon: <BarChart3 /> },
+      { to: '/accounts', label: 'Chart of accounts', icon: <ListTree /> },
+      { to: '/journals', label: 'Manual journals', icon: <NotebookPen /> },
+    ],
+  },
+  {
+    title: 'Business',
+    items: [
       { to: '/templates', label: 'Templates', icon: <Palette /> },
       { to: '/settings', label: 'Settings', icon: <Settings /> },
     ],

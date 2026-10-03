@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { Navigate, NavLink, Route, Routes } from 'react-router';
 import {
+  BookOpen,
   Building2,
   Database,
   FileCog,
@@ -18,6 +19,7 @@ const CompanySettings = lazy(() => import('./company'));
 const DocumentSettings = lazy(() => import('./documents'));
 const NumberingSettings = lazy(() => import('./numbering'));
 const TaxSettings = lazy(() => import('./taxes'));
+const AccountingSettings = lazy(() => import('./accounting'));
 const PaymentSettingsPage = lazy(() => import('./payments'));
 const EmailSettings = lazy(() => import('./emails'));
 const LabelSettings = lazy(() => import('./labels'));
@@ -29,6 +31,7 @@ const SECTIONS = [
   { path: 'documents', label: 'Invoice defaults', icon: <FileCog /> },
   { path: 'numbering', label: 'Numbering', icon: <Hash /> },
   { path: 'taxes', label: 'Taxes', icon: <Percent /> },
+  { path: 'accounting', label: 'Accounting', icon: <BookOpen /> },
   { path: 'payments', label: 'Payment details', icon: <Wallet /> },
   { path: 'emails', label: 'Email templates', icon: <Mail /> },
   { path: 'labels', label: 'Language & wording', icon: <Languages /> },
@@ -74,6 +77,7 @@ export default function SettingsPage() {
               <Route path="documents" element={<DocumentSettings />} />
               <Route path="numbering" element={<NumberingSettings />} />
               <Route path="taxes" element={<TaxSettings />} />
+              <Route path="accounting" element={<AccountingSettings />} />
               <Route path="payments" element={<PaymentSettingsPage />} />
               <Route path="emails" element={<EmailSettings />} />
               <Route path="labels" element={<LabelSettings />} />

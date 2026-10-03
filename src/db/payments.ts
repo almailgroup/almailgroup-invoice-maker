@@ -8,6 +8,7 @@ import { formatMoney } from '@/lib/format';
 import { dec, round, currencyPrecision } from '@/lib/money';
 import { newId } from '@/lib/ids';
 import { today } from '@/lib/dates';
+import { assertUnlocked } from './accounting';
 
 export const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
   { value: 'bank_transfer', label: 'Bank transfer' },
@@ -83,6 +84,7 @@ export async function savePayment(input: Payment): Promise<Payment> {
       const company = await db.companies.get(input.companyId);
       if (!company) throw new Error('Company not found');
       const existing = await db.payments.get(input.id);
+      assertUnlocked(company, input.date, existing?.date);
       const precision = currencyPrecision(input.currency);
       const allocations = normalizeAllocations(input.allocations, precision);
       const amount = round(input.amount, precision);
@@ -139,23 +141,29 @@ export async function savePayment(input: Payment): Promise<Payment> {
 }
 
 export async function deletePayment(id: ID): Promise<void> {
-  await db.transaction('rw', [db.payments, db.documents, db.clients, db.activities], async () => {
-    const payment = await db.payments.get(id);
-    if (!payment) return;
-    await db.payments.delete(id);
-    await recalculateDocuments([
-      ...payment.documentIds,
-      ...(payment.creditId ? [payment.creditId] : []),
-    ]);
-    await logActivity(
-      payment.companyId,
-      'payment',
-      payment.id,
-      'deleted',
-      `Payment ${payment.number} deleted`,
-      {
-        clientId: payment.clientId || null,
-      },
-    );
-  });
+  await db.transaction(
+    'rw',
+    [db.payments, db.documents, db.clients, db.companies, db.activities],
+    async () => {
+      const payment = await db.payments.get(id);
+      if (!payment) return;
+      const company = await db.companies.get(payment.companyId);
+      if (company) assertUnlocked(company, payment.date);
+      await db.payments.delete(id);
+      await recalculateDocuments([
+        ...payment.documentIds,
+        ...(payment.creditId ? [payment.creditId] : []),
+      ]);
+      await logActivity(
+        payment.companyId,
+        'payment',
+        payment.id,
+        'deleted',
+        `Payment ${payment.number} deleted`,
+        {
+          clientId: payment.clientId || null,
+        },
+      );
+    },
+  );
 }

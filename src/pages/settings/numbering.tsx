@@ -1,5 +1,6 @@
 import type { CounterReset, NumberedEntity, NumberingRule } from '@/db/types';
 import { NUMBER_PLACEHOLDERS, previewNumber } from '@/lib/numbering';
+import { defaultNumbering } from '@/db/defaults';
 import { today } from '@/lib/dates';
 import { Field, Input, NumberInput, Select } from '@/components/ui/form';
 import { SaveBar, SettingsSection, useCompanyDraft } from './shared';
@@ -10,12 +11,15 @@ const ENTITIES: { key: NumberedEntity; label: string }[] = [
   { key: 'credit', label: 'Credit notes' },
   { key: 'payment', label: 'Payments' },
   { key: 'client', label: 'Clients' },
+  { key: 'journal', label: 'Manual journals' },
 ];
 
 export default function NumberingSettings() {
   const { draft, update, dirty, saving, save, reset } = useCompanyDraft();
+  // Companies created before manual journals existed have no rule for them yet.
+  const ruleFor = (key: NumberedEntity) => draft.numbering[key] ?? defaultNumbering()[key];
   const setRule = (key: NumberedEntity, patch: Partial<NumberingRule>) =>
-    update({ numbering: { ...draft.numbering, [key]: { ...draft.numbering[key], ...patch } } });
+    update({ numbering: { ...draft.numbering, [key]: { ...ruleFor(key), ...patch } } });
 
   return (
     <div className="space-y-6">
@@ -38,7 +42,7 @@ export default function NumberingSettings() {
         </div>
         <div className="divide-y divide-slate-100">
           {ENTITIES.map(({ key, label }) => {
-            const rule = draft.numbering[key];
+            const rule = ruleFor(key);
             const missingCounter = !/\{counter\}/i.test(rule.pattern);
             return (
               <div

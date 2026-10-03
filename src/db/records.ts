@@ -1,5 +1,6 @@
 import { db, setMeta, getMeta, DATA_TABLES } from './db';
 import { createCompany, createTaxRate, nowStamp } from './defaults';
+import { chartAccounts, defaultAccountingSettings } from './chart-setup';
 import { logActivity } from './activity';
 import type { Client, Company, ID, Product, TaxRate } from './types';
 import { allocateNumber } from '@/lib/numbering';
@@ -29,24 +30,30 @@ export async function setupCompany(
   partial: Partial<Company>,
   taxRates: { name: string; rate: number }[] = [],
 ): Promise<Company> {
-  return db.transaction('rw', [db.companies, db.taxRates, db.meta, db.activities], async () => {
-    const company = createCompany(partial);
-    const rates = taxRates
-      .filter((t) => t.name.trim())
-      .map((t) => createTaxRate(company.id, { name: t.name.trim(), rate: t.rate }));
-    company.defaults.defaultTaxRateIds = rates.slice(0, 1).map((r) => r.id);
-    await db.companies.add(company);
-    if (rates.length) await db.taxRates.bulkAdd(rates);
-    await setCurrentCompanyId(company.id);
-    await logActivity(
-      company.id,
-      'company',
-      company.id,
-      'created',
-      `Company ${company.name} created`,
-    );
-    return company;
-  });
+  return db.transaction(
+    'rw',
+    [db.companies, db.taxRates, db.accounts, db.meta, db.activities],
+    async () => {
+      const company = createCompany(partial);
+      company.accounting = defaultAccountingSettings(company.address.country);
+      const rates = taxRates
+        .filter((t) => t.name.trim())
+        .map((t) => createTaxRate(company.id, { name: t.name.trim(), rate: t.rate }));
+      company.defaults.defaultTaxRateIds = rates.slice(0, 1).map((r) => r.id);
+      await db.companies.add(company);
+      if (rates.length) await db.taxRates.bulkAdd(rates);
+      await db.accounts.bulkAdd(chartAccounts(company.id, company.accounting.template));
+      await setCurrentCompanyId(company.id);
+      await logActivity(
+        company.id,
+        'company',
+        company.id,
+        'created',
+        `Company ${company.name} created`,
+      );
+      return company;
+    },
+  );
 }
 
 /** Deletes a company and everything that belongs to it. */

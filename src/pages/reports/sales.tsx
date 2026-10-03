@@ -18,11 +18,11 @@ import {
   type RangePreset,
 } from '@/lib/reports';
 import { Button } from '@/components/ui/button';
-import { Card, PageHeader, Segmented, Spinner } from '@/components/ui/misc';
+import { Card, Spinner } from '@/components/ui/misc';
 import { Input, Select } from '@/components/ui/form';
 import { CurrencySelect } from '@/components/fields';
 
-type Report = 'aging' | 'tax' | 'sales' | 'payments';
+export type SalesReportId = 'aging' | 'tax' | 'sales' | 'payments';
 
 function Th({ children, right }: { children: React.ReactNode; right?: boolean }) {
   return (
@@ -52,10 +52,10 @@ function Td({
   );
 }
 
-export default function ReportsPage() {
+/** Receivables aging, tax summary, sales by client and payments received. */
+export function SalesReports({ report }: { report: SalesReportId }) {
   const company = useCompany();
   const fmt = useFormat();
-  const [report, setReport] = useState<Report>('aging');
   const [preset, setPreset] = useState<RangePreset | 'custom'>('this-quarter');
   const [custom, setCustom] = useState(() => presetRange('this-quarter', today()));
   const [currency, setCurrency] = useState(company.currency);
@@ -149,27 +149,7 @@ export default function ReportsPage() {
 
   return (
     <div>
-      <PageHeader
-        title="Reports"
-        description="Receivables, tax and sales at a glance. Amounts are in one currency at a time."
-        actions={
-          <Button variant="outline" onClick={exportCurrent}>
-            <Download /> Export CSV
-          </Button>
-        }
-      />
-
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <Segmented
-          value={report}
-          onChange={setReport}
-          options={[
-            { value: 'aging', label: 'Aging' },
-            { value: 'tax', label: 'Tax summary' },
-            { value: 'sales', label: 'Sales by client' },
-            { value: 'payments', label: 'Payments' },
-          ]}
-        />
         <div className="flex flex-wrap items-center gap-2">
           {report !== 'aging' ? (
             <>
@@ -215,6 +195,9 @@ export default function ReportsPage() {
             <CurrencySelect value={currency} onChange={setCurrency} />
           </div>
         </div>
+        <Button variant="outline" onClick={exportCurrent}>
+          <Download /> Export CSV
+        </Button>
       </div>
 
       {report === 'aging' ? (

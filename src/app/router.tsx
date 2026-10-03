@@ -20,9 +20,12 @@ const PaymentDetail = lazy(() => import('@/pages/payments/detail'));
 const PaymentForm = lazy(() => import('@/pages/payments/form'));
 const RecurringList = lazy(() => import('@/pages/recurring/list'));
 const RecurringEditor = lazy(() => import('@/pages/recurring/editor'));
-const Reports = lazy(() => import('@/pages/reports'));
+const Reports = lazy(() => import('@/pages/reports/index'));
 const Templates = lazy(() => import('@/pages/templates'));
 const Settings = lazy(() => import('@/pages/settings/index'));
+const ChartOfAccounts = lazy(() => import('@/pages/accounting/chart'));
+const Journals = lazy(() => import('@/pages/accounting/journals'));
+const JournalEditor = lazy(() => import('@/pages/accounting/journal-editor'));
 const NotFound = lazy(() => import('@/pages/not-found'));
 
 function Root() {
@@ -101,6 +104,11 @@ export const router = createHashRouter([
           { path: 'clients/:id/edit', element: <ClientFormPage /> },
           { path: 'products', element: <Products /> },
           { path: 'reports', element: <Reports /> },
+          { path: 'reports/:report', element: <Reports /> },
+          { path: 'accounts', element: <ChartOfAccounts /> },
+          { path: 'journals', element: <Journals /> },
+          { path: 'journals/new', element: <JournalEditor key="new" /> },
+          { path: 'journals/:id', element: <JournalEditor /> },
           { path: 'templates', element: <Templates /> },
           { path: 'settings/*', element: <Settings /> },
           { path: 'setup', element: <SetupPage /> },

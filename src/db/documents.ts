@@ -15,6 +15,8 @@ import { allocateNumber } from '@/lib/numbering';
 import { settledStatus } from '@/lib/status';
 import { addDaysISO, today } from '@/lib/dates';
 import { shortId } from '@/lib/ids';
+import { isPosted } from '@/lib/accounting/ledger';
+import { assertUnlocked } from './accounting';
 
 export const DOCUMENT_NOUN: Record<DocumentType, string> = {
   invoice: 'Invoice',
@@ -187,6 +189,9 @@ export async function saveDocument(input: InvoiceDocument): Promise<InvoiceDocum
       const company = await db.companies.get(input.companyId);
       if (!company) throw new Error('Company not found');
       const existing = await db.documents.get(input.id);
+      if (isPosted(input) || (existing && isPosted(existing))) {
+        assertUnlocked(company, input.issueDate, existing?.issueDate);
+      }
       const client = input.clientId ? await db.clients.get(input.clientId) : undefined;
       let doc: InvoiceDocument = { ...input, number: input.number.trim() };
 
@@ -232,26 +237,34 @@ export async function setDocumentStatus(
   status: DocumentStatus,
   message?: string,
 ): Promise<void> {
-  await db.transaction('rw', [db.documents, db.clients, db.payments, db.activities], async () => {
-    const doc = await db.documents.get(id);
-    if (!doc) return;
-    let next: InvoiceDocument = { ...doc, status, updatedAt: nowStamp() };
-    if (status === 'sent' && !doc.sentAt) next.sentAt = nowStamp();
-    if (doc.type !== 'quote' && status !== 'void' && status !== 'draft') {
-      // Let payments decide between sent / partial / paid.
-      const client = doc.clientId ? await db.clients.get(doc.clientId) : undefined;
-      next = applyTotals({ ...next, status: 'sent' }, await paidAmount(doc), client ?? null);
-    }
-    await db.documents.put(next);
-    await logActivity(
-      doc.companyId,
-      doc.type,
-      doc.id,
-      `status:${status}`,
-      message ?? `${DOCUMENT_NOUN[doc.type]} ${doc.number} marked as ${status}`,
-      { clientId: doc.clientId || null, documentId: doc.id },
-    );
-  });
+  await db.transaction(
+    'rw',
+    [db.documents, db.clients, db.payments, db.companies, db.activities],
+    async () => {
+      const doc = await db.documents.get(id);
+      if (!doc) return;
+      const company = await db.companies.get(doc.companyId);
+      if (company && isPosted(doc) !== isPosted({ type: doc.type, status })) {
+        assertUnlocked(company, doc.issueDate);
+      }
+      let next: InvoiceDocument = { ...doc, status, updatedAt: nowStamp() };
+      if (status === 'sent' && !doc.sentAt) next.sentAt = nowStamp();
+      if (doc.type !== 'quote' && status !== 'void' && status !== 'draft') {
+        // Let payments decide between sent / partial / paid.
+        const client = doc.clientId ? await db.clients.get(doc.clientId) : undefined;
+        next = applyTotals({ ...next, status: 'sent' }, await paidAmount(doc), client ?? null);
+      }
+      await db.documents.put(next);
+      await logActivity(
+        doc.companyId,
+        doc.type,
+        doc.id,
+        `status:${status}`,
+        message ?? `${DOCUMENT_NOUN[doc.type]} ${doc.number} marked as ${status}`,
+        { clientId: doc.clientId || null, documentId: doc.id },
+      );
+    },
+  );
 }
 
 export async function markSent(id: ID): Promise<void> {
@@ -262,44 +275,50 @@ export async function markSent(id: ID): Promise<void> {
 
 /** Deletes a document. Payments that referenced it keep their money as unapplied credit. */
 export async function deleteDocument(id: ID): Promise<void> {
-  await db.transaction('rw', [db.documents, db.payments, db.activities, db.clients], async () => {
-    const doc = await db.documents.get(id);
-    if (!doc) return;
-    const payments = await db.payments.where('documentIds').equals(id).toArray();
-    for (const p of payments) {
-      const allocations = p.allocations.filter((a) => a.documentId !== id);
-      await db.payments.put({
-        ...p,
-        allocations,
-        documentIds: allocations.map((a) => a.documentId),
-      });
-    }
-    if (doc.type === 'credit') {
-      const uses = await db.payments.where('creditId').equals(id).toArray();
-      const touched = uses.flatMap((p) => p.documentIds);
-      await db.payments.bulkDelete(uses.map((p) => p.id));
-      await recalculateDocuments(touched);
-    }
-    if (doc.type === 'quote') {
-      const fromQuote = await db.documents
-        .where('companyId')
-        .equals(doc.companyId)
-        .filter((d) => d.sourceId === id)
-        .toArray();
-      for (const d of fromQuote) await db.documents.put({ ...d, sourceId: null });
-    }
-    await db.documents.delete(id);
-    await logActivity(
-      doc.companyId,
-      doc.type,
-      doc.id,
-      'deleted',
-      `${DOCUMENT_NOUN[doc.type]} ${doc.number} deleted`,
-      {
-        clientId: doc.clientId || null,
-      },
-    );
-  });
+  await db.transaction(
+    'rw',
+    [db.documents, db.payments, db.activities, db.clients, db.companies],
+    async () => {
+      const doc = await db.documents.get(id);
+      if (!doc) return;
+      const company = await db.companies.get(doc.companyId);
+      if (company && isPosted(doc)) assertUnlocked(company, doc.issueDate);
+      const payments = await db.payments.where('documentIds').equals(id).toArray();
+      for (const p of payments) {
+        const allocations = p.allocations.filter((a) => a.documentId !== id);
+        await db.payments.put({
+          ...p,
+          allocations,
+          documentIds: allocations.map((a) => a.documentId),
+        });
+      }
+      if (doc.type === 'credit') {
+        const uses = await db.payments.where('creditId').equals(id).toArray();
+        const touched = uses.flatMap((p) => p.documentIds);
+        await db.payments.bulkDelete(uses.map((p) => p.id));
+        await recalculateDocuments(touched);
+      }
+      if (doc.type === 'quote') {
+        const fromQuote = await db.documents
+          .where('companyId')
+          .equals(doc.companyId)
+          .filter((d) => d.sourceId === id)
+          .toArray();
+        for (const d of fromQuote) await db.documents.put({ ...d, sourceId: null });
+      }
+      await db.documents.delete(id);
+      await logActivity(
+        doc.companyId,
+        doc.type,
+        doc.id,
+        'deleted',
+        `${DOCUMENT_NOUN[doc.type]} ${doc.number} deleted`,
+        {
+          clientId: doc.clientId || null,
+        },
+      );
+    },
+  );
 }
 
 /** Copies a document as a new draft (new number, today's date). */

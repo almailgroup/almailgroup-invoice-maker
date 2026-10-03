@@ -36,8 +36,15 @@ no monthly fee. Your records stay on your own computer.
   Invoice").
 - **Email:** opens your email program with a ready-made message and downloads
   the PDF to attach. You can send reminders the same way.
-- **Dashboard and reports:** outstanding and overdue amounts, receivables
-  aging, tax summary, sales by client and payments received, with CSV export.
+- **Double-entry accounting:** a chart of accounts (UK, UAE or general
+  templates), automatic journal entries for every invoice, credit note and
+  payment, manual journals, exchange gains and losses on foreign-currency
+  payments, a financial year setting and a lock date for closed periods.
+- **Financial statements:** profit and loss, balance sheet, trial balance and
+  general ledger, with drill-down from any account to its transactions.
+- **Dashboard and sales reports:** outstanding and overdue amounts,
+  receivables aging, tax summary, sales by client and payments received, with
+  CSV export.
 - **Several companies** in one app, each with its own branding and numbering.
 - **Works offline** and can be installed like a desktop or phone app.
 - **Backup and restore** to a single file.
@@ -126,8 +133,8 @@ src/
   pages/        screens: dashboard, documents, clients, payments, reports, settings
   features/     invoice editor, client and payment dialogs
   components/   UI building blocks, PDF preview, charts
-  db/           IndexedDB schema (Dexie), documents, payments, recurring, backup, demo data
-  lib/          money and tax calculation, numbering, dates, formatting, reports
+  db/           IndexedDB schema (Dexie), documents, payments, accounting, backup, demo data
+  lib/          money and tax calculation, ledger and financial statements, numbering, dates
   pdf/          PDF templates (react-pdf), fonts, document wording, PDF worker
 e2e/            browser tests
 scripts/        regenerate fonts, template thumbnails and app icons

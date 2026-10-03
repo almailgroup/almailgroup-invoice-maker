@@ -72,7 +72,7 @@ export default function SetupPage({ firstRun = false }: { firstRun?: boolean }) 
       // One transaction, so the app appears only once the company is complete.
       const company = await db.transaction(
         'rw',
-        [db.companies, db.taxRates, db.meta, db.activities],
+        [db.companies, db.taxRates, db.accounts, db.meta, db.activities],
         async () => {
           const created = await setupCompany(
             {

@@ -58,3 +58,21 @@ export function parseAmount(input: string | number | null | undefined): number {
   const n = Number(cleaned);
   return Number.isFinite(n) ? n : 0;
 }
+
+/**
+ * Converts an amount to integer minor units (pence, fils, cents), rounding
+ * half away from zero. Ledger sums use these so they are exact.
+ */
+export function toMinor(value: Numeric, places: number): number {
+  const n = dec(value)
+    .times(new Decimal(10).pow(places))
+    .toDecimalPlaces(0, Decimal.ROUND_HALF_UP)
+    .toNumber();
+  return Object.is(n, -0) ? 0 : n;
+}
+
+/** Converts integer minor units back to an amount with `places` decimals. */
+export function fromMinor(minor: number, places: number): number {
+  const n = new Decimal(minor).dividedBy(new Decimal(10).pow(places)).toNumber();
+  return Object.is(n, -0) ? 0 : n;
+}

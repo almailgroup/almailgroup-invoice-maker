@@ -168,6 +168,7 @@ export function NumberInput({
   onValueChange,
   className,
   allowNegative = true,
+  blankZero = false,
   onBlur,
   onFocus,
   ...props
@@ -175,9 +176,12 @@ export function NumberInput({
   value: number;
   onValueChange: (value: number) => void;
   allowNegative?: boolean;
+  /** Show an empty field instead of "0" (e.g. debit/credit columns). */
+  blankZero?: boolean;
 }) {
   const [text, setText] = useState<string | null>(null);
-  const display = text ?? (Number.isFinite(value) ? String(value) : '');
+  const display =
+    text ?? (blankZero && value === 0 ? '' : Number.isFinite(value) ? String(value) : '');
 
   const parse = (raw: string): number | null => {
     let s = raw.trim().replace(/\s/g, '');

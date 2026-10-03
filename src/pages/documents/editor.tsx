@@ -22,7 +22,7 @@ import { cn } from '@/lib/cn';
 import { TEMPLATE_META } from '@/pdf/template-meta';
 import { Button } from '@/components/ui/button';
 import { Card, CardBody, CardHeader, Spinner } from '@/components/ui/misc';
-import { Field, Input, Select, Textarea } from '@/components/ui/form';
+import { Field, Input, NumberInput, Select, Textarea } from '@/components/ui/form';
 import { Combobox } from '@/components/ui/combobox';
 import {
   Dialog,
@@ -464,6 +464,21 @@ export default function DocumentEditorPage({ type }: { type: DocumentType }) {
                   />
                 )}
               </Field>
+              {doc.currency !== company.currency && type !== 'quote' ? (
+                <Field
+                  label="Exchange rate"
+                  hint={`1 ${doc.currency} = ${doc.exchangeRate || '?'} ${company.currency}, used for your books`}
+                >
+                  {(fid) => (
+                    <NumberInput
+                      id={fid}
+                      value={doc.exchangeRate ?? 0}
+                      onValueChange={(exchangeRate) => update({ exchangeRate })}
+                      allowNegative={false}
+                    />
+                  )}
+                </Field>
+              ) : null}
             </CardBody>
           </Card>
 

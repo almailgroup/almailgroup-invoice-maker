@@ -46,6 +46,8 @@ export function RecordPaymentDialog({
           date,
           amount,
           currency: invoice.currency,
+          // Same rate as the invoice unless the user records it differently later.
+          exchangeRate: invoice.exchangeRate,
           method,
           reference: reference.trim(),
           notes: notes.trim(),

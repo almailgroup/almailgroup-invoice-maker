@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { db, DATA_TABLES, setMeta, getMeta, type DataTable } from './db';
 import { CURRENT_COMPANY_KEY } from './records';
+import { seedMissingCharts } from './chart-setup';
 import type { Company, ID } from './types';
 import { APP_NAME } from '@/lib/brand';
 
@@ -34,6 +35,8 @@ const backupSchema = z.object({
     payments: z.array(ownedRow).default([]),
     recurring: z.array(ownedRow).default([]),
     activities: z.array(ownedRow).default([]),
+    accounts: z.array(ownedRow).default([]),
+    journals: z.array(ownedRow).default([]),
   }),
 });
 
@@ -132,6 +135,8 @@ export async function importBackup(
           rows,
         );
     }
+    // Backups made before accounting existed have no chart of accounts.
+    await seedMissingCharts(db);
     const current = await getMeta<string | null>(CURRENT_COMPANY_KEY, null);
     const exists = current ? await db.companies.get(current) : undefined;
     if (!exists && companies[0]) await setMeta(CURRENT_COMPANY_KEY, companies[0].id);

@@ -3,8 +3,9 @@ import { createClient, createProduct, createRecurring } from './defaults';
 import { draftDocument, markSent, saveDocument, setDocumentStatus } from './documents';
 import { createPayment, savePayment } from './payments';
 import { saveClient, saveProduct, setupCompany } from './records';
+import { createJournal, newJournalLine, saveJournal } from './accounting';
 import type { Client, Company, InvoiceDocument, LineItem, Product } from './types';
-import { addDaysISO, today } from '@/lib/dates';
+import { addDaysISO, parseISODate, toISODate, today } from '@/lib/dates';
 import { shortId } from '@/lib/ids';
 import { regionDefaults } from '@/lib/regions';
 
@@ -208,6 +209,49 @@ function line(product: Product, quantity: number, taxes = [VAT], discount = 0): 
   };
 }
 
+/** EUR→GBP rates for the demo's euro client (paid later at a slightly better rate). */
+const EUR_RATE_AT_INVOICE = 0.86;
+const EUR_RATE_AT_PAYMENT = 0.87;
+
+/** Opening capital and monthly rent, so the statements have some substance. */
+async function bookkeeping(company: Company) {
+  const accounts = await db.accounts.where('companyId').equals(company.id).toArray();
+  const bank = accounts.find((a) => a.role === 'bank')!;
+  const capital = accounts.find((a) => a.role === 'capital')!;
+  const rent =
+    accounts.find((a) => a.code === '7000') ?? accounts.find((a) => a.role === 'expense')!;
+  await saveJournal(
+    createJournal(company.id, {
+      date: addDaysISO(today(), -200),
+      reference: 'Share capital introduced',
+      lines: [
+        newJournalLine({
+          accountId: bank.id,
+          debit: 15000,
+          description: 'Funds from shareholders',
+        }),
+        newJournalLine({ accountId: capital.id, credit: 15000, description: 'Ordinary shares' }),
+      ],
+    }),
+  );
+  const month = parseISODate(today());
+  for (let back = 5; back >= 0; back--) {
+    const first = new Date(month.getFullYear(), month.getMonth() - back, 1);
+    const date = toISODate(first);
+    const label = first.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+    await saveJournal(
+      createJournal(company.id, {
+        date,
+        reference: `Workshop rent — ${label}`,
+        lines: [
+          newJournalLine({ accountId: rent.id, debit: 1250 }),
+          newJournalLine({ accountId: bank.id, credit: 1250 }),
+        ],
+      }),
+    );
+  }
+}
+
 async function invoice(
   company: Company,
   client: Client,
@@ -216,6 +260,7 @@ async function invoice(
   items: LineItem[],
 ): Promise<InvoiceDocument> {
   const draft = await draftDocument(company, type, client);
+  if (draft.currency !== company.currency) draft.exchangeRate = EUR_RATE_AT_INVOICE;
   const issueDate = addDaysISO(today(), -daysAgo);
   const terms = client.paymentTermsDays ?? company.defaults.paymentTermsDays;
   return saveDocument({
@@ -244,6 +289,7 @@ async function pay(
       date: addDaysISO(today(), -daysAgo),
       amount,
       currency: doc.currency,
+      exchangeRate: doc.currency !== company.currency ? EUR_RATE_AT_PAYMENT : 1,
       method,
       reference: `REF-${doc.number}`,
       allocations: [{ documentId: doc.id, amount }],
@@ -267,6 +313,8 @@ export async function seedDemoCompany(): Promise<Company> {
       db.payments,
       db.recurring,
       db.activities,
+      db.accounts,
+      db.journals,
       db.meta,
     ],
     seed,
@@ -332,6 +380,7 @@ async function seed(): Promise<Company> {
   const [setup, print, insert, post2, post1, courier, data, pm] = products;
   const [brightside, harbor, maple, orbit, sunrise, kestrel] = clients;
   const co = (await db.companies.get(company.id))!;
+  await bookkeeping(co);
 
   // Invoices across the last six months.
   const paidOld = await invoice(co, brightside, 'invoice', 160, [

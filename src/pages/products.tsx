@@ -24,7 +24,7 @@ import { today } from '@/lib/dates';
 import { cn } from '@/lib/cn';
 import { Button } from '@/components/ui/button';
 import { Card, EmptyState, PageHeader, Segmented, Spinner } from '@/components/ui/misc';
-import { Field, Input, NumberInput, Textarea } from '@/components/ui/form';
+import { Field, Input, NumberInput, Select, Textarea } from '@/components/ui/form';
 import {
   Dialog,
   DialogBody,
@@ -52,6 +52,19 @@ function ProductDialog({
   const [error, setError] = useState('');
   const set = (patch: Partial<Product>) => setDraft((d) => ({ ...d, ...patch }));
   const isNew = !product.name;
+  const incomeAccounts = useLiveQuery(
+    () =>
+      db.accounts
+        .where('companyId')
+        .equals(product.companyId)
+        .filter(
+          (a) =>
+            (a.type === 'income' || a.type === 'income_other') &&
+            (!a.archived || a.id === product.incomeAccountId),
+        )
+        .sortBy('code'),
+    [product.companyId, product.incomeAccountId],
+  );
 
   const save = async () => {
     if (!draft.name.trim()) {
@@ -125,6 +138,26 @@ function ProductDialog({
               )}
             </Field>
           </div>
+          <Field label="Income account" hint="Where sales of this item are recorded in your books.">
+            {(id) => (
+              <Select
+                id={id}
+                value={draft.incomeAccountId ?? ''}
+                onChange={(e) => set({ incomeAccountId: e.target.value || null })}
+              >
+                <option value="">
+                  {incomeAccounts?.find((a) => a.role === 'sales')?.name ?? 'Sales'} (default)
+                </option>
+                {(incomeAccounts ?? [])
+                  .filter((a) => a.role !== 'sales')
+                  .map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.code} {a.name}
+                    </option>
+                  ))}
+              </Select>
+            )}
+          </Field>
           <div>
             <p className="mb-2 text-sm font-medium text-slate-700">Default taxes</p>
             {taxRates.length === 0 ? (

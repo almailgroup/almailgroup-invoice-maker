@@ -31,6 +31,7 @@ export function defaultNumbering(): Record<NumberedEntity, NumberingRule> {
     credit: rule('CN-{year}-{counter}'),
     payment: rule('PAY-{counter}'),
     client: rule('C-{counter}'),
+    journal: rule('JE-{year}-{counter}'),
   };
 }
 

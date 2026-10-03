@@ -25,7 +25,7 @@ export type QuoteStatus = 'draft' | 'sent' | 'accepted' | 'declined' | 'invoiced
 export type CreditStatus = 'draft' | 'sent' | 'partial' | 'applied' | 'void';
 export type DocumentStatus = InvoiceStatus | QuoteStatus | CreditStatus;
 
-export type NumberedEntity = DocumentType | 'payment' | 'client';
+export type NumberedEntity = DocumentType | 'payment' | 'client' | 'journal';
 
 export type CounterReset = 'never' | 'yearly' | 'monthly';
 
@@ -115,6 +115,112 @@ export interface EmailTemplates {
   payment: EmailTemplate;
 }
 
+/* -------------------------------------------------------------------------- */
+/* Accounting                                                                 */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * What an account is. The type decides where it appears in the financial
+ * statements, so reports never depend on account codes.
+ */
+export type AccountType =
+  | 'asset_cash'
+  | 'asset_receivable'
+  | 'asset_current'
+  | 'asset_prepayments'
+  | 'asset_fixed'
+  | 'asset_non_current'
+  | 'liability_payable'
+  | 'liability_credit_card'
+  | 'liability_current'
+  | 'liability_non_current'
+  | 'equity'
+  | 'income'
+  | 'income_other'
+  | 'expense_direct_cost'
+  | 'expense'
+  | 'expense_depreciation'
+  | 'expense_other';
+
+/** System accounts the app posts to automatically (one per role and company). */
+export type AccountRole =
+  | 'receivable'
+  | 'payable'
+  | 'bank'
+  | 'cash'
+  | 'credit_card'
+  | 'sales'
+  | 'charges'
+  | 'output_tax'
+  | 'input_tax'
+  | 'tax_settlement'
+  | 'fx'
+  | 'capital'
+  | 'drawings'
+  | 'retained_earnings'
+  | 'opening_balance'
+  | 'cost_of_sales'
+  | 'expense'
+  | 'bank_fees';
+
+export interface BankDetails {
+  institution: string;
+  accountNumber: string;
+  iban: string;
+  bic: string;
+}
+
+export interface Account {
+  id: ID;
+  companyId: ID;
+  code: string;
+  name: string;
+  type: AccountType;
+  description: string;
+  /** Set on the accounts the app posts to automatically. */
+  role: AccountRole | null;
+  /** Bank, cash and card accounts can hold the details printed on documents. */
+  bank: BankDetails | null;
+  archived: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+export interface JournalLine {
+  id: ID;
+  accountId: ID;
+  description: string;
+  debit: number;
+  credit: number;
+  /** Client or vendor the line relates to (for receivable/payable accounts). */
+  contactId: ID | null;
+}
+
+/** A manual journal entry in the company currency. */
+export interface ManualJournal {
+  id: ID;
+  companyId: ID;
+  number: string;
+  date: ISODate;
+  reference: string;
+  notes: string;
+  status: 'draft' | 'posted';
+  lines: JournalLine[];
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+export type ChartTemplateId = 'generic' | 'uk' | 'ae';
+
+export interface AccountingSettings {
+  /** Chart of accounts the company started from. */
+  template: ChartTemplateId;
+  /** Last day of the financial year, e.g. { month: 12, day: 31 }. */
+  fiscalYearEnd: { month: number; day: number };
+  /** Transactions dated on or before this date can't be added, changed or deleted. */
+  lockDate: ISODate | null;
+}
+
 export interface Company {
   id: ID;
   name: string;
@@ -140,6 +246,8 @@ export interface Company {
   /** Overrides for words printed on documents (see pdf/labels.ts). */
   labels: Record<string, string>;
   emailTemplates: EmailTemplates;
+  /** Missing on companies created before accounting existed (see ensureAccounting). */
+  accounting?: AccountingSettings;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -199,6 +307,8 @@ export interface Product {
   unitPrice: number;
   unit: string;
   taxRateIds: ID[];
+  /** Income account for sales of this item; null uses the company's sales account. */
+  incomeAccountId?: ID | null;
   archived: boolean;
   createdAt: Timestamp;
   updatedAt: Timestamp;
@@ -217,6 +327,8 @@ export interface LineItem {
   discountType: DiscountType;
   /** Snapshot of the taxes at the time they were added. */
   taxes: TaxLine[];
+  /** Ledger account override; null uses the product's or the company's default. */
+  accountId?: ID | null;
 }
 
 export interface Charge {
@@ -247,6 +359,8 @@ export interface InvoiceDocument {
   dueDate: ISODate | null;
   poNumber: string;
   currency: string;
+  /** Company-currency value of 1 unit of `currency` (1 when they are the same). */
+  exchangeRate?: number;
   items: LineItem[];
   discount: number;
   discountType: DiscountType;
@@ -303,6 +417,10 @@ export interface Payment {
   date: ISODate;
   amount: number;
   currency: string;
+  /** Company-currency value of 1 unit of `currency` (1 when they are the same). */
+  exchangeRate?: number;
+  /** Bank, cash or card account the money went into; null picks one from the method. */
+  accountId?: ID | null;
   method: PaymentMethod;
   /** Transaction / cheque reference. */
   reference: string;
@@ -364,7 +482,16 @@ export interface RecurringProfile {
 }
 
 export type ActivityEntity =
-  'invoice' | 'quote' | 'credit' | 'payment' | 'client' | 'product' | 'recurring' | 'company';
+  | 'invoice'
+  | 'quote'
+  | 'credit'
+  | 'payment'
+  | 'client'
+  | 'product'
+  | 'recurring'
+  | 'company'
+  | 'account'
+  | 'journal';
 
 export interface Activity {
   id: ID;

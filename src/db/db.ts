@@ -1,16 +1,19 @@
 import Dexie, { type Table } from 'dexie';
 import type {
+  Account,
   Activity,
   Client,
   Company,
   InvoiceDocument,
   KeyValue,
+  ManualJournal,
   Payment,
   Product,
   RecurringProfile,
   TaxRate,
 } from './types';
 import { APP_NAME } from '@/lib/brand';
+import { seedMissingCharts } from './chart-setup';
 
 /**
  * All data lives in the browser's IndexedDB. Nothing is sent to a server,
@@ -25,6 +28,8 @@ export class InvoiceDatabase extends Dexie {
   payments!: Table<Payment, string>;
   recurring!: Table<RecurringProfile, string>;
   activities!: Table<Activity, string>;
+  accounts!: Table<Account, string>;
+  journals!: Table<ManualJournal, string>;
   meta!: Table<KeyValue, string>;
 
   constructor(name = APP_NAME) {
@@ -41,6 +46,11 @@ export class InvoiceDatabase extends Dexie {
       activities: 'id, companyId, [companyId+at], entityId, clientId, documentId',
       meta: 'key',
     });
+    // Accounting: chart of accounts and manual journals.
+    this.version(2).stores({
+      accounts: 'id, companyId, [companyId+code], [companyId+role]',
+      journals: 'id, companyId, [companyId+date], [companyId+number]',
+    });
   }
 }
 
@@ -53,11 +63,15 @@ export const DATA_TABLES = [
   'payments',
   'recurring',
   'activities',
+  'accounts',
+  'journals',
 ] as const;
 
 export type DataTable = (typeof DATA_TABLES)[number];
 
-const ALL_TABLES = [...DATA_TABLES, 'meta'];
+const ALL_TABLES: string[] = [...DATA_TABLES, 'meta'];
+/** Tables every build of the app has had; used to recognise its databases. */
+const CORE_TABLES = ['companies', 'clients', 'documents', 'payments', 'meta'];
 
 /**
  * Data saved by an earlier build may sit in a database with another name
@@ -76,11 +90,12 @@ async function adoptEarlierDatabase(target: Dexie): Promise<void> {
     try {
       await earlier.open();
       const tables = new Set(earlier.tables.map((table) => table.name));
-      if (!ALL_TABLES.every((table) => tables.has(table))) continue;
+      if (!CORE_TABLES.every((table) => tables.has(table))) continue;
       if ((await earlier.table('companies').count()) === 0) continue;
-      const rows = await Promise.all(ALL_TABLES.map((table) => earlier.table(table).toArray()));
+      const copied = ALL_TABLES.filter((table) => tables.has(table));
+      const rows = await Promise.all(copied.map((table) => earlier.table(table).toArray()));
       await target.transaction('rw', ALL_TABLES, async () => {
-        for (const [i, table] of ALL_TABLES.entries()) await target.table(table).bulkPut(rows[i]);
+        for (const [i, table] of copied.entries()) await target.table(table).bulkPut(rows[i]);
       });
       earlier.close();
       // Not awaited: a tab still running the earlier build delays the delete.
@@ -96,7 +111,14 @@ async function adoptEarlierDatabase(target: Dexie): Promise<void> {
 
 export const db = new InvoiceDatabase();
 // Runs on every open, before any other query.
-db.on('ready', (vipDb) => adoptEarlierDatabase(vipDb), true);
+db.on(
+  'ready',
+  async (vipDb) => {
+    await adoptEarlierDatabase(vipDb);
+    await vipDb.transaction('rw', ['companies', 'accounts'], () => seedMissingCharts(vipDb));
+  },
+  true,
+);
 
 export async function getMeta<T>(key: string, fallback: T): Promise<T> {
   const row = await db.meta.get(key);

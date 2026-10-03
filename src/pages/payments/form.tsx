@@ -59,6 +59,15 @@ export default function PaymentFormPage() {
     () => db.clients.where('companyId').equals(company.id).toArray(),
     [company.id],
   );
+  const moneyAccounts = useLiveQuery(
+    () =>
+      db.accounts
+        .where('companyId')
+        .equals(company.id)
+        .filter((a) => a.type === 'asset_cash' && !a.archived)
+        .toArray(),
+    [company.id],
+  );
   const clientId = payment?.clientId ?? '';
   const clientDocs = useLiveQuery(
     () =>
@@ -280,6 +289,47 @@ export default function PaymentFormPage() {
               </Select>
             )}
           </Field>
+          {!isCredit ? (
+            <Field label="Deposit to" hint="The bank or cash account the money went into.">
+              {(fid) => (
+                <Select
+                  id={fid}
+                  value={payment.accountId ?? ''}
+                  onChange={(e) => set({ accountId: e.target.value || null })}
+                >
+                  <option value="">
+                    {(() => {
+                      const role = payment.method === 'cash' ? 'cash' : 'bank';
+                      const auto = moneyAccounts?.find((a) => a.role === role);
+                      return auto ? `${auto.name} (default)` : 'Default account';
+                    })()}
+                  </option>
+                  {[...(moneyAccounts ?? [])]
+                    .sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }))
+                    .map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.code} {a.name}
+                      </option>
+                    ))}
+                </Select>
+              )}
+            </Field>
+          ) : null}
+          {!isCredit && payment.currency !== company.currency ? (
+            <Field
+              label="Exchange rate"
+              hint={`1 ${payment.currency} = ${payment.exchangeRate || '?'} ${company.currency} on the payment date`}
+            >
+              {(fid) => (
+                <NumberInput
+                  id={fid}
+                  value={payment.exchangeRate ?? 0}
+                  onValueChange={(exchangeRate) => set({ exchangeRate })}
+                  allowNegative={false}
+                />
+              )}
+            </Field>
+          ) : null}
           {isCredit ? (
             <Field
               label="Credit note"
