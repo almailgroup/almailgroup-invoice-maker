@@ -7,8 +7,11 @@ import type {
   InvoiceDocument,
   ManualJournal,
   Payment,
+  TaxKind,
+  TaxLine,
 } from '@/db/types';
 import { computeDocument } from '@/lib/document-calc';
+import { isReverseCharge, taxKind } from '@/lib/calc';
 import { Decimal, dec, toMinor } from '@/lib/money';
 
 /**
@@ -22,6 +25,18 @@ import { Decimal, dec, toMinor } from '@/lib/money';
 export type LedgerSource =
   'invoice' | 'credit' | 'bill' | 'vendor_credit' | 'payment' | 'expense' | 'journal';
 
+/**
+ * What a line means for VAT returns (like Odoo's tax tags): the value of
+ * a sale or purchase, or the tax on it, and how that tax is reported.
+ */
+export interface VatTag {
+  flow: 'sale' | 'purchase';
+  part: 'base' | 'tax';
+  /** `none` when no tax was chosen for the line. */
+  kind: TaxKind | 'none';
+  rate: number;
+}
+
 export interface LedgerLine {
   date: ISODate;
   accountId: ID;
@@ -33,6 +48,9 @@ export interface LedgerLine {
   number: string;
   contactId: ID | null;
   description: string;
+  vat?: VatTag;
+  /** Part of the entry that closes a VAT return; later returns leave it out. */
+  settlement?: boolean;
 }
 
 export interface LedgerProblem {
@@ -184,7 +202,10 @@ export function postDocument(doc: InvoiceDocument, ctx: LedgerContext): LedgerLi
 
   const total = toMinor(dec(result.total).times(rate), p);
   const taxes = result.taxes.map((t) => ({ ...t, minor: toMinor(dec(t.amount).times(rate), p) }));
-  const income = total - taxes.reduce((acc, t) => acc + t.minor, 0);
+  // Reverse charge is not part of the total: it never reduces the income.
+  const chargedTaxes = taxes.filter((t) => t.kind !== 'reverse_charge');
+  const reverseTaxes = taxes.filter((t) => t.kind === 'reverse_charge');
+  const income = total - chargedTaxes.reduce((acc, t) => acc + t.minor, 0);
 
   // Weight of each line in the net income: its share after the document
   // discount, without tax (prices that include tax have it backed out).
@@ -198,33 +219,44 @@ export function postDocument(doc: InvoiceDocument, ctx: LedgerContext): LedgerLi
       .dividedBy(100)
       .plus(1);
   const docTaxes = exempt ? [] : doc.taxes;
-  const groups = new Map<ID, { weight: Decimal; label: string }>();
-  const add = (accountId: ID, weight: Decimal, label: string) => {
-    const g = groups.get(accountId);
+  const flow = sales ? 'sale' : 'purchase';
+  // The base lines are grouped by account and by how their tax is reported.
+  const tagOf = (taxes: TaxLine[]): VatTag => {
+    const first = taxes.find((t) => !isReverseCharge(t)) ?? taxes[0];
+    if (first) return { flow, part: 'base', kind: taxKind(first), rate: first.rate };
+    // Sales to tax-exempt clients (exports, charities) are reported as zero-rated.
+    return { flow, part: 'base', kind: exempt && sales ? 'zero' : 'none', rate: 0 };
+  };
+  const groups = new Map<string, { accountId: ID; weight: Decimal; label: string; vat: VatTag }>();
+  const add = (accountId: ID, weight: Decimal, label: string, taxes: TaxLine[]) => {
+    const vat = tagOf(taxes);
+    const key = `${accountId}|${vat.kind}|${vat.rate}`;
+    const g = groups.get(key);
     if (g) g.weight = g.weight.plus(weight);
-    else groups.set(accountId, { weight, label });
+    else groups.set(key, { accountId, weight, label, vat });
   };
   doc.items.forEach((item, i) => {
     if (item.kind === 'heading') return;
     const taxesOnLine = exempt ? [] : [...item.taxes, ...docTaxes];
     let weight = dec(result.lines[i].net).times(ratio);
-    if (doc.pricesIncludeTax && taxesOnLine.length) weight = weight.dividedBy(rateSum(taxesOnLine));
+    const charged = taxesOnLine.filter((t) => !isReverseCharge(t));
+    if (doc.pricesIncludeTax && charged.length) weight = weight.dividedBy(rateSum(charged));
     const account =
       usable(ctx, item.accountId) ??
       (sales
         ? usable(ctx, item.productId ? ctx.productAccounts.get(item.productId) : null)
         : null) ??
       role(ctx, rule.line);
-    add(account, weight, item.name);
+    add(account, weight, item.name, taxesOnLine);
   });
   for (const charge of doc.charges) {
     const taxesOnCharge = exempt ? [] : charge.taxes;
     let weight = dec(charge.amount);
-    if (doc.pricesIncludeTax && taxesOnCharge.length)
-      weight = weight.dividedBy(rateSum(taxesOnCharge));
-    add(role(ctx, rule.charges, rule.line), weight, charge.label);
+    const charged = taxesOnCharge.filter((t) => !isReverseCharge(t));
+    if (doc.pricesIncludeTax && charged.length) weight = weight.dividedBy(rateSum(charged));
+    add(role(ctx, rule.charges, rule.line), weight, charge.label, taxesOnCharge);
   }
-  if (groups.size === 0) add(role(ctx, rule.line), new Decimal(1), '');
+  if (groups.size === 0) add(role(ctx, rule.line), new Decimal(1), '', []);
 
   const base = {
     date: doc.issueDate,
@@ -242,27 +274,41 @@ export function postDocument(doc: InvoiceDocument, ctx: LedgerContext): LedgerLi
       description: `${noun} ${doc.number}`,
     },
   ];
-  const entries = [...groups.entries()];
+  const entries = [...groups.values()];
   allocate(
     income,
-    entries.map(([, g]) => g.weight),
+    entries.map((g) => g.weight),
   ).forEach((minor, i) => {
-    const [accountId, g] = entries[i];
+    const g = entries[i];
     lines.push({
       ...base,
-      accountId,
+      accountId: g.accountId,
       amount: -sign * minor,
       description:
         entries.length === 1 ? `${noun} ${doc.number}` : g.label || `${noun} ${doc.number}`,
+      vat: g.vat,
     });
   });
-  for (const t of taxes) {
+  for (const t of chargedTaxes) {
     lines.push({
       ...base,
       accountId: role(ctx, rule.tax),
       amount: -sign * t.minor,
       description: `${t.name} ${t.rate}%`,
+      vat: { flow, part: 'tax', kind: t.kind, rate: t.rate },
     });
+  }
+  // Reverse charge on a purchase: the buyer owes the VAT and reclaims it at
+  // once (input and output tax). On a sale the customer accounts for it.
+  if (!sales) {
+    for (const t of reverseTaxes) {
+      const vat: VatTag = { flow, part: 'tax', kind: 'reverse_charge', rate: t.rate };
+      const description = `${t.name} ${t.rate}% reverse charge`;
+      lines.push(
+        { ...base, accountId: role(ctx, 'input_tax'), amount: -sign * t.minor, description, vat },
+        { ...base, accountId: role(ctx, 'output_tax'), amount: sign * t.minor, description, vat },
+      );
+    }
   }
   const kept = lines.filter((l) => l.amount !== 0);
   if (!balanced(kept)) throw new UnbalancedEntryError(`${noun} ${doc.number} does not balance`);
@@ -333,15 +379,19 @@ export function postExpense(expense: Expense, ctx: LedgerContext): LedgerLine[] 
   const rate = rateOf(expense, ctx);
   const total = toMinor(dec(expense.amount).times(rate), p);
   if (total === 0) return [];
-  // The amount includes tax: tax = total − total / (1 + Σ rates).
-  const taxes = expense.taxes.filter((t) => t.name.trim() && Number.isFinite(t.rate));
-  const rateSum = taxes.reduce((acc, t) => acc.plus(dec(t.rate)), new Decimal(0));
+  // The amount includes the charged tax: tax = total − total / (1 + Σ rates).
+  // Reverse charge comes on top, worked out on what was paid without tax.
+  const valid = expense.taxes.filter((t) => t.name.trim() && Number.isFinite(t.rate));
+  const charged = valid.filter((t) => !isReverseCharge(t));
+  const reverse = valid.filter((t) => isReverseCharge(t));
+  const rateSum = charged.reduce((acc, t) => acc.plus(dec(t.rate)), new Decimal(0));
   const net = rateSum.isZero() ? dec(total) : dec(total).dividedBy(rateSum.dividedBy(100).plus(1));
   const taxTotal = total - toMinor(net, 0);
   const perTax = allocate(
     taxTotal,
-    taxes.map((t) => dec(t.rate)),
+    charged.map((t) => dec(t.rate)),
   );
+  const first = charged[0] ?? reverse[0];
   const base = {
     date: expense.date,
     source: 'expense' as const,
@@ -356,12 +406,19 @@ export function postExpense(expense: Expense, ctx: LedgerContext): LedgerLine[] 
       accountId: usable(ctx, expense.accountId) ?? role(ctx, 'expense'),
       amount: total - taxTotal,
       description: label,
+      vat: {
+        flow: 'purchase',
+        part: 'base',
+        kind: first ? taxKind(first) : 'none',
+        rate: first?.rate ?? 0,
+      },
     },
-    ...taxes.map((t, i) => ({
+    ...charged.map((t, i) => ({
       ...base,
       accountId: role(ctx, 'input_tax'),
       amount: perTax[i],
       description: `${t.name} ${t.rate}%`,
+      vat: { flow: 'purchase' as const, part: 'tax' as const, kind: taxKind(t), rate: t.rate },
     })),
     {
       ...base,
@@ -370,6 +427,20 @@ export function postExpense(expense: Expense, ctx: LedgerContext): LedgerLine[] 
       description: label,
     },
   ];
+  for (const t of reverse) {
+    const minor = toMinor(
+      dec(total - taxTotal)
+        .times(dec(t.rate))
+        .dividedBy(100),
+      0,
+    );
+    const vat: VatTag = { flow: 'purchase', part: 'tax', kind: 'reverse_charge', rate: t.rate };
+    const description = `${t.name} ${t.rate}% reverse charge`;
+    lines.push(
+      { ...base, accountId: role(ctx, 'input_tax'), amount: minor, description, vat },
+      { ...base, accountId: role(ctx, 'output_tax'), amount: -minor, description, vat },
+    );
+  }
   return lines.filter((l) => l.amount !== 0);
 }
 
@@ -386,6 +457,7 @@ export function postJournal(journal: ManualJournal, ctx: LedgerContext): LedgerL
       number: journal.number,
       contactId: l.contactId,
       description: l.description || journal.reference || `Journal ${journal.number}`,
+      ...(journal.vatReturnId ? { settlement: true } : {}),
     }))
     .filter((l) => l.amount !== 0);
   if (!balanced(lines))

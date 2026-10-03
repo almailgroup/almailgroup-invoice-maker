@@ -1,7 +1,15 @@
 import type { Dexie } from 'dexie';
 import { CHART_TEMPLATES, chartTemplateFor } from '@/lib/accounting/charts';
+import { emirateFromAddress, vatFormatFor } from '@/lib/accounting/vat';
 import { newId } from '@/lib/ids';
-import type { Account, AccountingSettings, ChartTemplateId, Company, ID } from './types';
+import type {
+  Account,
+  AccountingSettings,
+  ChartTemplateId,
+  Company,
+  ID,
+  VatSettings,
+} from './types';
 
 export function defaultAccountingSettings(country: string): AccountingSettings {
   return {
@@ -14,6 +22,20 @@ export function defaultAccountingSettings(country: string): AccountingSettings {
 /** Settings of a company, with defaults for companies created before accounting. */
 export function accountingSettings(company: Company): AccountingSettings {
   return company.accounting ?? defaultAccountingSettings(company.address?.country ?? '');
+}
+
+/** VAT return settings, with defaults from the company's country and tax number. */
+export function vatSettings(company: Company): VatSettings {
+  const saved = accountingSettings(company).vat;
+  if (saved) return saved;
+  const country = company.address?.country ?? '';
+  return {
+    registered: Boolean(company.taxId?.trim()),
+    format: vatFormatFor(country),
+    frequency: 'quarterly',
+    startMonth: 1,
+    emirate: country.toUpperCase() === 'AE' ? (emirateFromAddress(company.address) ?? 'DU') : null,
+  };
 }
 
 /** The accounts of a chart template, ready to store for a company. */

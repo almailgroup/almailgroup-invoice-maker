@@ -2,20 +2,28 @@ import { Link } from 'react-router';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { LockOpen } from 'lucide-react';
 import { db } from '@/db/db';
-import type { AccountRole } from '@/db/types';
-import { accountingSettings } from '@/db/chart-setup';
+import type { AccountRole, VatSettings } from '@/db/types';
+import { accountingSettings, vatSettings } from '@/db/chart-setup';
+import { EMIRATES, VAT_FORMATS } from '@/lib/accounting/vat';
 import { roleMap } from '@/db/accounting';
 import { CHART_TEMPLATES } from '@/lib/accounting/charts';
 import { fiscalYearEnd, fiscalYearStart } from '@/lib/accounting/statements';
 import { today } from '@/lib/dates';
 import { useFormat } from '@/app/company';
 import { Button } from '@/components/ui/button';
-import { Field, Input, Select } from '@/components/ui/form';
+import { Field, Input, Select, Switch } from '@/components/ui/form';
 import { SaveBar, SettingsSection, useCompanyDraft } from './shared';
 
 const MONTHS = Array.from({ length: 12 }, (_, i) =>
   new Date(2024, i, 1).toLocaleString('en', { month: 'long' }),
 );
+
+/** Quarter ends for each stagger (the month a quarter starts in). */
+const STAGGERS = [
+  { startMonth: 1, label: 'March, June, September and December' },
+  { startMonth: 2, label: 'April, July, October and January' },
+  { startMonth: 3, label: 'May, August, November and February' },
+];
 
 const ROLE_LABELS: Partial<Record<AccountRole, string>> = {
   receivable: 'Money owed by clients',
@@ -28,6 +36,7 @@ const ROLE_LABELS: Partial<Record<AccountRole, string>> = {
   expense: 'Purchases (unless a bill line says otherwise)',
   output_tax: 'Tax charged on sales',
   input_tax: 'Tax paid on purchases',
+  tax_settlement: 'VAT owed to (or due from) the tax office',
   fx: 'Exchange gains and losses',
   capital: 'Owner or share capital',
   retained_earnings: 'Retained earnings',
@@ -39,6 +48,8 @@ export default function AccountingSettings() {
   const settings = accountingSettings(draft);
   const setSettings = (patch: Partial<typeof settings>) =>
     update({ accounting: { ...settings, ...patch } });
+  const vat = vatSettings(draft);
+  const setVat = (patch: Partial<VatSettings>) => setSettings({ vat: { ...vat, ...patch } });
   const accounts = useLiveQuery(
     () => db.accounts.where('companyId').equals(draft.id).toArray(),
     [draft.id],
@@ -125,6 +136,92 @@ export default function AccountingSettings() {
           Drafts and quotes stay editable. Issued invoices, bills, credit notes, payments, expenses
           and journals in the locked period are protected.
         </p>
+      </SettingsSection>
+
+      <SettingsSection
+        title="VAT returns"
+        description="AlmailBooks works out each return from your books. You then submit the figures to the tax office."
+        actions={
+          vat.registered ? (
+            <Link to="/vat" className="text-primary-700 text-sm font-medium hover:underline">
+              Open VAT returns
+            </Link>
+          ) : null
+        }
+      >
+        <Switch
+          checked={vat.registered}
+          onChange={(registered) => setVat({ registered })}
+          label="Registered for VAT"
+          description="Shows VAT returns for this company."
+        />
+        {vat.registered ? (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Return">
+              {(id) => (
+                <Select
+                  id={id}
+                  value={vat.format}
+                  onChange={(e) => setVat({ format: e.target.value as VatSettings['format'] })}
+                >
+                  {VAT_FORMATS.map((f) => (
+                    <option key={f.value} value={f.value}>
+                      {f.label}
+                    </option>
+                  ))}
+                </Select>
+              )}
+            </Field>
+            <Field label="You file">
+              {(id) => (
+                <Select
+                  id={id}
+                  value={vat.frequency}
+                  onChange={(e) =>
+                    setVat({ frequency: e.target.value as VatSettings['frequency'] })
+                  }
+                >
+                  <option value="quarterly">Every quarter</option>
+                  <option value="monthly">Every month</option>
+                </Select>
+              )}
+            </Field>
+            {vat.frequency === 'quarterly' ? (
+              <Field label="Your quarters end in" hint="As shown on your VAT registration.">
+                {(id) => (
+                  <Select
+                    id={id}
+                    value={((vat.startMonth - 1) % 3) + 1}
+                    onChange={(e) => setVat({ startMonth: Number(e.target.value) })}
+                  >
+                    {STAGGERS.map((s) => (
+                      <option key={s.startMonth} value={s.startMonth}>
+                        {s.label}
+                      </option>
+                    ))}
+                  </Select>
+                )}
+              </Field>
+            ) : null}
+            {vat.format === 'ae' ? (
+              <Field label="Emirate" hint="Where the business is established.">
+                {(id) => (
+                  <Select
+                    id={id}
+                    value={vat.emirate ?? 'DU'}
+                    onChange={(e) => setVat({ emirate: e.target.value })}
+                  >
+                    {EMIRATES.map((e) => (
+                      <option key={e.code} value={e.code}>
+                        {e.name}
+                      </option>
+                    ))}
+                  </Select>
+                )}
+              </Field>
+            ) : null}
+          </div>
+        ) : null}
       </SettingsSection>
 
       <SettingsSection

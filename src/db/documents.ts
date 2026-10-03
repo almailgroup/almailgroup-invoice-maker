@@ -12,6 +12,7 @@ import type {
   TaxLine,
 } from './types';
 import { computeDocument } from '@/lib/document-calc';
+import { taxLineOf } from '@/lib/calc';
 import { allocateNumber } from '@/lib/numbering';
 import { settledStatus } from '@/lib/status';
 import { addDaysISO, today } from '@/lib/dates';
@@ -33,9 +34,7 @@ export async function defaultTaxes(company: Company): Promise<TaxLine[]> {
   const ids = company.defaults.defaultTaxRateIds;
   if (ids.length === 0) return [];
   const rates = await db.taxRates.bulkGet(ids);
-  return rates
-    .filter((r): r is NonNullable<typeof r> => Boolean(r && !r.archived))
-    .map((r) => ({ name: r.name, rate: r.rate }));
+  return rates.filter((r): r is NonNullable<typeof r> => Boolean(r && !r.archived)).map(taxLineOf);
 }
 
 /** A new, unsaved document pre-filled from company (and client) defaults. */

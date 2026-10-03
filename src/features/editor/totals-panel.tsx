@@ -59,6 +59,8 @@ export function TotalsPanel({
   allowDeposit?: boolean;
 }) {
   const isCredit = doc.type === 'credit' || doc.type === 'vendor_credit';
+  const charged = result.taxes.filter((t) => t.kind !== 'reverse_charge');
+  const reverse = result.taxes.filter((t) => t.kind === 'reverse_charge');
   const setCharge = (index: number, patch: Partial<Charge>) =>
     onChange({ charges: doc.charges.map((c, i) => (i === index ? { ...c, ...patch } : c)) });
 
@@ -155,13 +157,13 @@ export function TotalsPanel({
 
       <div className="border-t border-slate-100 pt-3">
         {!doc.pricesIncludeTax
-          ? result.taxes.map((t) => (
+          ? charged.map((t) => (
               <Row key={t.key} label={`${t.name} ${percent(t.rate)}`} value={money(t.amount)} />
             ))
           : null}
         <Row label="Total" value={money(result.total)} strong />
         {doc.pricesIncludeTax
-          ? result.taxes.map((t) => (
+          ? charged.map((t) => (
               <Row
                 key={t.key}
                 label={`Includes ${t.name} ${percent(t.rate)}`}
@@ -169,6 +171,15 @@ export function TotalsPanel({
               />
             ))
           : null}
+        {reverse.map((t) => (
+          <Row
+            key={t.key}
+            label={`Reverse charge ${t.name} ${percent(t.rate)} · ${
+              isPurchaseType(doc.type) ? 'you account for it' : 'the client accounts for it'
+            }`}
+            value={money(t.amount)}
+          />
+        ))}
         {doc.type !== 'quote' && result.paid !== 0 ? (
           <>
             <Row label={isCredit ? 'Applied' : 'Paid'} value={money(-result.paid)} />

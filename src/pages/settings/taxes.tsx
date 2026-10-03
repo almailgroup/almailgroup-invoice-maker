@@ -5,9 +5,10 @@ import { toast } from 'sonner';
 import { db } from '@/db/db';
 import { createTaxRate } from '@/db/defaults';
 import { deleteTaxRate, saveTaxRate } from '@/db/records';
-import type { TaxRate } from '@/db/types';
+import type { TaxKind, TaxRate } from '@/db/types';
+import { TAX_KINDS, taxKind } from '@/lib/calc';
 import { Button } from '@/components/ui/button';
-import { Input, NumberInput, Switch } from '@/components/ui/form';
+import { Input, NumberInput, Select, Switch } from '@/components/ui/form';
 import { useConfirm } from '@/components/ui/overlay';
 import { SaveBar, SettingsSection, useCompanyDraft } from './shared';
 
@@ -29,7 +30,7 @@ function TaxRow({
   };
 
   return (
-    <li className="grid grid-cols-[minmax(0,1fr)_110px_auto_auto] items-center gap-2 py-2.5">
+    <li className="grid grid-cols-[minmax(0,1fr)_100px_auto_auto] items-center gap-2 py-2.5 sm:grid-cols-[minmax(0,1fr)_100px_190px_auto_auto]">
       <Input
         aria-label="Tax name"
         value={name}
@@ -49,6 +50,19 @@ function TaxRow({
           %
         </span>
       </div>
+      <Select
+        aria-label={`Kind of ${rate.name}`}
+        value={taxKind(rate)}
+        onChange={(e) => void commit({ kind: e.target.value as TaxKind })}
+        className="col-span-4 row-start-2 sm:col-span-1 sm:row-start-auto"
+        title={TAX_KINDS.find((k) => k.value === taxKind(rate))?.hint}
+      >
+        {TAX_KINDS.map((k) => (
+          <option key={k.value} value={k.value}>
+            {k.label}
+          </option>
+        ))}
+      </Select>
       <Button
         variant="ghost"
         size="icon-sm"
@@ -83,6 +97,8 @@ function TaxRow({
   );
 }
 
+const KIND_ORDER = TAX_KINDS.map((k) => k.value);
+
 export default function TaxSettings() {
   const { draft, update, dirty, saving, save, reset } = useCompanyDraft();
   const rates = useLiveQuery(
@@ -103,13 +119,13 @@ export default function TaxSettings() {
     <div className="space-y-6">
       <SettingsSection
         title="Tax rates"
-        description="Rates you can pick on invoices. Starred rates are applied to new items automatically."
+        description="Rates you can pick on invoices and bills. Starred rates are applied to new items automatically. The kind decides where each rate goes on your VAT return."
         actions={
           <Button
             variant="outline"
             size="sm"
             onClick={async () => {
-              await saveTaxRate(createTaxRate(draft.id, { name: 'Tax', rate: 0 }));
+              await saveTaxRate(createTaxRate(draft.id, { name: 'Tax', rate: 0, kind: 'zero' }));
             }}
           >
             <Plus /> Add rate
@@ -124,7 +140,12 @@ export default function TaxSettings() {
           <ul className="divide-y divide-slate-100">
             {rates
               .slice()
-              .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+              .sort(
+                (a, b) =>
+                  a.createdAt.localeCompare(b.createdAt) ||
+                  KIND_ORDER.indexOf(taxKind(a)) - KIND_ORDER.indexOf(taxKind(b)) ||
+                  b.rate - a.rate,
+              )
               .map((rate) => (
                 <TaxRow
                   key={rate.id}

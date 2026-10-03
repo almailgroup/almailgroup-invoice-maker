@@ -72,9 +72,10 @@ describe('books of the demo company', () => {
     expect(year.income.total).toBeGreaterThan(0);
     // Paper, postage and subcontractors, less the returned paper; the draft bill is left out.
     expect(year.costOfSales.total).toBe((1680 + 3280 + 4310 - 252 + 5125 + 380) * 100);
-    // Rent, energy, accountants and the expenses without their VAT.
+    // Rent, energy, accountants and the expenses without their VAT (advertising is
+    // reverse charge, so its VAT is not part of what was paid).
     expect(year.expenses.total).toBe(
-      (6 * 1250 + 612.4 + 1450) * 100 + 8640 + 3800 + 6480 + 1200 + 1583,
+      (6 * 1250 + 612.4 + 1450) * 100 + 8640 + 3800 + 6480 + 1200 + 1583 + 25000,
     );
   });
 });

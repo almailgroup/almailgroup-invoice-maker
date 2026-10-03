@@ -4,7 +4,8 @@ import { Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { db } from '@/db/db';
 import { deleteExpense, isVendor, saveExpense } from '@/db/purchases';
-import type { Expense } from '@/db/types';
+import type { Expense, TaxLine } from '@/db/types';
+import { isReverseCharge } from '@/lib/calc';
 import { useCompany, useFormat } from '@/app/company';
 import { currencyPrecision, dec } from '@/lib/money';
 import { Button } from '@/components/ui/button';
@@ -27,12 +28,22 @@ import {
 } from '@/features/accounting/account-pickers';
 import { AttachmentList, useDraftAttachments } from './attachments';
 
-/** Tax included in an amount paid: amount − amount / (1 + Σ rates). */
-export function includedTax(amount: number, rates: number[], currency: string): number {
-  const sum = rates.reduce((acc, r) => acc + r, 0);
+/** Tax included in an amount paid: amount − amount / (1 + Σ rates). Reverse charge is never included. */
+export function includedTax(amount: number, taxes: TaxLine[], currency: string): number {
+  const sum = taxes.filter((t) => !isReverseCharge(t)).reduce((acc, t) => acc + t.rate, 0);
   if (!sum) return 0;
   const net = dec(amount).dividedBy(dec(sum).dividedBy(100).plus(1));
   return dec(amount).minus(net).toDecimalPlaces(currencyPrecision(currency)).toNumber();
+}
+
+/** Reverse charge VAT on what was paid (without any charged tax). */
+export function reverseChargeTax(amount: number, taxes: TaxLine[], currency: string): number {
+  const net = dec(amount).minus(dec(includedTax(amount, taxes, currency)));
+  return taxes
+    .filter(isReverseCharge)
+    .reduce((acc, t) => acc.plus(net.times(dec(t.rate)).dividedBy(100)), dec(0))
+    .toDecimalPlaces(currencyPrecision(currency))
+    .toNumber();
 }
 
 /** Records or edits an expense paid straight away, with its receipt. */
@@ -67,11 +78,8 @@ export function ExpenseDialog({
 
   const set = (patch: Partial<Expense>) => setDraft((d) => ({ ...d, ...patch }));
   const currency = draft.currency || company.currency;
-  const tax = includedTax(
-    draft.amount,
-    draft.taxes.map((t) => t.rate),
-    currency,
-  );
+  const tax = includedTax(draft.amount, draft.taxes, currency);
+  const reverse = reverseChargeTax(draft.amount, draft.taxes, currency);
   const vendorOptions = (clients ?? [])
     .filter((c) => (isVendor(c) && !c.archived) || c.id === draft.vendorId)
     .sort((a, b) => a.name.localeCompare(b.name))
@@ -142,9 +150,11 @@ export function ExpenseDialog({
               <Field
                 label="Amount paid"
                 hint={
-                  tax
-                    ? `Includes ${fmt.money(tax, currency)} tax`
-                    : 'The total on the receipt, tax included.'
+                  reverse
+                    ? `Reverse charge: ${fmt.money(reverse, currency)} VAT due and reclaimed on your return`
+                    : tax
+                      ? `Includes ${fmt.money(tax, currency)} tax`
+                      : 'The total on the receipt, tax included.'
                 }
               >
                 {(id) => (

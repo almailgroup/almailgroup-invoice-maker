@@ -1,11 +1,12 @@
 import * as Popover from '@radix-ui/react-popover';
 import { Check, ChevronDown } from 'lucide-react';
 import type { TaxLine, TaxRate } from '@/db/types';
-import { taxKey } from '@/lib/calc';
+import { taxKey, taxLineOf } from '@/lib/calc';
 import { cn } from '@/lib/cn';
 
 function label(t: TaxLine) {
-  return `${t.name} ${Number(t.rate.toFixed(4))}%`;
+  const base = `${t.name} ${Number(t.rate.toFixed(4))}%`;
+  return t.kind === 'reverse_charge' ? `${base} reverse charge` : base;
 }
 
 /** Multi-select of tax rates. Values are snapshots ({name, rate}). */
@@ -25,9 +26,7 @@ export function TaxSelect({
   id?: string;
 }) {
   const selected = new Set(value.map(taxKey));
-  const options: TaxLine[] = [
-    ...rates.filter((r) => !r.archived).map((r) => ({ name: r.name, rate: r.rate })),
-  ];
+  const options: TaxLine[] = [...rates.filter((r) => !r.archived).map(taxLineOf)];
   // Keep taxes that are no longer configured but are still on this document.
   for (const t of value) {
     if (!options.some((o) => taxKey(o) === taxKey(t))) options.push(t);
@@ -42,7 +41,9 @@ export function TaxSelect({
   const summary =
     value.length === 0
       ? placeholder
-      : value.map((t) => `${Number(t.rate.toFixed(4))}%`).join(' + ');
+      : value
+          .map((t) => `${Number(t.rate.toFixed(4))}%${t.kind === 'reverse_charge' ? ' RC' : ''}`)
+          .join(' + ');
 
   return (
     <Popover.Root>

@@ -233,8 +233,11 @@ export function buildRenderModel(
     totals.push({ kind: 'charge', label: clean(charge.label) || '—', value: money(charge.amount) });
   });
   const taxLabel = (name: string, rate: number) => `${name} ${formatPercent(rate, locale)}`;
+  // Reverse charge is shown for information under the total: the buyer pays it.
+  const charged = result.taxes.filter((t) => t.kind !== 'reverse_charge');
+  const reverse = result.taxes.filter((t) => t.kind === 'reverse_charge');
   if (!doc.pricesIncludeTax) {
-    result.taxes.forEach((t) =>
+    charged.forEach((t) =>
       totals.push({ kind: 'tax', label: taxLabel(t.name, t.rate), value: money(t.amount) }),
     );
   }
@@ -245,7 +248,7 @@ export function buildRenderModel(
   };
   totals.push(grandTotal);
   if (doc.pricesIncludeTax) {
-    result.taxes.forEach((t) =>
+    charged.forEach((t) =>
       totals.push({
         kind: 'included-tax',
         label: `${labels.includes} ${taxLabel(t.name, t.rate)}`,
@@ -253,6 +256,13 @@ export function buildRenderModel(
       }),
     );
   }
+  reverse.forEach((t) =>
+    totals.push({
+      kind: 'included-tax',
+      label: `${labels.reverseCharge} ${taxLabel(t.name, t.rate)}`,
+      value: money(t.amount),
+    }),
+  );
 
   const isVoid = doc.status === 'void';
   let amountDue: RenderModel['amountDue'];

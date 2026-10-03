@@ -154,6 +154,8 @@ export function taxReport(
     tax += sign * result.taxTotal;
     gross += sign * result.total;
     for (const t of result.taxes) {
+      // Reverse charge is the customer's to pay, not collected tax.
+      if (t.kind === 'reverse_charge') continue;
       const row = map.get(t.key) ?? { key: t.key, name: t.name, rate: t.rate, base: 0, tax: 0 };
       row.base = round(row.base + sign * t.base, p);
       row.tax = round(row.tax + sign * t.amount, p);

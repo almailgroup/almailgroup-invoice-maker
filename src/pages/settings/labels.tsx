@@ -32,6 +32,7 @@ const HUMAN: Record<LabelKey, string> = {
   creditRemaining: 'Credit remaining',
   depositDue: 'Deposit due',
   includes: 'Includes (tax-inclusive)',
+  reverseCharge: 'Reverse charge (tax the client accounts for)',
   notes: 'Notes',
   terms: 'Terms',
   paymentDetails: 'Payment details',

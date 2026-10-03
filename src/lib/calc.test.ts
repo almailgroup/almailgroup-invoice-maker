@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculate, type CalcInput } from './calc';
+import { calculate, taxKey, taxKind, type CalcInput } from './calc';
 
 const base: Omit<CalcInput, 'items'> = { precision: 2 };
 const vat20 = { name: 'VAT', rate: 20 };
@@ -215,6 +215,42 @@ describe('calculate', () => {
     expect(r.subtotal).toBe(60);
     expect(r.taxTotal).toBe(12);
     expect(r.total).toBe(72);
+  });
+
+  it('works out reverse charge without charging it', () => {
+    const rc = { name: 'VAT', rate: 20, kind: 'reverse_charge' as const };
+    const r = calculate({
+      ...base,
+      items: [
+        { quantity: 1, unitPrice: 100, taxes: [rc] },
+        { quantity: 1, unitPrice: 50, taxes: [vat20] },
+      ],
+    });
+    expect(r.taxes).toEqual([
+      expect.objectContaining({ kind: 'reverse_charge', base: 100, amount: 20 }),
+      expect.objectContaining({ kind: 'standard', base: 50, amount: 10 }),
+    ]);
+    expect(r.taxTotal).toBe(10);
+    expect(r.total).toBe(160);
+    expect(r.lines.map((l) => l.tax)).toEqual([0, 10]);
+
+    // Inclusive prices never contain reverse charge, so nothing is backed out.
+    const inclusive = calculate({
+      ...base,
+      pricesIncludeTax: true,
+      items: [{ quantity: 1, unitPrice: 100, taxes: [rc] }],
+    });
+    expect(inclusive.taxes[0]).toMatchObject({ base: 100, amount: 20 });
+    expect(inclusive.total).toBe(100);
+  });
+
+  it('keeps reverse charge apart from the same rate charged normally', () => {
+    expect(taxKey({ name: 'VAT', rate: 20, kind: 'reverse_charge' })).not.toBe(taxKey(vat20));
+    expect(taxKey({ name: 'VAT', rate: 20, kind: 'standard' })).toBe(taxKey(vat20));
+    expect(taxKind(vat20)).toBe('standard');
+    expect(taxKind({ name: 'VAT', rate: 0 })).toBe('zero');
+    expect(taxKind({ name: 'Exempt', rate: 0 })).toBe('exempt');
+    expect(taxKind({ name: 'VAT', rate: 0, kind: 'out_of_scope' })).toBe('out_of_scope');
   });
 
   it('returns zeros for an empty document', () => {

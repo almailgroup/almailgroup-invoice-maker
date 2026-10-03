@@ -91,7 +91,7 @@ describe('documents', () => {
     const year = first.issueDate.slice(0, 4);
     expect(first.number).toBe(`INV-${year}-0001`);
     expect(second.number).toBe(`INV-${year}-0002`);
-    expect(first.items[0].taxes).toEqual([{ name: 'VAT', rate: 20 }]);
+    expect(first.items[0].taxes).toEqual([{ name: 'VAT', rate: 20, kind: 'standard' }]);
     expect(first.totals).toMatchObject({ subtotal: 100, taxTotal: 20, total: 120, balance: 120 });
     const stored = await db.companies.get(company.id);
     expect(stored!.numbering.invoice.next).toBe(3);

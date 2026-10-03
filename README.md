@@ -18,8 +18,10 @@ no monthly fee. Your records stay on your own computer.
   font. PDFs are made in the browser, with a live preview while you type.
 - **Taxes done properly.** You can have several tax rates (e.g. VAT 20% / 5% / 0%),
   apply them per line or to the whole document, and use prices with or without
-  tax. Line and document discounts, extra charges (such as delivery) and
-  deposits are supported.
+  tax. Each rate has a kind (standard, reduced, zero-rated, exempt, reverse
+  charge or outside the scope) that decides where it goes on a VAT return.
+  Line and document discounts, extra charges (such as delivery) and deposits
+  are supported.
 - **Payments.** Record full or partial payments, spread one payment across
   several invoices, and email receipts. Statuses (sent, partially paid, paid,
   overdue) update automatically.
@@ -48,6 +50,14 @@ no monthly fee. Your records stay on your own computer.
   date for closed periods.
 - **Financial statements:** profit and loss, balance sheet, trial balance and
   general ledger, with drill-down from any account to its transactions.
+- **VAT returns:** the UK return (boxes 1–9), the UAE VAT 201 return, or a
+  summary for other countries, worked out for each monthly or quarterly
+  period. Every box lists the documents behind it. Reverse charge on services
+  bought from abroad is handled. Marking a return as filed moves the period's
+  VAT to the VAT liability account and can lock the period; the payment or
+  refund is recorded against it. AlmailBooks does not submit returns itself:
+  you enter the figures with HMRC's Making Tax Digital software or online
+  service, or on the FTA EmaraTax portal.
 - **Dashboard and reports:** what clients owe you and what you owe vendors,
   overdue amounts, receivables and payables aging, tax summary, sales by
   client, purchases by vendor, payments received and made, with CSV export.

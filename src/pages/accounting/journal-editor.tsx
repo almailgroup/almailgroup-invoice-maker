@@ -39,6 +39,8 @@ function Editor({ initial, isNew }: { initial: ManualJournal; isNew: boolean }) 
 
   const p = currencyPrecision(company.currency);
   const totals = journalTotals(journal.lines, p);
+  // The entry that closes a VAT return belongs to the return.
+  const closesReturn = Boolean(initial.vatReturnId);
   const options = accounts
     .filter((a) => !a.archived || journal.lines.some((l) => l.accountId === a.id))
     .sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }))
@@ -95,33 +97,46 @@ function Editor({ initial, isNew }: { initial: ManualJournal; isNew: boolean }) 
             {isNew ? 'New journal' : `Journal ${journal.number}`}
           </h1>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {!isNew ? (
+        {closesReturn ? null : (
+          <div className="flex flex-wrap items-center gap-2">
+            {!isNew ? (
+              <Button
+                variant="ghost"
+                className="text-red-600 hover:bg-red-50"
+                onClick={() => void remove()}
+              >
+                <Trash2 /> Delete
+              </Button>
+            ) : null}
             <Button
-              variant="ghost"
-              className="text-red-600 hover:bg-red-50"
-              onClick={() => void remove()}
+              variant="outline"
+              onClick={() => void save('draft')}
+              loading={saving === 'draft'}
+              disabled={saving !== null}
             >
-              <Trash2 /> Delete
+              Save as draft
             </Button>
-          ) : null}
-          <Button
-            variant="outline"
-            onClick={() => void save('draft')}
-            loading={saving === 'draft'}
-            disabled={saving !== null}
-          >
-            Save as draft
-          </Button>
-          <Button
-            onClick={() => void save('posted')}
-            loading={saving === 'posted'}
-            disabled={saving !== null}
-          >
-            Save and post
-          </Button>
-        </div>
+            <Button
+              onClick={() => void save('posted')}
+              loading={saving === 'posted'}
+              disabled={saving !== null}
+            >
+              Save and post
+            </Button>
+          </div>
+        )}
       </div>
+
+      {closesReturn ? (
+        <div className="mb-6 rounded-xl border border-blue-100 bg-blue-50/60 p-4 text-sm text-blue-900">
+          This entry moves the period's VAT to the VAT liability account. It was made when the
+          return was filed and can only be removed by{' '}
+          <Link to="/vat" className="font-medium underline">
+            undoing the filing
+          </Link>
+          .
+        </div>
+      ) : null}
 
       <Card className="mb-6">
         <CardBody className="grid gap-4 md:grid-cols-[180px_minmax(0,1fr)]">

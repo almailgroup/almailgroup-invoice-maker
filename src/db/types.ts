@@ -1,6 +1,6 @@
-import type { DiscountType, TaxLine } from '@/lib/calc';
+import type { DiscountType, TaxKind, TaxLine } from '@/lib/calc';
 
-export type { DiscountType, TaxLine };
+export type { DiscountType, TaxKind, TaxLine };
 
 export type ID = string;
 /** Calendar date in `yyyy-MM-dd` form (no time zone). */
@@ -210,6 +210,8 @@ export interface ManualJournal {
   notes: string;
   status: 'draft' | 'posted';
   lines: JournalLine[];
+  /** Set on the entry that closes a VAT return (see VatReturn). */
+  vatReturnId?: ID | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -223,6 +225,44 @@ export interface AccountingSettings {
   fiscalYearEnd: { month: number; day: number };
   /** Transactions dated on or before this date can't be added, changed or deleted. */
   lockDate: ISODate | null;
+  /** Missing until VAT returns are set up; see vatSettings(). */
+  vat?: VatSettings;
+}
+
+export type VatFormat = 'uk' | 'ae' | 'generic';
+
+export interface VatSettings {
+  registered: boolean;
+  /** Which return the boxes follow. */
+  format: VatFormat;
+  frequency: 'monthly' | 'quarterly';
+  /** Month (1–12) a quarter starts in (the UK "stagger"). */
+  startMonth: number;
+  /** UAE: emirate code (AZ, DU, SH, AJ, UQ, RK, FU) the business is established in. */
+  emirate: string | null;
+}
+
+/** A filed VAT return: the boxes as filed and the entry that closed it. */
+export interface VatReturnRecord {
+  id: ID;
+  companyId: ID;
+  periodStart: ISODate;
+  periodEnd: ISODate;
+  format: VatFormat;
+  /** Minor units of `currency`, as filed. */
+  boxes: { id: string; label: string; amount: number; vat?: number }[];
+  /** Positive: paid to the tax office; negative: reclaimed. Minor units. */
+  net: number;
+  currency: string;
+  filedOn: ISODate;
+  /** Submission receipt or reference from the tax office. */
+  reference: string;
+  /** Manual journal moving the period's VAT to the VAT liability account. */
+  journalId: ID | null;
+  /** Manual journal recording the payment (or refund). */
+  paymentJournalId: ID | null;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 }
 
 export interface Company {
@@ -301,6 +341,8 @@ export interface TaxRate {
   companyId: ID;
   name: string;
   rate: number;
+  /** How it is reported on VAT returns; guessed from the rate when missing. */
+  kind?: TaxKind;
   archived: boolean;
   createdAt: Timestamp;
   updatedAt: Timestamp;
@@ -507,7 +549,8 @@ export type ActivityEntity =
   | 'recurring'
   | 'company'
   | 'account'
-  | 'journal';
+  | 'journal'
+  | 'vat_return';
 
 export interface Activity {
   id: ID;

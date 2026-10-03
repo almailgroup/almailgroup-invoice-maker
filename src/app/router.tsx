@@ -29,6 +29,7 @@ const JournalEditor = lazy(() => import('@/pages/accounting/journal-editor'));
 const BillEditor = lazy(() => import('@/pages/purchases/bill-editor'));
 const BillView = lazy(() => import('@/pages/purchases/bill-view'));
 const Expenses = lazy(() => import('@/pages/purchases/expenses'));
+const Vat = lazy(() => import('@/pages/accounting/vat'));
 const NotFound = lazy(() => import('@/pages/not-found'));
 
 function Root() {
@@ -133,6 +134,8 @@ export const router = createHashRouter([
           { path: 'journals', element: <Journals /> },
           { path: 'journals/new', element: <JournalEditor key="new" /> },
           { path: 'journals/:id', element: <JournalEditor /> },
+          { path: 'vat', element: <Vat /> },
+          { path: 'vat/:start', element: <Vat /> },
           { path: 'templates', element: <Templates /> },
           { path: 'settings/*', element: <Settings /> },
           { path: 'setup', element: <SetupPage /> },

@@ -2,10 +2,51 @@ import { Decimal, dec, round } from './money';
 
 export type DiscountType = 'percent' | 'amount';
 
+/**
+ * How a tax is reported. Zero-rated and exempt are both 0% but are reported
+ * apart; reverse charge is worked out on the document but paid by the buyer,
+ * so it is never part of the total.
+ */
+export type TaxKind =
+  'standard' | 'reduced' | 'zero' | 'exempt' | 'reverse_charge' | 'out_of_scope';
+
 export interface TaxLine {
   name: string;
   rate: number;
+  /** Missing on taxes saved before kinds existed; see `taxKind`. */
+  kind?: TaxKind;
 }
+
+/** The tax's kind, guessed from rate and name for older records. */
+export function taxKind(tax: Pick<TaxLine, 'name' | 'rate' | 'kind'>): TaxKind {
+  if (tax.kind) return tax.kind;
+  if (tax.rate > 0) return 'standard';
+  return /exempt/i.test(tax.name) ? 'exempt' : 'zero';
+}
+
+export function isReverseCharge(tax: Pick<TaxLine, 'kind'>): boolean {
+  return tax.kind === 'reverse_charge';
+}
+
+/** The snapshot stored on a document line for a configured rate. */
+export function taxLineOf(rate: Pick<TaxLine, 'name' | 'rate' | 'kind'>): TaxLine {
+  return rate.kind
+    ? { name: rate.name, rate: rate.rate, kind: rate.kind }
+    : { name: rate.name, rate: rate.rate };
+}
+
+export const TAX_KINDS: { value: TaxKind; label: string; hint: string }[] = [
+  { value: 'standard', label: 'Standard', hint: 'The usual rate' },
+  { value: 'reduced', label: 'Reduced', hint: 'A lower rate, e.g. 5% on energy' },
+  { value: 'zero', label: 'Zero-rated', hint: '0%, still reported as a taxable sale' },
+  { value: 'exempt', label: 'Exempt', hint: 'No VAT and reported as exempt' },
+  {
+    value: 'reverse_charge',
+    label: 'Reverse charge',
+    hint: 'The buyer accounts for the VAT (e.g. services from abroad)',
+  },
+  { value: 'out_of_scope', label: 'Outside the scope', hint: 'Not reported on VAT returns' },
+];
 
 export interface CalcLineItem {
   /** Headings are display-only rows used to group items; they carry no amounts. */
@@ -53,6 +94,7 @@ export interface TaxSummary {
   key: string;
   name: string;
   rate: number;
+  kind: TaxKind;
   /** Amount the tax was calculated on (always excluding tax). */
   base: number;
   amount: number;
@@ -67,7 +109,9 @@ export interface CalcResult {
   /** Document-level discount amount. */
   discount: number;
   chargesTotal: number;
+  /** Every tax, reverse charge included (shown, but not added to the total). */
   taxes: TaxSummary[];
+  /** Tax added to the total: reverse charge excluded. */
   taxTotal: number;
   /** Total excluding tax. */
   netTotal: number;
@@ -79,7 +123,9 @@ export interface CalcResult {
 }
 
 export function taxKey(tax: TaxLine): string {
-  return `${tax.name.trim().toLowerCase()}|${dec(tax.rate).toString()}`;
+  const key = `${tax.name.trim().toLowerCase()}|${dec(tax.rate).toString()}`;
+  // A reverse-charge 20% must not merge with an ordinary 20% of the same name.
+  return isReverseCharge(tax) ? `${key}|rc` : key;
 }
 
 function validTaxes(taxes: TaxLine[] | undefined): TaxLine[] {
@@ -89,6 +135,7 @@ function validTaxes(taxes: TaxLine[] | undefined): TaxLine[] {
 interface TaxBucket {
   name: string;
   rate: number;
+  kind: TaxKind;
   base: Decimal;
   amount: Decimal;
 }
@@ -106,24 +153,26 @@ export function calculate(input: CalcInput): CalcResult {
       bucket.base = bucket.base.plus(base);
       bucket.amount = bucket.amount.plus(amount);
     } else {
-      buckets.set(key, { name: tax.name.trim(), rate: tax.rate, base, amount });
+      buckets.set(key, { name: tax.name.trim(), rate: tax.rate, kind: taxKind(tax), base, amount });
     }
   };
 
   /**
    * Splits an amount into per-tax amounts. For inclusive pricing the amount
-   * already contains every applicable tax, so the net base is backed out first.
-   * Returns the raw (unrounded) total tax for the amount.
+   * already contains every charged tax, so the net base is backed out first.
+   * Reverse-charge taxes are worked out on the same base but never charged.
+   * Returns the raw (unrounded) tax charged on the amount.
    */
   const applyTaxes = (amount: Decimal, taxes: TaxLine[]): Decimal => {
     if (taxes.length === 0) return new Decimal(0);
-    const rateSum = taxes.reduce((acc, t) => acc.plus(dec(t.rate)), new Decimal(0));
+    const charged = taxes.filter((t) => !isReverseCharge(t));
+    const rateSum = charged.reduce((acc, t) => acc.plus(dec(t.rate)), new Decimal(0));
     const base = inclusive ? amount.dividedBy(rateSum.dividedBy(100).plus(1)) : amount;
     let total = new Decimal(0);
     for (const tax of taxes) {
       const taxAmount = base.times(dec(tax.rate)).dividedBy(100);
       addTax(tax, base, taxAmount);
-      total = total.plus(taxAmount);
+      if (!isReverseCharge(tax)) total = total.plus(taxAmount);
     }
     return total;
   };
@@ -187,10 +236,13 @@ export function calculate(input: CalcInput): CalcResult {
     key,
     name: b.name,
     rate: b.rate,
+    kind: b.kind,
     base: round(b.base, p),
     amount: round(b.amount, p),
   }));
-  const taxTotal = taxes.reduce((acc, t) => acc.plus(dec(t.amount)), new Decimal(0));
+  const taxTotal = taxes
+    .filter((t) => t.kind !== 'reverse_charge')
+    .reduce((acc, t) => acc.plus(dec(t.amount)), new Decimal(0));
 
   const afterDiscount = subtotal.minus(discount).plus(chargesTotal);
   const total = inclusive ? afterDiscount : afterDiscount.plus(taxTotal);

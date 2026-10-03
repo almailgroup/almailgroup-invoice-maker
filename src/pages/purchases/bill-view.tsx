@@ -372,14 +372,25 @@ export default function BillViewPage({ type }: { type: PurchaseDocumentType }) {
                 {doc.charges.map((c) => (
                   <SummaryRow key={c.id} label={c.label || 'Charge'} value={money(c.amount)} />
                 ))}
-                {result.taxes.map((t) => (
-                  <SummaryRow
-                    key={t.key}
-                    label={`${doc.pricesIncludeTax ? 'Includes ' : ''}${t.name} ${fmt.percent(t.rate)}`}
-                    value={money(t.amount)}
-                  />
-                ))}
+                {result.taxes
+                  .filter((t) => t.kind !== 'reverse_charge')
+                  .map((t) => (
+                    <SummaryRow
+                      key={t.key}
+                      label={`${doc.pricesIncludeTax ? 'Includes ' : ''}${t.name} ${fmt.percent(t.rate)}`}
+                      value={money(t.amount)}
+                    />
+                  ))}
                 <SummaryRow label="Total" value={money(result.total)} tone="strong" />
+                {result.taxes
+                  .filter((t) => t.kind === 'reverse_charge')
+                  .map((t) => (
+                    <SummaryRow
+                      key={t.key}
+                      label={`Reverse charge ${t.name} ${fmt.percent(t.rate)}`}
+                      value={money(t.amount)}
+                    />
+                  ))}
               </div>
             </div>
           </Card>

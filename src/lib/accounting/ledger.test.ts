@@ -365,4 +365,90 @@ describe('purchases', () => {
       card: -60,
     });
   });
+
+  it('books reverse charge VAT as both input and output tax, outside the payable', () => {
+    const RC: TaxLine = { name: 'VAT', rate: 20, kind: 'reverse_charge' };
+    const bill = doc({
+      type: 'bill',
+      number: 'BILL-RC',
+      items: [item(1, 300, [RC], { accountId: 'stationery' })],
+    });
+    const lines = postDocument(bill, purchaseCtx());
+    expect(lines.find((l) => l.accountId === 'ap')?.amount).toBe(-30000);
+    expect(lines.filter((l) => l.accountId === 'input-vat').map((l) => l.amount)).toEqual([6000]);
+    expect(lines.filter((l) => l.accountId === 'vat').map((l) => l.amount)).toEqual([-6000]);
+    expect(total(lines)).toBe(0);
+    expect(lines.find((l) => l.accountId === 'stationery')?.vat).toEqual({
+      flow: 'purchase',
+      part: 'base',
+      kind: 'reverse_charge',
+      rate: 20,
+    });
+
+    const expense = {
+      id: 'e2',
+      companyId: 'co',
+      number: 'EXP-2',
+      date: '2026-10-01',
+      vendorId: null,
+      accountId: 'stationery',
+      description: 'Online ads',
+      amount: 50,
+      taxes: [RC],
+      currency: 'GBP',
+      paidFromAccountId: 'card',
+      reference: '',
+      notes: '',
+      createdAt: '',
+      updatedAt: '',
+    };
+    expect(byAccount(postExpense(expense, purchaseCtx()))).toEqual({
+      stationery: 50,
+      card: -50,
+      'input-vat': 10,
+      vat: -10,
+    });
+  });
+});
+
+describe('VAT tags', () => {
+  it('mark the value and the tax of each sale by how it is reported', () => {
+    const invoice = doc({
+      items: [item(1, 100, [{ ...VAT20, kind: 'standard' }]), item(1, 40, [VAT0])],
+    });
+    const tags = postDocument(invoice, context())
+      .filter((l) => l.vat)
+      .map((l) => ({ account: l.accountId, amount: l.amount, ...l.vat }));
+    expect(tags).toEqual([
+      { account: 'sales', amount: -10000, flow: 'sale', part: 'base', kind: 'standard', rate: 20 },
+      { account: 'sales', amount: -4000, flow: 'sale', part: 'base', kind: 'zero', rate: 0 },
+      { account: 'vat', amount: -2000, flow: 'sale', part: 'tax', kind: 'standard', rate: 20 },
+    ]);
+  });
+
+  it('report sales to tax-exempt clients as zero-rated', () => {
+    const invoice = doc({ items: [item(1, 100, [VAT20])] });
+    const lines = postDocument(invoice, context({ taxExempt: () => true }));
+    expect(lines.find((l) => l.accountId === 'sales')?.vat).toMatchObject({ kind: 'zero' });
+  });
+
+  it('flag the entry that closes a VAT return', () => {
+    const journal: ManualJournal = {
+      id: 'j',
+      companyId: 'co',
+      number: 'JE-9',
+      date: '2026-09-30',
+      reference: 'VAT return',
+      notes: '',
+      status: 'posted',
+      vatReturnId: 'r1',
+      lines: [
+        { id: 'a', accountId: 'vat', description: '', debit: 10, credit: 0, contactId: null },
+        { id: 'b', accountId: 'bank', description: '', debit: 0, credit: 10, contactId: null },
+      ],
+      createdAt: '',
+      updatedAt: '',
+    };
+    expect(postJournal(journal, context()).every((l) => l.settlement)).toBe(true);
+  });
 });

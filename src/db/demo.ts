@@ -3,8 +3,10 @@ import { createClient, createProduct, createRecurring } from './defaults';
 import { draftDocument, markSent, saveDocument, setDocumentStatus } from './documents';
 import { createPayment, savePayment } from './payments';
 import { saveClient, saveProduct, setupCompany } from './records';
-import { createJournal, newJournalLine, saveJournal } from './accounting';
+import { createJournal, loadLedger, newJournalLine, saveJournal } from './accounting';
 import { createExpense, saveExpense } from './purchases';
+import { fileVatReturn, recordVatPayment } from './vat';
+import { vatDueDate, vatPeriodOf, vatPeriods } from '@/lib/accounting/vat';
 import type {
   Account,
   Client,
@@ -18,8 +20,12 @@ import { addDaysISO, parseISODate, toISODate, today } from '@/lib/dates';
 import { shortId } from '@/lib/ids';
 import { regionDefaults } from '@/lib/regions';
 
-const VAT = { name: 'VAT', rate: 20 };
-const ZERO = { name: 'VAT', rate: 0 };
+const VAT: TaxLine = { name: 'VAT', rate: 20, kind: 'standard' };
+const FIVE: TaxLine = { name: 'VAT', rate: 5, kind: 'reduced' };
+const ZERO: TaxLine = { name: 'VAT', rate: 0, kind: 'zero' };
+const REVERSE: TaxLine = { name: 'VAT', rate: 20, kind: 'reverse_charge' };
+/** For costs VAT doesn't apply to, or can't be reclaimed on (like client entertaining). */
+const NO_VAT: TaxLine = { name: 'No VAT', rate: 0, kind: 'out_of_scope' };
 
 const CLIENTS: Partial<Client>[] = [
   {
@@ -446,7 +452,6 @@ async function purchases(company: Company, alsoVendor: Client) {
   const byCode = (code: string) =>
     (accounts.find((a) => a.code === code) ?? accounts.find((a) => a.role === 'expense')!).id;
   const role = (name: Account['role']) => accounts.find((a) => a.role === name)!.id;
-  const FIVE = { name: 'VAT', rate: 5 };
 
   const vendors: Client[] = [];
   for (const v of VENDORS) {
@@ -536,11 +541,13 @@ async function purchases(company: Company, alsoVendor: Client) {
     taxes: TaxLine[],
     from: string,
   ][] = [
-    [80, '7400', 'Train to Leeds — Brightside meeting', 86.4, [], card],
+    [80, '7400', 'Train to Leeds — Brightside meeting', 86.4, [ZERO], card],
     [55, '7500', 'Printer toner', 45.6, [VAT], card],
-    [33, '8150', 'Client lunch — Harbor & Pine', 64.8, [], card],
-    [12, '7450', 'Parking — Manchester city centre', 12, [], cash],
+    [33, '8150', 'Client lunch — Harbor & Pine', 64.8, [NO_VAT], card],
+    [12, '7450', 'Parking — Manchester city centre', 12, [NO_VAT], cash],
     [6, '7500', 'Stationery', 18.99, [VAT], cash],
+    // Bought from abroad: the VAT is accounted for under the reverse charge.
+    [40, '7700', 'Online advertising — overseas platform', 250, [REVERSE], card],
   ];
   for (const [daysAgo, code, description, amount, taxes, paidFromAccountId] of spent) {
     await saveExpense(
@@ -621,6 +628,7 @@ export async function seedDemoCompany(): Promise<Company> {
       db.accounts,
       db.journals,
       db.expenses,
+      db.vatReturns,
       db.meta,
     ],
     seed,
@@ -658,7 +666,7 @@ async function seed(): Promise<Company> {
         showQrCode: true,
       },
     },
-    [VAT, { name: 'VAT', rate: 5 }, ZERO],
+    [VAT, FIVE, ZERO, REVERSE, NO_VAT],
   );
   const fresh = (await db.companies.get(company.id))!;
   fresh.defaults.invoiceTerms =
@@ -672,8 +680,8 @@ async function seed(): Promise<Company> {
   const products: Product[] = [];
   for (const p of PRODUCTS) {
     const taxRates = await db.taxRates.where('companyId').equals(company.id).toArray();
-    const zero = taxRates.find((t) => t.rate === 0);
-    const standard = taxRates.find((t) => t.rate === 20);
+    const zero = taxRates.find((t) => t.kind === 'zero');
+    const standard = taxRates.find((t) => t.kind === 'standard' && t.rate === 20);
     const taxRateIds = p.sku?.startsWith('POST')
       ? zero
         ? [zero.id]
@@ -828,5 +836,25 @@ async function seed(): Promise<Company> {
     }),
   );
 
+  await vatHistory((await db.companies.get(company.id))!);
   return (await db.companies.get(company.id))!;
+}
+
+/** Files and pays the VAT returns before the latest one, which is left to file. */
+async function vatHistory(company: Company) {
+  const schedule = { frequency: 'quarterly' as const, startMonth: 1 };
+  const latest = vatPeriodOf(addDaysISO(vatPeriodOf(today(), schedule).start, -1), schedule);
+  const { accounts, lines } = await loadLedger(company);
+  const bank = accounts.find((a) => a.role === 'bank')!;
+  const first = lines.reduce((min, l) => (l.date < min ? l.date : min), today());
+  for (const period of vatPeriods(schedule, first, addDaysISO(latest.start, -1))) {
+    const record = await fileVatReturn(company.id, period, {
+      filedOn: addDaysISO(period.end, 21),
+      reference: '',
+      lock: false,
+    });
+    if (record.net !== 0) {
+      await recordVatPayment(record.id, { date: vatDueDate(period, 'uk'), accountId: bank.id });
+    }
+  }
 }

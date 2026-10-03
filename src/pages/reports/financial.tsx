@@ -4,11 +4,12 @@ import { AlertTriangle, CheckCircle2, Download } from 'lucide-react';
 import type { Account, ISODate } from '@/db/types';
 import { useCompany, useFormat } from '@/app/company';
 import { useLedger } from '@/features/accounting/use-ledger';
+import { sourceLink } from '@/features/accounting/source-link';
 import { addDaysISO, parseISODate, toISODate, today } from '@/lib/dates';
 import { currencyPrecision, fromMinor } from '@/lib/money';
 import { downloadCsv } from '@/lib/csv';
 import { presetRange } from '@/lib/reports';
-import type { LedgerLine, LedgerSource } from '@/lib/accounting/ledger';
+import type { LedgerLine } from '@/lib/accounting/ledger';
 import {
   balanceSheet,
   fiscalYearEnd,
@@ -211,22 +212,6 @@ function useMinorMoney() {
     money: (minor: number) => fmt.money(fromMinor(minor, p), company.currency),
     major: (minor: number) => fromMinor(minor, p),
   };
-}
-
-const SOURCE_ROUTES: Record<LedgerSource, string> = {
-  invoice: '/invoices',
-  credit: '/credits',
-  bill: '/bills',
-  vendor_credit: '/vendor-credits',
-  payment: '/payments',
-  expense: '/expenses',
-  journal: '/journals',
-};
-
-export function sourceLink(line: Pick<LedgerLine, 'source' | 'sourceId'>): string {
-  // Expenses open in a dialog on their list; payments made redirect from /payments.
-  if (line.source === 'expense') return `/expenses?open=${line.sourceId}`;
-  return `${SOURCE_ROUTES[line.source]}/${line.sourceId}`;
 }
 
 function ledgerLink(account: Account, range?: DateRange) {

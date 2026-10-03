@@ -55,6 +55,7 @@ const TABLE_LABELS: Record<string, string> = {
   journals: 'Manual journals',
   expenses: 'Expenses',
   attachments: 'Receipts and files',
+  vatReturns: 'VAT returns',
 };
 
 export default function DataSettings() {

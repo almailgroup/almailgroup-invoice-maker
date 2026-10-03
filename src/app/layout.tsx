@@ -9,6 +9,7 @@ import {
   ChevronsUpDown,
   FileMinus,
   FileText,
+  Landmark,
   LayoutDashboard,
   ListTree,
   Menu as MenuIcon,
@@ -82,6 +83,7 @@ const NAV: { title?: string; items: NavItem[] }[] = [
     title: 'Accounting',
     items: [
       { to: '/reports', label: 'Reports', icon: <BarChart3 /> },
+      { to: '/vat', label: 'VAT returns', icon: <Landmark /> },
       { to: '/accounts', label: 'Chart of accounts', icon: <ListTree /> },
       { to: '/journals', label: 'Manual journals', icon: <NotebookPen /> },
     ],

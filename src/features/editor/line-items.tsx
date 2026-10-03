@@ -10,7 +10,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import type { LineItem, Product, TaxLine, TaxRate } from '@/db/types';
-import type { CalcLineResult } from '@/lib/calc';
+import { taxLineOf, type CalcLineResult } from '@/lib/calc';
 import { cn } from '@/lib/cn';
 import { newHeading, newLineItem } from '@/db/documents';
 import { Button } from '@/components/ui/button';
@@ -113,7 +113,7 @@ export function LineItemsEditor({
     const taxes = product.taxRateIds
       .map((id) => taxRates.find((t) => t.id === id))
       .filter((t): t is TaxRate => Boolean(t))
-      .map((t) => ({ name: t.name, rate: t.rate }));
+      .map(taxLineOf);
     update(index, {
       productId: product.id,
       name: product.name,

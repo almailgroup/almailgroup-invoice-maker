@@ -13,6 +13,7 @@ import type {
   Product,
   RecurringProfile,
   TaxRate,
+  VatReturnRecord,
 } from './types';
 import { APP_NAME } from '@/lib/brand';
 import { seedMissingCharts } from './chart-setup';
@@ -34,6 +35,7 @@ export class InvoiceDatabase extends Dexie {
   journals!: Table<ManualJournal, string>;
   expenses!: Table<Expense, string>;
   attachments!: Table<Attachment, string>;
+  vatReturns!: Table<VatReturnRecord, string>;
   meta!: Table<KeyValue, string>;
 
   constructor(name = APP_NAME) {
@@ -60,6 +62,10 @@ export class InvoiceDatabase extends Dexie {
       expenses: 'id, companyId, [companyId+date], vendorId, accountId',
       attachments: 'id, companyId, ownerId',
     });
+    // VAT returns as filed.
+    this.version(4).stores({
+      vatReturns: 'id, companyId, [companyId+periodStart]',
+    });
   }
 }
 
@@ -76,6 +82,7 @@ export const DATA_TABLES = [
   'journals',
   'expenses',
   'attachments',
+  'vatReturns',
 ] as const;
 
 export type DataTable = (typeof DATA_TABLES)[number];

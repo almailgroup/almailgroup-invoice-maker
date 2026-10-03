@@ -210,6 +210,9 @@ export async function saveJournal(input: ManualJournal): Promise<ManualJournal> 
     if (!company) throw new Error('Company not found');
     const existing = await db.journals.get(input.id);
     assertUnlocked(company, input.date, existing?.date);
+    if (existing?.vatReturnId) {
+      throw new JournalError('This entry closes a VAT return. Undo the return to change it.');
+    }
 
     const lines = input.lines.filter((l) => l.accountId && (l.debit !== 0 || l.credit !== 0));
     if (lines.some((l) => l.debit < 0 || l.credit < 0)) {
@@ -262,6 +265,9 @@ export async function deleteJournal(id: ID): Promise<void> {
     if (!journal) return;
     const company = await db.companies.get(journal.companyId);
     if (company) assertUnlocked(company, journal.date);
+    if (journal.vatReturnId) {
+      throw new JournalError('This entry closes a VAT return. Undo the return to remove it.');
+    }
     await db.journals.delete(id);
     await logActivity(
       journal.companyId,

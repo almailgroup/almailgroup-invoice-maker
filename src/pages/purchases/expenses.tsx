@@ -130,11 +130,7 @@ export default function ExpensesPage() {
         r.expense.reference,
         r.expense.currency,
         r.expense.amount,
-        includedTax(
-          r.expense.amount,
-          r.expense.taxes.map((t) => t.rate),
-          r.expense.currency,
-        ),
+        includedTax(r.expense.amount, r.expense.taxes, r.expense.currency),
       ]),
     );
 

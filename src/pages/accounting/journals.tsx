@@ -80,6 +80,11 @@ export default function JournalsPage() {
                       <Badge tone={j.status === 'posted' ? 'green' : 'gray'}>
                         {j.status === 'posted' ? 'Posted' : 'Draft'}
                       </Badge>
+                      {j.vatReturnId ? (
+                        <Badge tone="blue" className="ml-2">
+                          VAT return
+                        </Badge>
+                      ) : null}
                     </td>
                   </tr>
                 ))}

@@ -68,7 +68,7 @@ test('an expense is recorded with a photo of the receipt', async ({ page }) => {
   });
   await dialog.getByLabel('Amount paid').fill('36');
   await dialog.getByLabel('Tax included').click();
-  await page.getByRole('button', { name: 'VAT 20%' }).click();
+  await page.getByRole('button', { name: 'VAT 20%', exact: true }).click();
   await dialog.getByLabel('Description').fill('Courier envelopes');
   await expect(dialog.getByText('Includes £6.00 tax')).toBeVisible();
   await dialog

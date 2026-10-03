@@ -2,8 +2,9 @@ import { db, setMeta, getMeta, DATA_TABLES } from './db';
 import { createCompany, createTaxRate, nowStamp } from './defaults';
 import { chartAccounts, defaultAccountingSettings } from './chart-setup';
 import { logActivity } from './activity';
-import type { Client, Company, ID, Product, TaxRate } from './types';
+import type { Client, Company, ID, Product, TaxLine, TaxRate } from './types';
 import { allocateNumber } from '@/lib/numbering';
+import { taxKind } from '@/lib/calc';
 
 /* -------------------------------------------------------------------------- */
 /* Companies                                                                  */
@@ -28,7 +29,7 @@ export async function saveCompany(company: Company): Promise<Company> {
 /** Creates a company with optional starter tax rates and makes it current. */
 export async function setupCompany(
   partial: Partial<Company>,
-  taxRates: { name: string; rate: number }[] = [],
+  taxRates: TaxLine[] = [],
 ): Promise<Company> {
   return db.transaction(
     'rw',
@@ -38,7 +39,9 @@ export async function setupCompany(
       company.accounting = defaultAccountingSettings(company.address.country);
       const rates = taxRates
         .filter((t) => t.name.trim())
-        .map((t) => createTaxRate(company.id, { name: t.name.trim(), rate: t.rate }));
+        .map((t) =>
+          createTaxRate(company.id, { name: t.name.trim(), rate: t.rate, kind: taxKind(t) }),
+        );
       company.defaults.defaultTaxRateIds = rates.slice(0, 1).map((r) => r.id);
       await db.companies.add(company);
       if (rates.length) await db.taxRates.bulkAdd(rates);

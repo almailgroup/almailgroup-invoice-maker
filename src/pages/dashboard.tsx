@@ -8,6 +8,7 @@ import {
   Circle,
   Clock,
   FileText,
+  Landmark,
   Plus,
   Receipt,
   TrendingDown,
@@ -18,9 +19,11 @@ import { db } from '@/db/db';
 import type { Client, InvoiceDocument } from '@/db/types';
 import { useCompany, useFormat } from '@/app/company';
 import { displayStatus } from '@/lib/status';
-import { daysBetween, today } from '@/lib/dates';
+import { addDaysISO, daysBetween, today } from '@/lib/dates';
 import { paymentMethodLabel } from '@/db/payments';
 import { isCustomer } from '@/db/purchases';
+import { vatSettings } from '@/db/chart-setup';
+import { vatDueDate, vatPeriodOf } from '@/lib/accounting/vat';
 import { ButtonLink } from '@/components/ui/button';
 import {
   Card,
@@ -89,6 +92,10 @@ export default function DashboardPage() {
     () => db.expenses.where('companyId').equals(company.id).toArray(),
     [company.id],
   );
+  const vatFiled = useLiveQuery(
+    () => db.vatReturns.where('companyId').equals(company.id).toArray(),
+    [company.id],
+  );
   const taxRateCount = useLiveQuery(
     () => db.taxRates.where('companyId').equals(company.id).count(),
     [company.id],
@@ -106,7 +113,7 @@ export default function DashboardPage() {
   const [checklistDismissed, dismissChecklist] = useDismissed(`checklist-dismissed:${company.id}`);
 
   const data = useMemo(() => {
-    if (!docs || !payments || !clients || !expenses) return null;
+    if (!docs || !payments || !clients || !expenses || !vatFiled) return null;
     const clientsById = new Map<string, Client>(clients.map((c) => [c.id, c]));
     const base = company.currency;
     const invoices = docs.filter((d) => d.type === 'invoice');
@@ -197,6 +204,19 @@ export default function DashboardPage() {
         .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))
         .slice(0, 5),
       quotesWaiting,
+      vatDue: (() => {
+        // The last ended VAT period, until it is marked as filed.
+        const vat = vatSettings(company);
+        if (!vat.registered) return null;
+        const period = vatPeriodOf(addDaysISO(vatPeriodOf(now, vat).start, -1), vat);
+        if (vatFiled.some((r) => r.periodStart === period.start)) return null;
+        // Only once there are transactions in or before that period.
+        const active =
+          docs.some((d) => d.status !== 'draft' && d.issueDate <= period.end) ||
+          expenses.some((e) => e.date <= period.end);
+        if (!active) return null;
+        return { period, due: vatDueDate(period, vat.format) };
+      })(),
       billsToPay: sum(openBills, (d) => d.totals.balance),
       openBillCount: openBills.filter((d) => d.currency === base).length,
       billsOverdue,
@@ -205,7 +225,7 @@ export default function DashboardPage() {
       hasClients: clients.some(isCustomer),
       hasInvoices: invoices.length > 0,
     };
-  }, [docs, payments, clients, expenses, company.currency, fmt.locale, now]);
+  }, [docs, payments, clients, expenses, vatFiled, company, fmt.locale, now]);
 
   if (!data) return <Spinner className="py-24" label="Loading…" />;
 
@@ -387,7 +407,8 @@ export default function DashboardPage() {
           <CardBody className="py-2">
             {data.overdue.length === 0 &&
             data.quotesWaiting.length === 0 &&
-            data.billsOverdue.length === 0 ? (
+            data.billsOverdue.length === 0 &&
+            !data.vatDue ? (
               <div className="flex flex-col items-center py-8 text-center">
                 <CheckCircle2 className="size-8 text-emerald-500" />
                 <p className="mt-2 text-sm font-medium text-slate-700">All caught up</p>
@@ -415,6 +436,27 @@ export default function DashboardPage() {
                     </Link>
                   </li>
                 ))}
+                {data.vatDue ? (
+                  <li>
+                    <Link
+                      to={`/vat/${data.vatDue.period.start}`}
+                      className="flex items-center justify-between gap-3 py-2.5"
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-medium text-slate-800">
+                          VAT return to file
+                        </span>
+                        <span
+                          className={`flex items-center gap-1 text-xs ${data.vatDue.due < now ? 'text-red-600' : 'text-slate-500'}`}
+                        >
+                          <Landmark className="size-3" /> {fmt.date(data.vatDue.period.start)} –{' '}
+                          {fmt.date(data.vatDue.period.end)} · due {fmt.date(data.vatDue.due)}
+                        </span>
+                      </span>
+                      <ArrowRight className="size-4 shrink-0 text-slate-400" />
+                    </Link>
+                  </li>
+                ) : null}
                 {data.billsOverdue.slice(0, 3).map(({ doc, days }) => (
                   <li key={doc.id}>
                     <Link
