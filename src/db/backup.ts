@@ -6,14 +6,13 @@ import { APP_NAME } from '@/lib/brand';
 
 export const BACKUP_FORMAT = 1;
 export const LAST_BACKUP_KEY = 'lastBackupAt';
-export const BACKUP_APP_ID = 'almail-books';
-/** Backups made before the app was renamed to Almail Books. */
-const LEGACY_APP_IDS = ['invoice-maker'] as const;
 
 export type BackupData = Record<DataTable, Record<string, unknown>[]>;
 
 export interface Backup {
-  app: typeof BACKUP_APP_ID | (typeof LEGACY_APP_IDS)[number];
+  /** Written as the app name. Files are recognised by their structure, so
+   * backups from earlier builds restore whatever they were labelled. */
+  app: string;
   format: number;
   exportedAt: string;
   data: BackupData;
@@ -23,7 +22,7 @@ const row = z.looseObject({ id: z.string().min(1) });
 const ownedRow = z.looseObject({ id: z.string().min(1), companyId: z.string().min(1) });
 
 const backupSchema = z.object({
-  app: z.enum([BACKUP_APP_ID, ...LEGACY_APP_IDS]),
+  app: z.string().min(1),
   format: z.number().int().min(1),
   exportedAt: z.string(),
   data: z.object({
@@ -55,7 +54,7 @@ export async function exportBackup(companyId?: ID): Promise<Backup> {
       : rows) as unknown as Record<string, unknown>[];
   }
   return {
-    app: BACKUP_APP_ID,
+    app: APP_NAME,
     format: BACKUP_FORMAT,
     exportedAt: new Date().toISOString(),
     data,
@@ -70,7 +69,7 @@ export function backupFileName(company?: Pick<Company, 'name'>): string {
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-|-$/g, '')}`
     : '';
-  return `${BACKUP_APP_ID}-backup${name}-${stamp}.json`;
+  return `${APP_NAME}-backup${name}-${stamp}.json`;
 }
 
 export function parseBackup(text: string): Backup {

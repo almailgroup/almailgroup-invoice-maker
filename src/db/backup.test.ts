@@ -1,7 +1,14 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from './db';
 import { createClient } from './defaults';
-import { exportBackup, importBackup, parseBackup, BackupError, summarizeBackup } from './backup';
+import {
+  backupFileName,
+  exportBackup,
+  importBackup,
+  parseBackup,
+  BackupError,
+  summarizeBackup,
+} from './backup';
 import { saveClient, setupCompany, getCurrentCompanyId } from './records';
 import { seedDemoCompany } from './demo';
 
@@ -49,14 +56,17 @@ describe('backup', () => {
     expect(await db.companies.count()).toBe(2);
   });
 
-  it('labels new backups and still reads ones made before the rename', async () => {
+  it('labels backups with the app name and accepts any label with the right structure', async () => {
     const a = await setupCompany({ name: 'A' });
     const backup = await exportBackup(a.id);
-    expect(backup.app).toBe('almail-books');
-    const legacy = JSON.stringify({ ...backup, app: 'invoice-maker' });
+    expect(backup.app).toBe('AlmailBooks');
+    expect(backupFileName({ name: 'A Co' })).toMatch(
+      /^AlmailBooks-backup-a-co-\d{4}-\d{2}-\d{2}\.json$/,
+    );
+    const earlierBuild = JSON.stringify({ ...backup, app: 'earlier-build' });
     await db.delete();
     await db.open();
-    await importBackup(parseBackup(legacy), 'replace');
+    await importBackup(parseBackup(earlierBuild), 'replace');
     expect((await db.companies.get(a.id))?.name).toBe('A');
   });
 
@@ -66,7 +76,7 @@ describe('backup', () => {
     expect(() =>
       parseBackup(
         JSON.stringify({
-          app: 'almail-books',
+          app: 'AlmailBooks',
           format: 99,
           exportedAt: '',
           data: { companies: [] },

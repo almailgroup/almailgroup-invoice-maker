@@ -1,11 +1,11 @@
-# Almail Books
+# AlmailBooks
 
 Invoices, quotes, payments and reports for your business, with modern
 professional templates. Built by AL Mail Group. The whole app runs in the
 browser and is hosted free on GitHub Pages: there is no server, no account and
 no monthly fee. Your records stay on your own computer.
 
-**Open the app:** https://almailgroup.github.io/almail-books/
+**Open the app:** https://almailgroup.github.io/AlmailBooks/
 
 ![Invoice editor with live PDF preview](docs/images/editor.png)
 
@@ -59,7 +59,7 @@ no monthly fee. Your records stay on your own computer.
 3. Open the **Actions** tab, select **Build and deploy to GitHub Pages**, and
    click **Run workflow**. Pushing any commit to `main` also starts it.
 4. When the run finishes (about 2 minutes), the app is live at
-   https://almailgroup.github.io/almail-books/.
+   https://almailgroup.github.io/AlmailBooks/.
 
 From then on, every push to `main` runs the checks (lint, formatting, type
 check, unit tests, build and browser tests) and publishes the new version if
@@ -73,10 +73,9 @@ data per site, so **back up before switching to a new domain** and restore the
 backup at the new address.
 
 Renaming the repository changes only the path
-(`almailgroup.github.io/<repository>/`). The site stays the same, so saved data
-is still there at the new address. The first visit there also removes the
-offline copy kept for the old address. If you installed the app, install it
-again from the new address.
+(`almailgroup.github.io/<repository>/`), not the site, so saved data is still
+there at the new address. If you installed the app, install it again from the
+new address.
 
 ## Where your data lives
 

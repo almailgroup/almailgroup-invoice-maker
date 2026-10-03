@@ -23,8 +23,8 @@ export default defineConfig({
       includeManifestIcons: false,
       manifest: {
         id: './',
-        name: 'Almail Books',
-        short_name: 'Almail Books',
+        name: 'AlmailBooks',
+        short_name: 'AlmailBooks',
         description:
           'Invoices, quotes, payments and reports for your business, with modern professional templates.',
         lang: 'en',
