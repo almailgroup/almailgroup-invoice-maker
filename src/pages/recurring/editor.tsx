@@ -24,6 +24,7 @@ import { LineItemsEditor } from '@/features/editor/line-items';
 import { TotalsPanel } from '@/features/editor/totals-panel';
 import { ClientDialog } from '@/features/clients/client-dialog';
 import { useUnsavedGuard } from '@/hooks/use-unsaved-guard';
+import { isCustomer } from '@/db/purchases';
 
 export default function RecurringEditorPage() {
   const { id } = useParams();
@@ -224,7 +225,7 @@ export default function RecurringEditorPage() {
                       if (c) setTemplate({ currency: c.currency || company.currency });
                     }}
                     options={clients
-                      .filter((c) => !c.archived)
+                      .filter((c) => (!c.archived && isCustomer(c)) || c.id === profile.clientId)
                       .map((c) => ({ value: c.id, label: c.name, detail: c.number }))}
                     placeholder="Choose a client…"
                     onCreate={(name) => setClientDialog({ open: true, name })}

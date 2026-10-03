@@ -18,14 +18,18 @@ export interface Address {
   country: string;
 }
 
-export type DocumentType = 'invoice' | 'quote' | 'credit';
+/** Sales documents (invoice, quote, credit) and purchase documents (bill, vendor credit). */
+export type DocumentType = 'invoice' | 'quote' | 'credit' | 'bill' | 'vendor_credit';
+export type SalesDocumentType = 'invoice' | 'quote' | 'credit';
+export type PurchaseDocumentType = 'bill' | 'vendor_credit';
 
 export type InvoiceStatus = 'draft' | 'sent' | 'partial' | 'paid' | 'void';
 export type QuoteStatus = 'draft' | 'sent' | 'accepted' | 'declined' | 'invoiced';
 export type CreditStatus = 'draft' | 'sent' | 'partial' | 'applied' | 'void';
 export type DocumentStatus = InvoiceStatus | QuoteStatus | CreditStatus;
 
-export type NumberedEntity = DocumentType | 'payment' | 'client' | 'journal';
+export type NumberedEntity =
+  DocumentType | 'payment' | 'payment_made' | 'client' | 'journal' | 'expense';
 
 export type CounterReset = 'never' | 'yearly' | 'monthly';
 
@@ -281,6 +285,10 @@ export interface Client {
   language: DocumentLanguage | null;
   /** Taxes are not applied to this client's documents. */
   taxExempt: boolean;
+  /** Buys from you (shown under Clients). Missing means true for older records. */
+  isCustomer?: boolean;
+  /** Sells to you (shown under Vendors). */
+  isVendor?: boolean;
   /** Internal notes, never printed. */
   notes: string;
   archived: boolean;
@@ -358,6 +366,8 @@ export interface InvoiceDocument {
   /** Due date for invoices, "valid until" for quotes. */
   dueDate: ISODate | null;
   poNumber: string;
+  /** Bills: the supplier's own invoice number. */
+  vendorReference?: string;
   currency: string;
   /** Company-currency value of 1 unit of `currency` (1 when they are the same). */
   exchangeRate?: number;
@@ -412,6 +422,9 @@ export interface PaymentAllocation {
 export interface Payment {
   id: ID;
   companyId: ID;
+  /** Received from a client (default) or paid to a vendor. */
+  direction?: 'in' | 'out';
+  /** The client or vendor. */
   clientId: ID;
   number: string;
   date: ISODate;
@@ -419,7 +432,7 @@ export interface Payment {
   currency: string;
   /** Company-currency value of 1 unit of `currency` (1 when they are the same). */
   exchangeRate?: number;
-  /** Bank, cash or card account the money went into; null picks one from the method. */
+  /** Bank, cash or card account the money went into (or came out of); null picks one from the method. */
   accountId?: ID | null;
   method: PaymentMethod;
   /** Transaction / cheque reference. */
@@ -485,6 +498,9 @@ export type ActivityEntity =
   | 'invoice'
   | 'quote'
   | 'credit'
+  | 'bill'
+  | 'vendor_credit'
+  | 'expense'
   | 'payment'
   | 'client'
   | 'product'
@@ -504,6 +520,44 @@ export interface Activity {
   documentId: ID | null;
   action: string;
   message: string;
+}
+
+/** Money spent without a bill: fuel, a train ticket, a software subscription. */
+export interface Expense {
+  id: ID;
+  companyId: ID;
+  number: string;
+  date: ISODate;
+  /** Who was paid, when known. */
+  vendorId: ID | null;
+  /** Expense category (an expense or asset account). */
+  accountId: ID;
+  description: string;
+  /** Amount paid, including tax. */
+  amount: number;
+  /** Tax included in the amount (one rate in practice). */
+  taxes: TaxLine[];
+  currency: string;
+  exchangeRate?: number;
+  /** Bank, cash, card or owner account the money came from; null uses the bank. */
+  paidFromAccountId: ID | null;
+  reference: string;
+  notes: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+/** A file kept with a record, e.g. a receipt photo. Stored as a data URL so backups stay JSON. */
+export interface Attachment {
+  id: ID;
+  companyId: ID;
+  /** Record the file belongs to (bill, expense…); the only link to it. */
+  ownerId: ID;
+  name: string;
+  type: string;
+  size: number;
+  dataUrl: string;
+  createdAt: Timestamp;
 }
 
 export interface KeyValue {

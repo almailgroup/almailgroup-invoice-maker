@@ -1,6 +1,7 @@
 import { Plus, Trash2 } from 'lucide-react';
 import type { Charge, InvoiceDocument, TaxLine, TaxRate } from '@/db/types';
 import type { CalcResult } from '@/lib/calc';
+import { isPurchaseType } from '@/lib/document-types';
 import { shortId } from '@/lib/ids';
 import { Button } from '@/components/ui/button';
 import { Input, NumberInput, Switch } from '@/components/ui/form';
@@ -57,6 +58,7 @@ export function TotalsPanel({
   taxExempt: boolean;
   allowDeposit?: boolean;
 }) {
+  const isCredit = doc.type === 'credit' || doc.type === 'vendor_credit';
   const setCharge = (index: number, patch: Partial<Charge>) =>
     onChange({ charges: doc.charges.map((c, i) => (i === index ? { ...c, ...patch } : c)) });
 
@@ -169,9 +171,9 @@ export function TotalsPanel({
           : null}
         {doc.type !== 'quote' && result.paid !== 0 ? (
           <>
-            <Row label={doc.type === 'credit' ? 'Applied' : 'Paid'} value={money(-result.paid)} />
+            <Row label={isCredit ? 'Applied' : 'Paid'} value={money(-result.paid)} />
             <Row
-              label={doc.type === 'credit' ? 'Remaining credit' : 'Balance due'}
+              label={isCredit ? 'Remaining credit' : 'Balance due'}
               value={money(result.balance)}
               strong
             />
@@ -179,7 +181,9 @@ export function TotalsPanel({
         ) : null}
         {taxExempt ? (
           <p className="mt-2 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">
-            This client is tax exempt — taxes are not applied.
+            {isPurchaseType(doc.type)
+              ? 'This vendor is not registered for tax — taxes are not applied.'
+              : 'This client is tax exempt — taxes are not applied.'}
           </p>
         ) : null}
       </div>

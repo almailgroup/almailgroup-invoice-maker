@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { createClient, createDocument } from '@/db/defaults';
 import type { InvoiceDocument } from '@/db/types';
 import { applyTotals } from '@/db/documents';
-import { agingReport, presetRange, salesByClient, taxReport } from './reports';
+import { createPayment } from '@/db/payments';
+import { agingReport, paymentsReport, presetRange, salesByClient, taxReport } from './reports';
 
 const client = createClient('co', { id: 'c1', name: 'Acme' });
 
@@ -91,5 +92,25 @@ describe('reports', () => {
     ];
     const r = salesByClient(docs, [client], 'USD', { from: '2026-04-01', to: '2026-04-30' });
     expect(r.totals).toEqual({ invoices: 2, invoiced: 240, paid: 50, outstanding: 190 });
+  });
+
+  it('keeps sales and purchases apart', () => {
+    const docs = [
+      invoice({ dueDate: '2026-03-01', issueDate: '2026-02-01' }),
+      invoice({ type: 'bill', dueDate: '2026-01-01', issueDate: '2026-01-01' }, 50),
+    ];
+    expect(agingReport(docs, [client], 'USD', '2026-03-10').total).toBe(120);
+    const payables = agingReport(docs, [client], 'USD', '2026-03-10', 'bill');
+    expect(payables.totals).toEqual([0, 0, 0, 60, 0]);
+
+    const range = { from: '2026-01-01', to: '2026-12-31' };
+    expect(salesByClient(docs, [client], 'USD', range, 'bill').totals.invoiced).toBe(60);
+
+    const payments = [
+      createPayment('co', { amount: 10, currency: 'USD', date: '2026-02-01' }),
+      createPayment('co', { direction: 'out', amount: 4, currency: 'USD', date: '2026-02-02' }),
+    ];
+    expect(paymentsReport(payments, 'USD', range).total).toBe(10);
+    expect(paymentsReport(payments, 'USD', range, 'out').total).toBe(4);
   });
 });

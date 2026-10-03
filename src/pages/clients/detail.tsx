@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, Navigate, useNavigate, useParams } from 'react-router';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   Archive,
@@ -15,8 +15,10 @@ import { toast } from 'sonner';
 import { db } from '@/db/db';
 import { deleteClient, saveClient } from '@/db/records';
 import { paymentMethodLabel } from '@/db/payments';
+import { isCustomer, isVendor } from '@/db/purchases';
 import type { DocumentType } from '@/db/types';
 import { DOCUMENT_ROUTES, useCompany, useFormat } from '@/app/company';
+import { CONTACT_COPY, type ContactKind } from '@/features/clients/contact-kind';
 import { formatAddressLines, isAddressEmpty } from '@/lib/geo';
 import { displayStatus } from '@/lib/status';
 import { today } from '@/lib/dates';
@@ -40,19 +42,42 @@ import {
   useConfirm,
 } from '@/components/ui/overlay';
 
-type Tab = DocumentType | 'payments';
+type Tab = DocumentType | 'payments' | 'expenses';
 
-export default function ClientDetailPage() {
+/** Tabs for each kind: the documents first, then money moved. */
+const TABS: Record<ContactKind, { value: Tab; label: string }[]> = {
+  customer: [
+    { value: 'invoice', label: 'Invoices' },
+    { value: 'quote', label: 'Quotes' },
+    { value: 'credit', label: 'Credit notes' },
+    { value: 'payments', label: 'Payments' },
+  ],
+  vendor: [
+    { value: 'bill', label: 'Bills' },
+    { value: 'vendor_credit', label: 'Vendor credits' },
+    { value: 'payments', label: 'Payments' },
+    { value: 'expenses', label: 'Expenses' },
+  ],
+};
+
+export default function ClientDetailPage({ kind = 'customer' }: { kind?: ContactKind }) {
+  const copy = CONTACT_COPY[kind];
+  const vendorView = kind === 'vendor';
   const { id = '' } = useParams();
   const navigate = useNavigate();
   const company = useCompany();
   const fmt = useFormat();
   const confirm = useConfirm();
-  const [tab, setTab] = useState<Tab>('invoice');
+  const [tab, setTab] = useState<Tab>(TABS[kind][0].value);
 
   const client = useLiveQuery(() => db.clients.get(id), [id]);
   const docs = useLiveQuery(() => db.documents.where('clientId').equals(id).toArray(), [id]);
-  const payments = useLiveQuery(() => db.payments.where('clientId').equals(id).toArray(), [id]);
+  const allPayments = useLiveQuery(() => db.payments.where('clientId').equals(id).toArray(), [id]);
+  const expenses = useLiveQuery(() => db.expenses.where('vendorId').equals(id).toArray(), [id]);
+  const payments = useMemo(
+    () => allPayments?.filter((p) => (p.direction === 'out') === vendorView) ?? allPayments,
+    [allPayments, vendorView],
+  );
 
   const currency = client?.currency ?? company.currency;
   const stats = useMemo(() => {
@@ -60,14 +85,15 @@ export default function ClientDetailPage() {
     const now = today();
     const invoices = docs.filter(
       (d) =>
-        d.type === 'invoice' &&
+        d.type === copy.docType &&
         d.status !== 'draft' &&
         d.status !== 'void' &&
         d.currency === currency,
     );
+    const creditType = vendorView ? 'vendor_credit' : 'credit';
     const credits = docs.filter(
       (d) =>
-        d.type === 'credit' &&
+        d.type === creditType &&
         (d.status === 'sent' || d.status === 'partial') &&
         d.currency === currency,
     );
@@ -82,53 +108,74 @@ export default function ClientDetailPage() {
         .reduce((s, d) => s + d.totals.balance, 0),
       credit: credits.reduce((s, d) => s + d.totals.balance, 0),
     };
-  }, [docs, currency]);
+  }, [docs, currency, copy.docType, vendorView]);
 
-  if (client === undefined || !docs || !payments)
+  if (client === undefined || !docs || !payments || !expenses)
     return <Spinner className="py-24" label="Loading…" />;
   if (!client || client.companyId !== company.id) {
     return (
       <Card className="p-10 text-center">
-        <p className="text-slate-600">This client could not be found.</p>
-        <Link to="/clients" className="text-primary-700 mt-4 inline-block text-sm font-medium">
-          Back to clients
+        <p className="text-slate-600">This {copy.singular} could not be found.</p>
+        <Link to={copy.base} className="text-primary-700 mt-4 inline-block text-sm font-medium">
+          Back to {copy.plural}
         </Link>
       </Card>
     );
   }
 
+  // A vendor opened from a client link (or the reverse) shows on its own page.
+  if (vendorView ? !isVendor(client) && isCustomer(client) : !isCustomer(client)) {
+    return (
+      <Navigate
+        to={`${CONTACT_COPY[vendorView ? 'customer' : 'vendor'].base}/${client.id}`}
+        replace
+      />
+    );
+  }
+
   const now = today();
   const listed =
-    tab === 'payments'
+    tab === 'payments' || tab === 'expenses'
       ? []
       : docs.filter((d) => d.type === tab).sort((a, b) => b.issueDate.localeCompare(a.issueDate));
-  const counts = {
-    invoice: docs.filter((d) => d.type === 'invoice').length,
-    quote: docs.filter((d) => d.type === 'quote').length,
-    credit: docs.filter((d) => d.type === 'credit').length,
-    payments: payments.length,
-  };
+  const count = (value: Tab) =>
+    value === 'payments'
+      ? payments.length
+      : value === 'expenses'
+        ? expenses.length
+        : docs.filter((d) => d.type === value).length;
+  // The same contact can be both; link to the other side when it is.
+  const otherKind: ContactKind | null = vendorView
+    ? isCustomer(client)
+      ? 'customer'
+      : null
+    : isVendor(client)
+      ? 'vendor'
+      : null;
+  const paymentsBase = vendorView ? '/payments-made' : '/payments';
 
   const toggleArchive = async () => {
     await saveClient({ ...client, archived: !client.archived });
-    toast.success(client.archived ? 'Client restored' : 'Client archived');
+    toast.success(client.archived ? `${copy.column} restored` : `${copy.column} archived`);
   };
 
   const remove = async () => {
     const ok = await confirm({
       title: `Delete ${client.name}?`,
       description:
-        'This cannot be undone. Clients with documents or payments can only be archived.',
+        'This cannot be undone. Contacts with documents, payments or expenses can only be archived.',
       confirmLabel: 'Delete',
       danger: true,
     });
     if (!ok) return;
     try {
       await deleteClient(client.id);
-      toast.success('Client deleted');
-      navigate('/clients');
+      toast.success(`${copy.column} deleted`);
+      navigate(copy.base);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Could not delete the client.');
+      toast.error(
+        error instanceof Error ? error.message : `Could not delete the ${copy.singular}.`,
+      );
     }
   };
 
@@ -143,8 +190,8 @@ export default function ClientDetailPage() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="min-w-0">
           <p className="mb-1 text-sm text-slate-500">
-            <Link to="/clients" className="hover:text-slate-700">
-              Clients
+            <Link to={copy.base} className="hover:text-slate-700">
+              {copy.title}
             </Link>
           </p>
           <div className="flex flex-wrap items-center gap-2">
@@ -152,17 +199,30 @@ export default function ClientDetailPage() {
             {client.archived ? <Badge tone="slate">Archived</Badge> : null}
             {client.taxExempt ? <Badge tone="amber">Tax exempt</Badge> : null}
             {client.currency ? <Badge tone="blue">{client.currency}</Badge> : null}
+            {otherKind ? (
+              <Link to={`${CONTACT_COPY[otherKind].base}/${client.id}`}>
+                <Badge tone="violet">Also a {CONTACT_COPY[otherKind].singular}</Badge>
+              </Link>
+            ) : null}
           </div>
           <p className="mt-1 text-sm text-slate-500">{client.number}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <ButtonLink to={`/quotes/new?client=${client.id}`} variant="outline">
-            New quote
-          </ButtonLink>
-          <ButtonLink to={`/invoices/new?client=${client.id}`}>
-            <Plus /> New invoice
-          </ButtonLink>
-          <Button variant="outline" onClick={() => navigate(`/clients/${client.id}/edit`)}>
+          {vendorView ? (
+            <ButtonLink to={`/bills/new?client=${client.id}`}>
+              <Plus /> New bill
+            </ButtonLink>
+          ) : (
+            <>
+              <ButtonLink to={`/quotes/new?client=${client.id}`} variant="outline">
+                New quote
+              </ButtonLink>
+              <ButtonLink to={`/invoices/new?client=${client.id}`}>
+                <Plus /> New invoice
+              </ButtonLink>
+            </>
+          )}
+          <Button variant="outline" onClick={() => navigate(`${copy.base}/${client.id}/edit`)}>
             <Pencil /> Edit
           </Button>
           <DropdownMenu>
@@ -174,16 +234,26 @@ export default function ClientDetailPage() {
             <DropdownContent>
               <DropdownItem
                 icon={<Plus />}
-                onSelect={() => navigate(`/credits/new?client=${client.id}`)}
+                onSelect={() =>
+                  navigate(`${vendorView ? '/vendor-credits' : '/credits'}/new?client=${client.id}`)
+                }
               >
-                New credit note
+                {vendorView ? 'New vendor credit' : 'New credit note'}
               </DropdownItem>
               <DropdownItem
                 icon={<Plus />}
-                onSelect={() => navigate(`/payments/new?client=${client.id}`)}
+                onSelect={() => navigate(`${paymentsBase}/new?client=${client.id}`)}
               >
                 Record payment
               </DropdownItem>
+              {vendorView ? (
+                <DropdownItem
+                  icon={<Plus />}
+                  onSelect={() => navigate(`/expenses?new=1&vendor=${client.id}`)}
+                >
+                  Record expense
+                </DropdownItem>
+              ) : null}
               <DropdownSeparator />
               <DropdownItem
                 icon={client.archived ? <ArchiveRestore /> : <Archive />}
@@ -201,13 +271,16 @@ export default function ClientDetailPage() {
 
       {stats ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <Stat label="Invoiced" value={fmt.money(stats.invoiced, currency)} />
+          <Stat label={copy.amountLabel} value={fmt.money(stats.invoiced, currency)} />
           <Stat
             label="Paid"
             value={fmt.money(stats.paid, currency)}
             tone={stats.paid > 0 ? 'success' : 'default'}
           />
-          <Stat label="Outstanding" value={fmt.money(stats.outstanding, currency)} />
+          <Stat
+            label={vendorView ? 'You owe' : 'Outstanding'}
+            value={fmt.money(stats.outstanding, currency)}
+          />
           <Stat
             label="Overdue"
             value={fmt.money(stats.overdue, currency)}
@@ -225,15 +298,37 @@ export default function ClientDetailPage() {
             <Segmented
               value={tab}
               onChange={setTab}
-              options={[
-                { value: 'invoice', label: 'Invoices', count: counts.invoice },
-                { value: 'quote', label: 'Quotes', count: counts.quote },
-                { value: 'credit', label: 'Credit notes', count: counts.credit },
-                { value: 'payments', label: 'Payments', count: counts.payments },
-              ]}
+              options={TABS[kind].map((t) => ({ ...t, count: count(t.value) }))}
             />
           </div>
-          {tab === 'payments' ? (
+          {tab === 'expenses' ? (
+            expenses.length === 0 ? (
+              <p className="px-6 py-12 text-center text-sm text-slate-500">No expenses yet.</p>
+            ) : (
+              <ul className="divide-y divide-slate-100">
+                {[...expenses]
+                  .sort((a, b) => b.date.localeCompare(a.date))
+                  .map((e) => (
+                    <li key={e.id}>
+                      <Link
+                        to={`/expenses?open=${e.id}`}
+                        className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-slate-50"
+                      >
+                        <span>
+                          <span className="block text-sm font-medium text-slate-800">
+                            {e.number} · {fmt.date(e.date)}
+                          </span>
+                          <span className="text-xs text-slate-500">{e.description || '—'}</span>
+                        </span>
+                        <span className="tabular text-sm font-semibold text-slate-900">
+                          {fmt.money(e.amount, e.currency)}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+              </ul>
+            )
+          ) : tab === 'payments' ? (
             payments.length === 0 ? (
               <p className="px-6 py-12 text-center text-sm text-slate-500">No payments yet.</p>
             ) : (
@@ -243,7 +338,7 @@ export default function ClientDetailPage() {
                   .map((p) => (
                     <li key={p.id}>
                       <Link
-                        to={`/payments/${p.id}`}
+                        to={`${paymentsBase}/${p.id}`}
                         className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-slate-50"
                       >
                         <span>
@@ -255,7 +350,13 @@ export default function ClientDetailPage() {
                             {p.reference ? ` · ${p.reference}` : ''}
                           </span>
                         </span>
-                        <span className="tabular text-sm font-semibold text-emerald-700">
+                        <span
+                          className={
+                            vendorView
+                              ? 'tabular text-sm font-semibold text-slate-900'
+                              : 'tabular text-sm font-semibold text-emerald-700'
+                          }
+                        >
                           {fmt.money(p.amount, p.currency)}
                         </span>
                       </Link>
@@ -337,7 +438,7 @@ export default function ClientDetailPage() {
             {address.length ? (
               <div>
                 <p className="mb-1 text-xs font-medium tracking-wide text-slate-500 uppercase">
-                  Billing address
+                  {vendorView ? 'Address' : 'Billing address'}
                 </p>
                 <p className="whitespace-pre-line text-slate-700">{address.join('\n')}</p>
               </div>

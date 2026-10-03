@@ -1,5 +1,5 @@
 import { db } from './db';
-import { nowStamp } from './defaults';
+import { defaultNumbering, nowStamp } from './defaults';
 import { logActivity } from './activity';
 import { recalculateDocuments } from './documents';
 import type { ID, Payment, PaymentAllocation, PaymentMethod } from './types';
@@ -90,7 +90,9 @@ export async function savePayment(input: Payment): Promise<Payment> {
       const amount = round(input.amount, precision);
       const allocated = allocations.reduce((s, a) => s + a.amount, 0);
       if (amount >= 0 && round(allocated, precision) > amount) {
-        throw new AllocationError('The amounts applied to invoices are larger than the payment.');
+        throw new AllocationError(
+          `The amounts applied to ${input.direction === 'out' ? 'bills' : 'invoices'} are larger than the payment.`,
+        );
       }
       let payment: Payment = {
         ...input,
@@ -105,13 +107,16 @@ export async function savePayment(input: Payment): Promise<Payment> {
             p.number.toLowerCase(),
           ),
         );
-        const allocatedNumber = allocateNumber(company.numbering.payment, payment.date, (n) =>
+        // Payments made have their own series, like bills.
+        const key = payment.direction === 'out' ? 'payment_made' : 'payment';
+        const rule = company.numbering[key] ?? defaultNumbering()[key];
+        const allocatedNumber = allocateNumber(rule, payment.date, (n) =>
           taken.has(n.toLowerCase()),
         );
         payment = { ...payment, number: allocatedNumber.number };
         await db.companies.put({
           ...company,
-          numbering: { ...company.numbering, payment: allocatedNumber.rule },
+          numbering: { ...company.numbering, [key]: allocatedNumber.rule },
         });
       }
       if (!existing) payment.createdAt = payment.updatedAt;

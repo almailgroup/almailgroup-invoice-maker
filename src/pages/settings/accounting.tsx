@@ -19,10 +19,13 @@ const MONTHS = Array.from({ length: 12 }, (_, i) =>
 
 const ROLE_LABELS: Partial<Record<AccountRole, string>> = {
   receivable: 'Money owed by clients',
-  bank: 'Payments received (default)',
+  payable: 'Money owed to vendors',
+  bank: 'Payments in and out (default)',
   cash: 'Cash payments',
+  credit_card: 'Company card',
   sales: 'Sales (unless a product says otherwise)',
   charges: 'Delivery and other charges',
+  expense: 'Purchases (unless a bill line says otherwise)',
   output_tax: 'Tax charged on sales',
   input_tax: 'Tax paid on purchases',
   fx: 'Exchange gains and losses',
@@ -119,8 +122,8 @@ export default function AccountingSettings() {
           ) : null}
         </div>
         <p className="text-sm text-slate-500">
-          Draft invoices and quotes stay editable. Issued invoices, credit notes, payments and
-          journals in the locked period are protected.
+          Drafts and quotes stay editable. Issued invoices, bills, credit notes, payments, expenses
+          and journals in the locked period are protected.
         </p>
       </SettingsSection>
 

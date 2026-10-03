@@ -216,11 +216,16 @@ function useMinorMoney() {
 const SOURCE_ROUTES: Record<LedgerSource, string> = {
   invoice: '/invoices',
   credit: '/credits',
+  bill: '/bills',
+  vendor_credit: '/vendor-credits',
   payment: '/payments',
+  expense: '/expenses',
   journal: '/journals',
 };
 
 export function sourceLink(line: Pick<LedgerLine, 'source' | 'sourceId'>): string {
+  // Expenses open in a dialog on their list; payments made redirect from /payments.
+  if (line.source === 'expense') return `/expenses?open=${line.sourceId}`;
   return `${SOURCE_ROUTES[line.source]}/${line.sourceId}`;
 }
 

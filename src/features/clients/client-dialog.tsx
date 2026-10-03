@@ -6,23 +6,28 @@ import { saveClient } from '@/db/records';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogBody, DialogContent, DialogFooter } from '@/components/ui/overlay';
 import { ClientForm, newContact, validateClient } from './client-form';
+import { CONTACT_COPY, contactRoles, type ContactKind } from './contact-kind';
 
-/** Quick "new client" dialog used from the document editor and payments. */
+/** Quick "new client" (or vendor) dialog used from the editors and payments. */
 export function ClientDialog({
   open,
   onOpenChange,
   company,
   initialName = '',
   onSaved,
+  kind = 'customer',
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   company: Company;
   initialName?: string;
   onSaved: (client: Client) => void;
+  kind?: ContactKind;
 }) {
+  const copy = CONTACT_COPY[kind];
   const [client, setClient] = useState<Client>(() =>
     createClient(company.id, {
+      ...contactRoles(kind),
       name: initialName,
       contacts: [newContact(true)],
       address: {
@@ -48,11 +53,11 @@ export function ClientDialog({
         ...client,
         contacts: client.contacts.filter((c) => c.name || c.email || c.phone),
       });
-      toast.success(`Client ${saved.name} added`);
+      toast.success(`${copy.column} ${saved.name} added`);
       onSaved(saved);
       onOpenChange(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Could not save the client.');
+      toast.error(error instanceof Error ? error.message : `Could not save the ${copy.singular}.`);
     } finally {
       setSaving(false);
     }
@@ -61,8 +66,8 @@ export function ClientDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        title="New client"
-        description="You can add more details later from the Clients page."
+        title={`New ${copy.singular}`}
+        description={`You can add more details later from the ${copy.title} page.`}
         size="lg"
       >
         <DialogBody>
@@ -72,6 +77,7 @@ export function ClientDialog({
             company={company}
             compact
             errors={errors}
+            kind={kind}
           />
         </DialogBody>
         <DialogFooter>
@@ -79,7 +85,7 @@ export function ClientDialog({
             Cancel
           </Button>
           <Button onClick={save} loading={saving}>
-            Save client
+            Save {copy.singular}
           </Button>
         </DialogFooter>
       </DialogContent>

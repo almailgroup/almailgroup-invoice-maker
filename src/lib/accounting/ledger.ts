@@ -1,15 +1,26 @@
-import type { AccountRole, ID, ISODate, InvoiceDocument, ManualJournal, Payment } from '@/db/types';
+import type {
+  AccountRole,
+  DocumentType,
+  Expense,
+  ID,
+  ISODate,
+  InvoiceDocument,
+  ManualJournal,
+  Payment,
+} from '@/db/types';
 import { computeDocument } from '@/lib/document-calc';
 import { Decimal, dec, toMinor } from '@/lib/money';
 
 /**
  * The general ledger is derived from the business documents: every issued
- * invoice, credit note, payment and posted manual journal turns into balanced
+ * invoice, credit note, bill, vendor credit, payment, expense and posted manual
+ * journal turns into balanced
  * debit/credit lines here. Nothing is stored twice, so the books always match
  * the documents; the lock date protects closed periods.
  */
 
-export type LedgerSource = 'invoice' | 'credit' | 'payment' | 'journal';
+export type LedgerSource =
+  'invoice' | 'credit' | 'bill' | 'vendor_credit' | 'payment' | 'expense' | 'journal';
 
 export interface LedgerLine {
   date: ISODate;
@@ -105,10 +116,67 @@ function balanced(lines: LedgerLine[]): boolean {
   return lines.reduce((acc, l) => acc + l.amount, 0) === 0;
 }
 
-/** Ledger lines of an invoice or credit note. */
+type PostedType = Exclude<DocumentType, 'quote'>;
+
+/** How each document type posts: the partner account side and default accounts. */
+const POSTING: Record<
+  PostedType,
+  {
+    partner: AccountRole;
+    tax: AccountRole;
+    line: AccountRole;
+    charges: AccountRole;
+    sign: 1 | -1;
+    noun: string;
+  }
+> = {
+  // Sales: debit receivable, credit income and output tax.
+  invoice: {
+    partner: 'receivable',
+    tax: 'output_tax',
+    line: 'sales',
+    charges: 'charges',
+    sign: 1,
+    noun: 'Invoice',
+  },
+  credit: {
+    partner: 'receivable',
+    tax: 'output_tax',
+    line: 'sales',
+    charges: 'charges',
+    sign: -1,
+    noun: 'Credit note',
+  },
+  // Purchases: credit payable, debit expenses and input tax.
+  bill: {
+    partner: 'payable',
+    tax: 'input_tax',
+    line: 'expense',
+    charges: 'expense',
+    sign: -1,
+    noun: 'Bill',
+  },
+  vendor_credit: {
+    partner: 'payable',
+    tax: 'input_tax',
+    line: 'expense',
+    charges: 'expense',
+    sign: 1,
+    noun: 'Vendor credit',
+  },
+};
+
+function isPostedType(type: DocumentType): type is PostedType {
+  return type !== 'quote';
+}
+
+/** Ledger lines of an invoice, credit note, bill or vendor credit. */
 export function postDocument(doc: InvoiceDocument, ctx: LedgerContext): LedgerLine[] {
-  if (!isPosted(doc) || (doc.type !== 'invoice' && doc.type !== 'credit')) return [];
-  const sign = doc.type === 'credit' ? -1 : 1;
+  if (!isPosted(doc) || !isPostedType(doc.type)) return [];
+  const rule = POSTING[doc.type];
+  const sales = rule.partner === 'receivable';
+  // Sign of the partner (receivable/payable) line; the other lines take the opposite.
+  const sign = rule.sign;
   const exempt = doc.clientId ? ctx.taxExempt(doc.clientId) : false;
   const result = computeDocument(doc, { taxExempt: exempt });
   const rate = rateOf(doc, ctx);
@@ -143,8 +211,10 @@ export function postDocument(doc: InvoiceDocument, ctx: LedgerContext): LedgerLi
     if (doc.pricesIncludeTax && taxesOnLine.length) weight = weight.dividedBy(rateSum(taxesOnLine));
     const account =
       usable(ctx, item.accountId) ??
-      usable(ctx, item.productId ? ctx.productAccounts.get(item.productId) : null) ??
-      role(ctx, 'sales');
+      (sales
+        ? usable(ctx, item.productId ? ctx.productAccounts.get(item.productId) : null)
+        : null) ??
+      role(ctx, rule.line);
     add(account, weight, item.name);
   });
   for (const charge of doc.charges) {
@@ -152,9 +222,9 @@ export function postDocument(doc: InvoiceDocument, ctx: LedgerContext): LedgerLi
     let weight = dec(charge.amount);
     if (doc.pricesIncludeTax && taxesOnCharge.length)
       weight = weight.dividedBy(rateSum(taxesOnCharge));
-    add(role(ctx, 'charges', 'sales'), weight, charge.label);
+    add(role(ctx, rule.charges, rule.line), weight, charge.label);
   }
-  if (groups.size === 0) add(role(ctx, 'sales'), new Decimal(1), '');
+  if (groups.size === 0) add(role(ctx, rule.line), new Decimal(1), '');
 
   const base = {
     date: doc.issueDate,
@@ -163,11 +233,11 @@ export function postDocument(doc: InvoiceDocument, ctx: LedgerContext): LedgerLi
     number: doc.number,
     contactId: doc.clientId || null,
   };
-  const noun = doc.type === 'credit' ? 'Credit note' : 'Invoice';
+  const noun = rule.noun;
   const lines: LedgerLine[] = [
     {
       ...base,
-      accountId: role(ctx, 'receivable'),
+      accountId: role(ctx, rule.partner),
       amount: sign * total,
       description: `${noun} ${doc.number}`,
     },
@@ -189,7 +259,7 @@ export function postDocument(doc: InvoiceDocument, ctx: LedgerContext): LedgerLi
   for (const t of taxes) {
     lines.push({
       ...base,
-      accountId: role(ctx, 'output_tax'),
+      accountId: role(ctx, rule.tax),
       amount: -sign * t.minor,
       description: `${t.name} ${t.rate}%`,
     });
@@ -199,16 +269,20 @@ export function postDocument(doc: InvoiceDocument, ctx: LedgerContext): LedgerLi
   return kept;
 }
 
-/** Ledger lines of a payment received. Credit-note applications move no money. */
+/**
+ * Ledger lines of a payment received from a client or made to a vendor.
+ * Credit-note applications only match documents and move no money.
+ */
 export function postPayment(payment: Payment, ctx: LedgerContext): LedgerLine[] {
   if (payment.method === 'credit_note') return [];
+  const out = payment.direction === 'out';
   const p = ctx.precision;
   const rate = rateOf(payment, ctx);
   const received = toMinor(dec(payment.amount).times(rate), p);
   if (received === 0) return [];
 
-  // Receivable is cleared at each invoice's own rate; any difference is an
-  // exchange gain or loss.
+  // Receivable (or payable) is cleared at each document's own rate; any
+  // difference is an exchange gain or loss.
   let cleared = 0;
   let allocated = new Decimal(0);
   for (const a of payment.allocations) {
@@ -230,19 +304,72 @@ export function postPayment(payment: Payment, ctx: LedgerContext): LedgerLine[] 
     contactId: payment.clientId || null,
   };
   const label = `Payment ${payment.number}`;
+  // Money in: debit bank, credit receivable. Money out: debit payable, credit bank.
+  const flow = out ? -1 : 1;
   const lines: LedgerLine[] = [
-    { ...base, accountId: bank, amount: received, description: label },
-    { ...base, accountId: role(ctx, 'receivable'), amount: -cleared, description: label },
+    { ...base, accountId: bank, amount: flow * received, description: label },
+    {
+      ...base,
+      accountId: role(ctx, out ? 'payable' : 'receivable'),
+      amount: -flow * cleared,
+      description: label,
+    },
   ];
   const fx = received - cleared;
   if (fx !== 0) {
     lines.push({
       ...base,
       accountId: role(ctx, 'fx'),
-      amount: -fx,
+      amount: -flow * fx,
       description: `Exchange difference ${payment.number}`,
     });
   }
+  return lines.filter((l) => l.amount !== 0);
+}
+
+/** Ledger lines of an expense: the category and input tax, paid from a money account. */
+export function postExpense(expense: Expense, ctx: LedgerContext): LedgerLine[] {
+  const p = ctx.precision;
+  const rate = rateOf(expense, ctx);
+  const total = toMinor(dec(expense.amount).times(rate), p);
+  if (total === 0) return [];
+  // The amount includes tax: tax = total − total / (1 + Σ rates).
+  const taxes = expense.taxes.filter((t) => t.name.trim() && Number.isFinite(t.rate));
+  const rateSum = taxes.reduce((acc, t) => acc.plus(dec(t.rate)), new Decimal(0));
+  const net = rateSum.isZero() ? dec(total) : dec(total).dividedBy(rateSum.dividedBy(100).plus(1));
+  const taxTotal = total - toMinor(net, 0);
+  const perTax = allocate(
+    taxTotal,
+    taxes.map((t) => dec(t.rate)),
+  );
+  const base = {
+    date: expense.date,
+    source: 'expense' as const,
+    sourceId: expense.id,
+    number: expense.number,
+    contactId: expense.vendorId,
+  };
+  const label = expense.description || `Expense ${expense.number}`;
+  const lines: LedgerLine[] = [
+    {
+      ...base,
+      accountId: usable(ctx, expense.accountId) ?? role(ctx, 'expense'),
+      amount: total - taxTotal,
+      description: label,
+    },
+    ...taxes.map((t, i) => ({
+      ...base,
+      accountId: role(ctx, 'input_tax'),
+      amount: perTax[i],
+      description: `${t.name} ${t.rate}%`,
+    })),
+    {
+      ...base,
+      accountId: usable(ctx, expense.paidFromAccountId) ?? role(ctx, 'bank'),
+      amount: -total,
+      description: label,
+    },
+  ];
   return lines.filter((l) => l.amount !== 0);
 }
 
@@ -271,7 +398,12 @@ export function postJournal(journal: ManualJournal, ctx: LedgerContext): LedgerL
  * example a missing account) are reported as problems instead of failing.
  */
 export function buildLedger(
-  data: { documents: InvoiceDocument[]; payments: Payment[]; journals: ManualJournal[] },
+  data: {
+    documents: InvoiceDocument[];
+    payments: Payment[];
+    journals: ManualJournal[];
+    expenses?: Expense[];
+  },
   ctx: LedgerContext,
 ): { lines: LedgerLine[]; problems: LedgerProblem[] } {
   const lines: LedgerLine[] = [];
@@ -289,7 +421,7 @@ export function buildLedger(
     }
   };
   for (const doc of data.documents) {
-    if (!isPosted(doc) || (doc.type !== 'invoice' && doc.type !== 'credit')) continue;
+    if (!isPosted(doc) || !isPostedType(doc.type)) continue;
     if (needsRate(doc, ctx)) {
       problems.push({
         source: doc.type,
@@ -310,6 +442,17 @@ export function buildLedger(
       });
     }
     attempt('payment', payment.id, payment.number, () => postPayment(payment, ctx));
+  }
+  for (const expense of data.expenses ?? []) {
+    if (needsRate(expense, ctx)) {
+      problems.push({
+        source: 'expense',
+        sourceId: expense.id,
+        number: expense.number,
+        message: `No exchange rate for ${expense.currency}; 1:1 was used.`,
+      });
+    }
+    attempt('expense', expense.id, expense.number, () => postExpense(expense, ctx));
   }
   for (const journal of data.journals) {
     attempt('journal', journal.id, journal.number, () => postJournal(journal, ctx));

@@ -53,6 +53,8 @@ const TABLE_LABELS: Record<string, string> = {
   activities: 'Activity entries',
   accounts: 'Chart of accounts',
   journals: 'Manual journals',
+  expenses: 'Expenses',
+  attachments: 'Receipts and files',
 };
 
 export default function DataSettings() {

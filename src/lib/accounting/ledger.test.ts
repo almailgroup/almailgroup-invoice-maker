@@ -8,6 +8,7 @@ import {
   buildLedger,
   postDocument,
   postJournal,
+  postExpense,
   postPayment,
   UnbalancedEntryError,
   type LedgerContext,
@@ -271,5 +272,97 @@ describe('ledger', () => {
       'No exchange rate for EUR; 1:1 was used.',
       'No account is set up for "receivable".',
     ]);
+  });
+});
+
+describe('purchases', () => {
+  const purchaseRoles = {
+    receivable: 'ar',
+    payable: 'ap',
+    sales: 'sales',
+    expense: 'expenses',
+    output_tax: 'vat',
+    input_tax: 'input-vat',
+    bank: 'bank',
+    cash: 'cash',
+    fx: 'fx',
+  };
+  const purchaseCtx = (overrides: Partial<LedgerContext> = {}) =>
+    context({
+      roles: purchaseRoles,
+      accountIds: new Set([...Object.values(purchaseRoles), 'stationery', 'card']),
+      ...overrides,
+    });
+
+  it('posts a bill to payable, its expense accounts and input VAT', () => {
+    const bill = doc({
+      type: 'bill',
+      number: 'BILL-1',
+      items: [item(1, 500, [VAT20], { accountId: 'stationery' }), item(1, 50, [])],
+    });
+    expect(byAccount(postDocument(bill, purchaseCtx()))).toEqual({
+      ap: -650,
+      stationery: 500,
+      expenses: 50,
+      'input-vat': 100,
+    });
+  });
+
+  it('reverses a bill with a vendor credit', () => {
+    const credit = doc({
+      type: 'vendor_credit',
+      number: 'VC-1',
+      items: [item(1, 100, [VAT20], { accountId: 'stationery' })],
+    });
+    expect(byAccount(postDocument(credit, purchaseCtx()))).toEqual({
+      ap: 120,
+      stationery: -100,
+      'input-vat': -20,
+    });
+  });
+
+  it('pays a bill from the bank, booking any exchange loss', () => {
+    const bill = doc({
+      id: 'eur-bill',
+      type: 'bill',
+      currency: 'EUR',
+      exchangeRate: 0.86,
+      items: [item(1, 1000, [])],
+    });
+    const payment = createPayment('co', {
+      direction: 'out',
+      amount: 1000,
+      currency: 'EUR',
+      exchangeRate: 0.87,
+      method: 'bank_transfer',
+      allocations: [{ documentId: 'eur-bill', amount: 1000 }],
+    });
+    const lines = postPayment(payment, purchaseCtx({ documents: new Map([['eur-bill', bill]]) }));
+    expect(byAccount(lines)).toEqual({ bank: -870, ap: 860, fx: 10 });
+  });
+
+  it('records an expense paid by card, backing VAT out of the total', () => {
+    const expense = {
+      id: 'e1',
+      companyId: 'co',
+      number: 'EXP-1',
+      date: '2026-10-01',
+      vendorId: null,
+      accountId: 'stationery',
+      description: 'Printer paper',
+      amount: 60,
+      taxes: [VAT20],
+      currency: 'GBP',
+      paidFromAccountId: 'card',
+      reference: '',
+      notes: '',
+      createdAt: '',
+      updatedAt: '',
+    };
+    expect(byAccount(postExpense(expense, purchaseCtx()))).toEqual({
+      stationery: 50,
+      'input-vat': 10,
+      card: -60,
+    });
   });
 });

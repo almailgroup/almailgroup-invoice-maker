@@ -1,12 +1,22 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Download, FileMinus, FileText, Plus, ScrollText, Search } from 'lucide-react';
+import {
+  Download,
+  FileMinus,
+  FileText,
+  Plus,
+  Receipt,
+  ReceiptText,
+  ScrollText,
+  Search,
+} from 'lucide-react';
 import { db } from '@/db/db';
 import type { Client, DocumentType } from '@/db/types';
 import { DOCUMENT_LABELS, DOCUMENT_ROUTES, useCompany, useFormat } from '@/app/company';
 import { displayStatus, type DisplayStatus } from '@/lib/status';
 import { today } from '@/lib/dates';
+import { isPurchaseType } from '@/lib/document-types';
 import { downloadCsv } from '@/lib/csv';
 import { Button, ButtonLink } from '@/components/ui/button';
 import {
@@ -46,18 +56,45 @@ const FILTERS: Record<DocumentType, { value: Filter; label: string }[]> = {
     { value: 'applied', label: 'Applied' },
     { value: 'void', label: 'Void' },
   ],
+  bill: [
+    { value: 'all', label: 'All' },
+    { value: 'draft', label: 'Draft' },
+    { value: 'unpaid', label: 'Unpaid' },
+    { value: 'overdue', label: 'Overdue' },
+    { value: 'paid', label: 'Paid' },
+    { value: 'void', label: 'Void' },
+  ],
+  vendor_credit: [
+    { value: 'all', label: 'All' },
+    { value: 'draft', label: 'Draft' },
+    { value: 'open', label: 'Open' },
+    { value: 'applied', label: 'Applied' },
+    { value: 'void', label: 'Void' },
+  ],
+};
+
+const DESCRIPTIONS: Record<DocumentType, string> = {
+  invoice: 'Bill your clients and track what is paid.',
+  quote: 'Send estimates and convert accepted quotes into invoices.',
+  credit: 'Issue credit notes and apply them to invoices.',
+  bill: 'Record bills from your suppliers and keep track of what you owe.',
+  vendor_credit: 'Credits from suppliers for returns or refunds, applied to their bills.',
 };
 
 const ICONS: Record<DocumentType, React.ReactNode> = {
   invoice: <FileText />,
   quote: <ScrollText />,
   credit: <FileMinus />,
+  bill: <Receipt />,
+  vendor_credit: <ReceiptText />,
 };
 
 function matches(filter: Filter, status: DisplayStatus): boolean {
   if (filter === 'all') return true;
-  if (filter === 'unpaid') return status === 'sent' || status === 'partial' || status === 'overdue';
+  if (filter === 'unpaid')
+    return status === 'sent' || status === 'open' || status === 'partial' || status === 'overdue';
   if (filter === 'sent') return status === 'sent' || status === 'partial';
+  if (filter === 'open') return status === 'open' || status === 'partial';
   return status === filter;
 }
 
@@ -71,6 +108,8 @@ export default function DocumentListPage({ type }: { type: DocumentType }) {
   const filter = (params.get('status') as Filter) || 'all';
   const labels = DOCUMENT_LABELS[type];
   const base = DOCUMENT_ROUTES[type];
+  const purchase = isPurchaseType(type);
+  const party = purchase ? 'Vendor' : 'Client';
 
   const docs = useLiveQuery(
     () => db.documents.where('[companyId+type]').equals([company.id, type]).toArray(),
@@ -108,7 +147,9 @@ export default function DocumentListPage({ type }: { type: DocumentType }) {
       (r) =>
         matches(filter, r.status) &&
         (!q ||
-          `${r.doc.number} ${r.client?.name ?? ''} ${r.doc.poNumber}`.toLowerCase().includes(q)),
+          `${r.doc.number} ${r.client?.name ?? ''} ${r.doc.poNumber} ${r.doc.vendorReference ?? ''}`
+            .toLowerCase()
+            .includes(q)),
     );
   }, [rows, filter, query]);
 
@@ -118,7 +159,8 @@ export default function DocumentListPage({ type }: { type: DocumentType }) {
       if (status === 'void') continue;
       const entry = map.get(doc.currency) ?? { total: 0, balance: 0 };
       entry.total += doc.totals.total;
-      if (type === 'invoice' && status !== 'draft') entry.balance += doc.totals.balance;
+      if ((type === 'invoice' || type === 'bill') && status !== 'draft')
+        entry.balance += doc.totals.balance;
       map.set(doc.currency, entry);
     }
     return [...map.entries()];
@@ -130,10 +172,10 @@ export default function DocumentListPage({ type }: { type: DocumentType }) {
       [
         'Number',
         'Status',
-        'Client',
+        party,
         'Issue date',
         type === 'quote' ? 'Valid until' : 'Due date',
-        'PO',
+        purchase ? 'Vendor reference' : 'PO',
         'Currency',
         'Subtotal',
         'Discount',
@@ -148,7 +190,7 @@ export default function DocumentListPage({ type }: { type: DocumentType }) {
         client?.name ?? '',
         doc.issueDate,
         doc.dueDate ?? '',
-        doc.poNumber,
+        purchase ? (doc.vendorReference ?? '') : doc.poNumber,
         doc.currency,
         doc.totals.subtotal,
         doc.totals.discount,
@@ -166,13 +208,7 @@ export default function DocumentListPage({ type }: { type: DocumentType }) {
     <div>
       <PageHeader
         title={labels.plural}
-        description={
-          type === 'invoice'
-            ? 'Bill your clients and track what is paid.'
-            : type === 'quote'
-              ? 'Send estimates and convert accepted quotes into invoices.'
-              : 'Issue credit notes and apply them to invoices.'
-        }
+        description={DESCRIPTIONS[type]}
         actions={
           <>
             {rows.length > 0 ? (
@@ -216,7 +252,9 @@ export default function DocumentListPage({ type }: { type: DocumentType }) {
               <Input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search number, client, PO…"
+                placeholder={
+                  purchase ? 'Search number, vendor, reference…' : 'Search number, client, PO…'
+                }
                 className="pl-9"
                 aria-label={`Search ${labels.plural.toLowerCase()}`}
               />
@@ -234,13 +272,13 @@ export default function DocumentListPage({ type }: { type: DocumentType }) {
                   <thead>
                     <tr className="border-b border-slate-100 text-left text-xs font-medium tracking-wide text-slate-500 uppercase">
                       <th className="px-5 py-3">Number</th>
-                      <th className="px-3 py-3">Client</th>
+                      <th className="px-3 py-3">{party}</th>
                       <th className="px-3 py-3">Date</th>
                       <th className="px-3 py-3">{type === 'quote' ? 'Valid until' : 'Due'}</th>
                       <th className="px-3 py-3 text-right">Total</th>
                       {type !== 'quote' ? (
                         <th className="px-3 py-3 text-right">
-                          {type === 'credit' ? 'Remaining' : 'Balance'}
+                          {type === 'credit' || type === 'vendor_credit' ? 'Remaining' : 'Balance'}
                         </th>
                       ) : null}
                       <th className="px-5 py-3 text-right">Status</th>
@@ -261,6 +299,11 @@ export default function DocumentListPage({ type }: { type: DocumentType }) {
                           >
                             {doc.number || '—'}
                           </Link>
+                          {purchase && doc.vendorReference ? (
+                            <span className="block text-xs font-normal text-slate-500">
+                              {doc.vendorReference}
+                            </span>
+                          ) : null}
                         </td>
                         <td className="max-w-56 truncate px-3 py-3 text-slate-700">
                           {client?.name ?? '—'}

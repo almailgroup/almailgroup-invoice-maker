@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Download, Plus, Search, Users } from 'lucide-react';
+import { Download, Plus, Search } from 'lucide-react';
 import { db } from '@/db/db';
+import { isCustomer, isVendor } from '@/db/purchases';
 import { useCompany, useFormat } from '@/app/company';
 import { countryName } from '@/lib/geo';
 import { downloadCsv } from '@/lib/csv';
@@ -11,8 +12,10 @@ import { today } from '@/lib/dates';
 import { Button, ButtonLink } from '@/components/ui/button';
 import { Badge, Card, EmptyState, PageHeader, Segmented, Spinner } from '@/components/ui/misc';
 import { Input } from '@/components/ui/form';
+import { CONTACT_COPY, type ContactKind } from '@/features/clients/contact-kind';
 
-export default function ClientListPage() {
+export default function ClientListPage({ kind = 'customer' }: { kind?: ContactKind }) {
+  const copy = CONTACT_COPY[kind];
   const company = useCompany();
   const fmt = useFormat();
   const navigate = useNavigate();
@@ -24,8 +27,8 @@ export default function ClientListPage() {
     [company.id],
   );
   const docs = useLiveQuery(
-    () => db.documents.where('[companyId+type]').equals([company.id, 'invoice']).toArray(),
-    [company.id],
+    () => db.documents.where('[companyId+type]').equals([company.id, copy.docType]).toArray(),
+    [company.id, copy.docType],
   );
 
   const rows = useMemo(() => {
@@ -47,12 +50,13 @@ export default function ClientListPage() {
       stats.set(d.clientId, s);
     }
     return clients
+      .filter((c) => (kind === 'vendor' ? isVendor(c) : isCustomer(c)))
       .map((c) => ({
         client: c,
         stats: stats.get(c.id) ?? { invoiced: 0, balance: 0, overdue: false, count: 0 },
       }))
       .sort((a, b) => a.client.name.localeCompare(b.client.name));
-  }, [clients, docs, company.currency]);
+  }, [clients, docs, company.currency, kind]);
 
   const filtered = useMemo(() => {
     if (!rows) return [];
@@ -73,7 +77,7 @@ export default function ClientListPage() {
 
   const exportCsv = () =>
     downloadCsv(
-      `clients-${today()}`,
+      `${copy.plural}-${today()}`,
       [
         'Number',
         'Name',
@@ -86,7 +90,7 @@ export default function ClientListPage() {
         'Country',
         'Tax ID',
         'Currency',
-        'Invoiced',
+        copy.amountLabel,
         'Outstanding',
       ],
       filtered.map(({ client, stats }) => {
@@ -112,8 +116,8 @@ export default function ClientListPage() {
   return (
     <div>
       <PageHeader
-        title="Clients"
-        description="The people and companies you bill."
+        title={copy.title}
+        description={copy.description}
         actions={
           <>
             {rows.length > 0 ? (
@@ -121,8 +125,8 @@ export default function ClientListPage() {
                 <Download /> Export CSV
               </Button>
             ) : null}
-            <ButtonLink to="/clients/new">
-              <Plus /> New client
+            <ButtonLink to={`${copy.base}/new`}>
+              <Plus /> New {copy.singular}
             </ButtonLink>
           </>
         }
@@ -130,12 +134,12 @@ export default function ClientListPage() {
       {rows.length === 0 ? (
         <Card>
           <EmptyState
-            icon={<Users />}
-            title="No clients yet"
-            description="Add the people and companies you work with to invoice them in seconds."
+            icon={copy.icon}
+            title={`No ${copy.plural} yet`}
+            description={copy.empty}
             action={
-              <ButtonLink to="/clients/new">
-                <Plus /> New client
+              <ButtonLink to={`${copy.base}/new`}>
+                <Plus /> New {copy.singular}
               </ButtonLink>
             }
           />
@@ -156,23 +160,23 @@ export default function ClientListPage() {
               <Input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search clients…"
+                placeholder={`Search ${copy.plural}…`}
                 className="pl-9"
-                aria-label="Search clients"
+                aria-label={`Search ${copy.plural}`}
               />
             </div>
           </div>
           {filtered.length === 0 ? (
-            <p className="px-6 py-12 text-center text-sm text-slate-500">No clients match.</p>
+            <p className="px-6 py-12 text-center text-sm text-slate-500">No {copy.plural} match.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-100 text-left text-xs font-medium tracking-wide text-slate-500 uppercase">
-                    <th className="px-5 py-3">Client</th>
+                    <th className="px-5 py-3">{copy.column}</th>
                     <th className="hidden px-3 py-3 md:table-cell">Contact</th>
                     <th className="hidden px-3 py-3 lg:table-cell">Location</th>
-                    <th className="px-3 py-3 text-right">Invoiced</th>
+                    <th className="px-3 py-3 text-right">{copy.amountLabel}</th>
                     <th className="px-5 py-3 text-right">Outstanding</th>
                   </tr>
                 </thead>
@@ -183,12 +187,12 @@ export default function ClientListPage() {
                     return (
                       <tr
                         key={client.id}
-                        onClick={() => navigate(`/clients/${client.id}`)}
+                        onClick={() => navigate(`${copy.base}/${client.id}`)}
                         className="cursor-pointer hover:bg-slate-50"
                       >
                         <td className="px-5 py-3">
                           <Link
-                            to={`/clients/${client.id}`}
+                            to={`${copy.base}/${client.id}`}
                             onClick={(e) => e.stopPropagation()}
                             className="hover:text-primary-700 font-medium text-slate-900"
                           >

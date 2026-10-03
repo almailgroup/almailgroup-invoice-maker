@@ -9,14 +9,18 @@ const ENTITIES: { key: NumberedEntity; label: string }[] = [
   { key: 'invoice', label: 'Invoices' },
   { key: 'quote', label: 'Quotes' },
   { key: 'credit', label: 'Credit notes' },
-  { key: 'payment', label: 'Payments' },
-  { key: 'client', label: 'Clients' },
+  { key: 'payment', label: 'Payments received' },
+  { key: 'client', label: 'Clients and vendors' },
+  { key: 'bill', label: 'Bills' },
+  { key: 'vendor_credit', label: 'Vendor credits' },
+  { key: 'payment_made', label: 'Payments made' },
+  { key: 'expense', label: 'Expenses' },
   { key: 'journal', label: 'Manual journals' },
 ];
 
 export default function NumberingSettings() {
   const { draft, update, dirty, saving, save, reset } = useCompanyDraft();
-  // Companies created before manual journals existed have no rule for them yet.
+  // Companies created before journals and purchases existed have no rule for them yet.
   const ruleFor = (key: NumberedEntity) => draft.numbering[key] ?? defaultNumbering()[key];
   const setRule = (key: NumberedEntity, patch: Partial<NumberingRule>) =>
     update({ numbering: { ...draft.numbering, [key]: { ...ruleFor(key), ...patch } } });

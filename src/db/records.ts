@@ -114,7 +114,7 @@ export async function saveClient(input: Client): Promise<Client> {
         'client',
         client.id,
         'created',
-        `Client ${client.name} added`,
+        `${client.isCustomer === false ? 'Vendor' : 'Client'} ${client.name} added`,
         {
           clientId: client.id,
         },
@@ -125,22 +125,29 @@ export async function saveClient(input: Client): Promise<Client> {
 }
 
 export async function clientHasRecords(id: ID): Promise<boolean> {
-  const [docs, payments, recurring] = await Promise.all([
+  const [docs, payments, recurring, expenses] = await Promise.all([
     db.documents.where('clientId').equals(id).count(),
     db.payments.where('clientId').equals(id).count(),
     db.recurring.where('clientId').equals(id).count(),
+    db.expenses.where('vendorId').equals(id).count(),
   ]);
-  return docs + payments + recurring > 0;
+  return docs + payments + recurring + expenses > 0;
 }
 
 export async function deleteClient(id: ID): Promise<void> {
   if (await clientHasRecords(id)) {
-    throw new Error('This client has invoices, quotes or payments. Archive the client instead.');
+    throw new Error('This contact has documents, payments or expenses. Archive it instead.');
   }
   const client = await db.clients.get(id);
   await db.clients.delete(id);
   if (client) {
-    await logActivity(client.companyId, 'client', id, 'deleted', `Client ${client.name} deleted`);
+    await logActivity(
+      client.companyId,
+      'client',
+      id,
+      'deleted',
+      `${client.isCustomer === false ? 'Vendor' : 'Client'} ${client.name} deleted`,
+    );
   }
 }
 

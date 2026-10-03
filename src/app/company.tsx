@@ -82,10 +82,14 @@ export const DOCUMENT_ROUTES: Record<DocumentType, string> = {
   invoice: '/invoices',
   quote: '/quotes',
   credit: '/credits',
+  bill: '/bills',
+  vendor_credit: '/vendor-credits',
 };
 
 export const DOCUMENT_LABELS: Record<DocumentType, { singular: string; plural: string }> = {
   invoice: { singular: 'Invoice', plural: 'Invoices' },
   quote: { singular: 'Quote', plural: 'Quotes' },
   credit: { singular: 'Credit note', plural: 'Credit notes' },
+  bill: { singular: 'Bill', plural: 'Bills' },
+  vendor_credit: { singular: 'Vendor credit', plural: 'Vendor credits' },
 };

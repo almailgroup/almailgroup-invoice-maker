@@ -1,7 +1,7 @@
 # AlmailBooks
 
-Invoices, quotes, payments and reports for your business, with modern
-professional templates. Built by AL Mail Group. The whole app runs in the
+Invoices, bills, expenses, accounting and reports for your business, with
+modern professional templates. Built by AL Mail Group. The whole app runs in the
 browser and is hosted free on GitHub Pages: there is no server, no account and
 no monthly fee. Your records stay on your own computer.
 
@@ -29,22 +29,28 @@ no monthly fee. Your records stay on your own computer.
 - **Clients and products.** Clients have contacts, billing and shipping
   addresses, their own currency, language, payment terms and tax exemption.
   The product and service catalogue autocompletes in the editor.
+- **Purchases.** Record vendors' bills line by line against expense or asset
+  accounts, attach a photo or PDF of the bill, pay them in full or in part
+  (from the bank, cash or a company card) and apply vendor credits. Expenses
+  paid on the spot are recorded with a photo of the receipt. A contact can be
+  both a client and a vendor.
 - **Numbering** with patterns like `INV-{year}-{counter}`, with a yearly or
-  monthly reset.
+  monthly reset, for every kind of document.
 - **Languages for documents:** English, French, Spanish, German, Portuguese,
   Italian and Dutch. You can also replace any wording (for example "Tax
   Invoice").
 - **Email:** opens your email program with a ready-made message and downloads
   the PDF to attach. You can send reminders the same way.
 - **Double-entry accounting:** a chart of accounts (UK, UAE or general
-  templates), automatic journal entries for every invoice, credit note and
-  payment, manual journals, exchange gains and losses on foreign-currency
-  payments, a financial year setting and a lock date for closed periods.
+  templates), automatic journal entries for every invoice, credit note, bill,
+  vendor credit, payment and expense, manual journals, exchange gains and
+  losses on foreign-currency payments, a financial year setting and a lock
+  date for closed periods.
 - **Financial statements:** profit and loss, balance sheet, trial balance and
   general ledger, with drill-down from any account to its transactions.
-- **Dashboard and sales reports:** outstanding and overdue amounts,
-  receivables aging, tax summary, sales by client and payments received, with
-  CSV export.
+- **Dashboard and reports:** what clients owe you and what you owe vendors,
+  overdue amounts, receivables and payables aging, tax summary, sales by
+  client, purchases by vendor, payments received and made, with CSV export.
 - **Several companies** in one app, each with its own branding and numbering.
 - **Works offline** and can be installed like a desktop or phone app.
 - **Backup and restore** to a single file.

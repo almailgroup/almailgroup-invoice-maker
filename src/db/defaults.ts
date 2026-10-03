@@ -30,8 +30,12 @@ export function defaultNumbering(): Record<NumberedEntity, NumberingRule> {
     quote: rule('QUO-{year}-{counter}'),
     credit: rule('CN-{year}-{counter}'),
     payment: rule('PAY-{counter}'),
+    payment_made: rule('PM-{counter}'),
     client: rule('C-{counter}'),
     journal: rule('JE-{year}-{counter}'),
+    bill: rule('BILL-{year}-{counter}'),
+    vendor_credit: rule('VC-{year}-{counter}'),
+    expense: rule('EXP-{year}-{counter}'),
   };
 }
 

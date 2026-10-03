@@ -1,4 +1,4 @@
-import type { Client, Company, DocumentType, InvoiceDocument, LineItem } from '@/db/types';
+import type { Client, Company, InvoiceDocument, LineItem, SalesDocumentType } from '@/db/types';
 import { createClient, createCompany, createDocument } from '@/db/defaults';
 import { addDaysISO, today } from '@/lib/dates';
 import { shortId } from '@/lib/ids';
@@ -132,7 +132,7 @@ export function sampleItems(): LineItem[] {
 export function sampleDocument(
   company: Company,
   client: Client,
-  type: DocumentType = 'invoice',
+  type: SalesDocumentType = 'invoice',
   overrides: Partial<InvoiceDocument> = {},
 ): InvoiceDocument {
   const issue = today();

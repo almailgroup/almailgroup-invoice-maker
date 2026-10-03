@@ -9,6 +9,8 @@ import {
   Clock,
   FileText,
   Plus,
+  Receipt,
+  TrendingDown,
   Wallet,
   X,
 } from 'lucide-react';
@@ -18,6 +20,7 @@ import { useCompany, useFormat } from '@/app/company';
 import { displayStatus } from '@/lib/status';
 import { daysBetween, today } from '@/lib/dates';
 import { paymentMethodLabel } from '@/db/payments';
+import { isCustomer } from '@/db/purchases';
 import { ButtonLink } from '@/components/ui/button';
 import {
   Card,
@@ -82,6 +85,10 @@ export default function DashboardPage() {
     () => db.clients.where('companyId').equals(company.id).toArray(),
     [company.id],
   );
+  const expenses = useLiveQuery(
+    () => db.expenses.where('companyId').equals(company.id).toArray(),
+    [company.id],
+  );
   const taxRateCount = useLiveQuery(
     () => db.taxRates.where('companyId').equals(company.id).count(),
     [company.id],
@@ -99,7 +106,7 @@ export default function DashboardPage() {
   const [checklistDismissed, dismissChecklist] = useDismissed(`checklist-dismissed:${company.id}`);
 
   const data = useMemo(() => {
-    if (!docs || !payments || !clients) return null;
+    if (!docs || !payments || !clients || !expenses) return null;
     const clientsById = new Map<string, Client>(clients.map((c) => [c.id, c]));
     const base = company.currency;
     const invoices = docs.filter((d) => d.type === 'invoice');
@@ -118,8 +125,31 @@ export default function DashboardPage() {
         otherCurrencies.set(d.currency, (otherCurrencies.get(d.currency) ?? 0) + d.totals.balance);
     }
 
-    const cash = payments.filter((p) => p.method !== 'credit_note' && p.currency === base);
+    const received = payments.filter((p) => p.direction !== 'out');
+    const cash = received.filter((p) => p.method !== 'credit_note' && p.currency === base);
     const month = now.slice(0, 7);
+
+    // Purchases: what is owed to vendors and what went out this month.
+    const openBills = docs.filter(
+      (d) => d.type === 'bill' && (d.status === 'sent' || d.status === 'partial'),
+    );
+    const billsOverdue = openBills
+      .filter((d) => displayStatus(d, now) === 'overdue')
+      .map((d) => ({ doc: d, days: d.dueDate ? daysBetween(d.dueDate, now) : 0 }))
+      .sort((a, b) => b.days - a.days);
+    const spentThisMonth =
+      payments
+        .filter(
+          (p) =>
+            p.direction === 'out' &&
+            p.method !== 'credit_note' &&
+            p.currency === base &&
+            p.date.startsWith(month),
+        )
+        .reduce((s, p) => s + p.amount, 0) +
+      expenses
+        .filter((e) => e.currency === base && e.date.startsWith(month))
+        .reduce((s, e) => s + e.amount, 0);
     const year = now.slice(0, 4);
     const issued = invoices.filter((d) => d.status !== 'draft' && d.status !== 'void');
 
@@ -163,15 +193,19 @@ export default function DashboardPage() {
       recentInvoices: [...invoices]
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
         .slice(0, 5),
-      recentPayments: [...payments]
+      recentPayments: [...received]
         .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))
         .slice(0, 5),
       quotesWaiting,
+      billsToPay: sum(openBills, (d) => d.totals.balance),
+      openBillCount: openBills.filter((d) => d.currency === base).length,
+      billsOverdue,
+      spentThisMonth,
       chart: { labels, invoiced: invoicedByMonth, collected: collectedByMonth },
-      hasClients: clients.length > 0,
+      hasClients: clients.some(isCustomer),
       hasInvoices: invoices.length > 0,
     };
-  }, [docs, payments, clients, company.currency, fmt.locale, now]);
+  }, [docs, payments, clients, expenses, company.currency, fmt.locale, now]);
 
   if (!data) return <Spinner className="py-24" label="Loading…" />;
 
@@ -254,7 +288,7 @@ export default function DashboardPage() {
         </Card>
       ) : null}
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Stat
           label="Outstanding"
           value={fmt.money(data.outstanding)}
@@ -289,6 +323,20 @@ export default function DashboardPage() {
               : 'Excludes drafts'
           }
           icon={<FileText />}
+        />
+        <Stat
+          label="Bills to pay"
+          value={fmt.money(data.billsToPay)}
+          hint={`${data.openBillCount} open ${data.openBillCount === 1 ? 'bill' : 'bills'}${
+            data.billsOverdue.length ? ` · ${data.billsOverdue.length} overdue` : ''
+          }`}
+          icon={<Receipt />}
+        />
+        <Stat
+          label="Spent this month"
+          value={fmt.money(data.spentThisMonth)}
+          hint="Bills paid and expenses"
+          icon={<TrendingDown />}
         />
       </div>
 
@@ -337,11 +385,13 @@ export default function DashboardPage() {
             }
           />
           <CardBody className="py-2">
-            {data.overdue.length === 0 && data.quotesWaiting.length === 0 ? (
+            {data.overdue.length === 0 &&
+            data.quotesWaiting.length === 0 &&
+            data.billsOverdue.length === 0 ? (
               <div className="flex flex-col items-center py-8 text-center">
                 <CheckCircle2 className="size-8 text-emerald-500" />
                 <p className="mt-2 text-sm font-medium text-slate-700">All caught up</p>
-                <p className="text-sm text-slate-500">No overdue invoices.</p>
+                <p className="text-sm text-slate-500">No overdue invoices or bills.</p>
               </div>
             ) : (
               <ul className="divide-y divide-slate-100">
@@ -357,6 +407,27 @@ export default function DashboardPage() {
                         </span>
                         <span className="text-xs text-red-600">
                           {doc.number} · {days} {days === 1 ? 'day' : 'days'} overdue
+                        </span>
+                      </span>
+                      <span className="tabular shrink-0 text-sm font-semibold text-slate-900">
+                        {fmt.money(doc.totals.balance, doc.currency)}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+                {data.billsOverdue.slice(0, 3).map(({ doc, days }) => (
+                  <li key={doc.id}>
+                    <Link
+                      to={`/bills/${doc.id}`}
+                      className="flex items-center justify-between gap-3 py-2.5"
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-medium text-slate-800">
+                          {data.clientsById.get(doc.clientId)?.name ?? '—'}
+                        </span>
+                        <span className="flex items-center gap-1 text-xs text-amber-700">
+                          <Receipt className="size-3" /> Bill {doc.number} · {days}{' '}
+                          {days === 1 ? 'day' : 'days'} overdue
                         </span>
                       </span>
                       <span className="tabular shrink-0 text-sm font-semibold text-slate-900">

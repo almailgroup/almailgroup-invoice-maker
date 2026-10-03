@@ -1,4 +1,4 @@
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, Navigate, useNavigate, useParams } from 'react-router';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Mail, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -10,6 +10,12 @@ import { fillTemplate, mailtoLink } from '@/lib/email';
 import { Button } from '@/components/ui/button';
 import { Card, CardBody, CardHeader, Spinner } from '@/components/ui/misc';
 import { useConfirm } from '@/components/ui/overlay';
+import { useAccounts } from '@/features/accounting/account-pickers';
+import {
+  PAYMENT_COPY,
+  paymentDirection,
+  type PaymentDirection,
+} from '@/features/payments/direction';
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -20,7 +26,8 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-export default function PaymentDetailPage() {
+export default function PaymentDetailPage({ direction = 'in' }: { direction?: PaymentDirection }) {
+  const copy = PAYMENT_COPY[direction];
   const { id = '' } = useParams();
   const navigate = useNavigate();
   const company = useCompany();
@@ -37,35 +44,47 @@ export default function PaymentDetailPage() {
     const ids = [...payment.documentIds, ...(payment.creditId ? [payment.creditId] : [])];
     return (await db.documents.bulkGet(ids)).filter((d): d is InvoiceDocument => Boolean(d));
   }, [payment]);
+  const accounts = useAccounts();
 
   if (payment === undefined || client === undefined || !docs)
     return <Spinner className="py-24" label="Loading…" />;
+  if (payment && payment.companyId === company.id && paymentDirection(payment) !== direction) {
+    // Links that only know "a payment" (the general ledger) land on the right page.
+    return (
+      <Navigate to={`${PAYMENT_COPY[paymentDirection(payment)].base}/${payment.id}`} replace />
+    );
+  }
   if (!payment || payment.companyId !== company.id) {
     return (
       <Card className="p-10 text-center">
         <p className="text-slate-600">This payment could not be found.</p>
-        <Link to="/payments" className="text-primary-700 mt-4 inline-block text-sm font-medium">
-          Back to payments
+        <Link to={copy.base} className="text-primary-700 mt-4 inline-block text-sm font-medium">
+          Back to {copy.title.toLowerCase()}
         </Link>
       </Card>
     );
   }
 
   const money = (n: number) => fmt.money(n, payment.currency);
+  // Same choice as the ledger: the account picked, else bank (or cash for cash payments).
+  const account =
+    accounts?.find((a) => a.id === payment.accountId) ??
+    accounts?.find((a) => a.role === (payment.method === 'cash' ? 'cash' : 'bank')) ??
+    accounts?.find((a) => a.role === 'bank');
   const credit = payment.creditId ? docs.find((d) => d.id === payment.creditId) : null;
   const unapplied = unappliedAmount(payment);
 
   const remove = async () => {
     const ok = await confirm({
       title: `Delete payment ${payment.number}?`,
-      description: 'Invoices it was applied to will show the amount as unpaid again.',
+      description: `${direction === 'out' ? 'Bills' : 'Invoices'} it was applied to will show the amount as unpaid again.`,
       confirmLabel: 'Delete',
       danger: true,
     });
     if (!ok) return;
     await deletePayment(payment.id);
     toast.success('Payment deleted');
-    navigate('/payments');
+    navigate(copy.base);
   };
 
   const contact = client?.contacts.find((c) => c.primary) ?? client?.contacts[0];
@@ -96,32 +115,34 @@ export default function PaymentDetailPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="mb-1 text-sm text-slate-500">
-            <Link to="/payments" className="hover:text-slate-700">
-              Payments
+            <Link to={copy.base} className="hover:text-slate-700">
+              {copy.title}
             </Link>
           </p>
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
             Payment {payment.number}
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            {money(payment.amount)} from{' '}
+            {money(payment.amount)} {copy.preposition}{' '}
             {client ? (
               <Link
-                to={`/clients/${client.id}`}
+                to={`${copy.contactBase}/${client.id}`}
                 className="hover:text-primary-700 font-medium text-slate-700"
               >
                 {client.name}
               </Link>
             ) : (
-              'unknown client'
+              `unknown ${copy.party.toLowerCase()}`
             )}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={receipt}>
-            <Mail /> Email receipt
-          </Button>
-          <Button variant="outline" onClick={() => navigate(`/payments/${payment.id}/edit`)}>
+          {direction === 'in' ? (
+            <Button variant="outline" onClick={receipt}>
+              <Mail /> Email receipt
+            </Button>
+          ) : null}
+          <Button variant="outline" onClick={() => navigate(`${copy.base}/${payment.id}/edit`)}>
             <Pencil /> Edit
           </Button>
           <Button variant="outline" onClick={() => void remove()}>
@@ -140,13 +161,16 @@ export default function PaymentDetailPage() {
             />
             <Row label="Date" value={fmt.date(payment.date)} />
             <Row label="Method" value={paymentMethodLabel(payment.method)} />
+            {payment.method !== 'credit_note' ? (
+              <Row label={copy.account} value={account ? `${account.code} ${account.name}` : '—'} />
+            ) : null}
             {payment.reference ? <Row label="Reference" value={payment.reference} /> : null}
             {credit ? (
               <Row
-                label="Credit note"
+                label={direction === 'out' ? 'Vendor credit' : 'Credit note'}
                 value={
                   <Link
-                    to={`/credits/${credit.id}`}
+                    to={`${direction === 'out' ? '/vendor-credits' : '/credits'}/${credit.id}`}
                     className="text-primary-700 font-medium hover:underline"
                   >
                     {credit.number}
@@ -156,7 +180,7 @@ export default function PaymentDetailPage() {
             ) : null}
             {unapplied > 0 ? (
               <Row
-                label="Unapplied (client credit)"
+                label={`Unapplied (${copy.unapplied})`}
                 value={<span className="tabular text-amber-700">{money(unapplied)}</span>}
               />
             ) : null}
@@ -172,7 +196,7 @@ export default function PaymentDetailPage() {
           <CardHeader title="Applied to" />
           <CardBody className="py-2">
             {payment.allocations.length === 0 ? (
-              <p className="py-4 text-sm text-slate-500">Not applied to any invoice.</p>
+              <p className="py-4 text-sm text-slate-500">Not applied to any {copy.doc}.</p>
             ) : (
               <ul className="divide-y divide-slate-100">
                 {payment.allocations.map((a) => {
@@ -190,7 +214,7 @@ export default function PaymentDetailPage() {
                           {doc.number}
                         </Link>
                       ) : (
-                        <span className="text-slate-400">Deleted invoice</span>
+                        <span className="text-slate-400">Deleted {copy.doc}</span>
                       )}
                       <span className="tabular font-medium">{money(a.amount)}</span>
                     </li>

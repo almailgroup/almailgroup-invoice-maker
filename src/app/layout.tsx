@@ -2,10 +2,11 @@ import { Suspense, useEffect, useState, type ReactNode } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import {
+  ArrowDownLeft,
+  ArrowUpRight,
   BarChart3,
   Building2,
   ChevronsUpDown,
-  CreditCard,
   FileMinus,
   FileText,
   LayoutDashboard,
@@ -15,10 +16,14 @@ import {
   Package,
   Palette,
   Plus,
+  Receipt,
+  ReceiptText,
   Repeat,
   ScrollText,
   Settings,
+  Truck,
   Users,
+  Wallet,
   X,
   Check,
 } from 'lucide-react';
@@ -46,22 +51,31 @@ interface NavItem {
 }
 
 const NAV: { title?: string; items: NavItem[] }[] = [
-  { items: [{ to: '/', label: 'Dashboard', icon: <LayoutDashboard />, end: true }] },
+  {
+    items: [
+      { to: '/', label: 'Dashboard', icon: <LayoutDashboard />, end: true },
+      { to: '/products', label: 'Products & services', icon: <Package /> },
+    ],
+  },
   {
     title: 'Sales',
     items: [
+      { to: '/clients', label: 'Clients', icon: <Users /> },
       { to: '/invoices', label: 'Invoices', icon: <FileText /> },
       { to: '/quotes', label: 'Quotes', icon: <ScrollText /> },
       { to: '/credits', label: 'Credit notes', icon: <FileMinus /> },
       { to: '/recurring', label: 'Recurring', icon: <Repeat /> },
-      { to: '/payments', label: 'Payments', icon: <CreditCard /> },
+      { to: '/payments', label: 'Payments received', icon: <ArrowDownLeft /> },
     ],
   },
   {
-    title: 'Catalog',
+    title: 'Purchases',
     items: [
-      { to: '/clients', label: 'Clients', icon: <Users /> },
-      { to: '/products', label: 'Products & services', icon: <Package /> },
+      { to: '/vendors', label: 'Vendors', icon: <Truck /> },
+      { to: '/bills', label: 'Bills', icon: <Receipt /> },
+      { to: '/expenses', label: 'Expenses', icon: <Wallet /> },
+      { to: '/payments-made', label: 'Payments made', icon: <ArrowUpRight /> },
+      { to: '/vendor-credits', label: 'Vendor credits', icon: <ReceiptText /> },
     ],
   },
   {
@@ -228,7 +242,8 @@ function NewMenu() {
           <Plus /> New
         </Button>
       </DropdownTrigger>
-      <DropdownContent>
+      <DropdownContent className="w-56">
+        <DropdownLabel>Sales</DropdownLabel>
         <DropdownItem icon={<FileText />} onSelect={() => navigate('/invoices/new')}>
           Invoice
         </DropdownItem>
@@ -241,12 +256,26 @@ function NewMenu() {
         <DropdownItem icon={<Repeat />} onSelect={() => navigate('/recurring/new')}>
           Recurring invoice
         </DropdownItem>
-        <DropdownItem icon={<CreditCard />} onSelect={() => navigate('/payments/new')}>
-          Payment
+        <DropdownItem icon={<ArrowDownLeft />} onSelect={() => navigate('/payments/new')}>
+          Payment received
+        </DropdownItem>
+        <DropdownSeparator />
+        <DropdownLabel>Purchases</DropdownLabel>
+        <DropdownItem icon={<Receipt />} onSelect={() => navigate('/bills/new')}>
+          Bill
+        </DropdownItem>
+        <DropdownItem icon={<Wallet />} onSelect={() => navigate('/expenses?new=1')}>
+          Expense
+        </DropdownItem>
+        <DropdownItem icon={<ArrowUpRight />} onSelect={() => navigate('/payments-made/new')}>
+          Payment made
         </DropdownItem>
         <DropdownSeparator />
         <DropdownItem icon={<Users />} onSelect={() => navigate('/clients/new')}>
           Client
+        </DropdownItem>
+        <DropdownItem icon={<Truck />} onSelect={() => navigate('/vendors/new')}>
+          Vendor
         </DropdownItem>
         <DropdownItem icon={<Package />} onSelect={() => navigate('/products?new=1')}>
           Product or service

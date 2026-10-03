@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox, Field, Input, Textarea } from '@/components/ui/form';
 import { Dialog, DialogBody, DialogContent, DialogFooter } from '@/components/ui/overlay';
 import { downloadBlob } from '@/pdf/client';
+import { salesType } from '@/lib/document-types';
 
 export type EmailKind = 'document' | 'reminder';
 
@@ -49,7 +50,9 @@ export function SendDialog({
   fileName: string;
 }) {
   const template =
-    kind === 'reminder' ? company.emailTemplates.reminder : company.emailTemplates[doc.type];
+    kind === 'reminder'
+      ? company.emailTemplates.reminder
+      : company.emailTemplates[salesType(doc.type)];
   const values = useMemo(() => emailValues(doc, company, client), [doc, company, client]);
   const contacts = (client?.contacts ?? []).filter((c) => c.email);
   const [to, setTo] = useState(

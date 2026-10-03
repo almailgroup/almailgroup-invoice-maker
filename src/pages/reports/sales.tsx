@@ -22,7 +22,48 @@ import { Card, Spinner } from '@/components/ui/misc';
 import { Input, Select } from '@/components/ui/form';
 import { CurrencySelect } from '@/components/fields';
 
-export type SalesReportId = 'aging' | 'tax' | 'sales' | 'payments';
+export type SalesReportId =
+  'aging' | 'tax' | 'sales' | 'payments' | 'payables' | 'purchases' | 'payments-made';
+
+/** Purchase reports are the sales ones seen from the other side. */
+const KIND: Record<SalesReportId, 'aging' | 'tax' | 'sales' | 'payments'> = {
+  aging: 'aging',
+  tax: 'tax',
+  sales: 'sales',
+  payments: 'payments',
+  payables: 'aging',
+  purchases: 'sales',
+  'payments-made': 'payments',
+};
+
+const WORDS = {
+  in: {
+    party: 'Client',
+    partyBase: '/clients',
+    doc: 'invoice',
+    docs: 'invoices',
+    Docs: 'Invoices',
+    amount: 'Invoiced',
+    paymentsBase: '/payments',
+    moved: 'Received',
+    agingFile: 'receivables-aging',
+    byPartyFile: 'sales-by-client',
+    paymentsFile: 'payments-received',
+  },
+  out: {
+    party: 'Vendor',
+    partyBase: '/vendors',
+    doc: 'bill',
+    docs: 'bills',
+    Docs: 'Bills',
+    amount: 'Billed',
+    paymentsBase: '/payments-made',
+    moved: 'Paid',
+    agingFile: 'payables-aging',
+    byPartyFile: 'purchases-by-vendor',
+    paymentsFile: 'payments-made',
+  },
+};
 
 function Th({ children, right }: { children: React.ReactNode; right?: boolean }) {
   return (
@@ -52,8 +93,11 @@ function Td({
   );
 }
 
-/** Receivables aging, tax summary, sales by client and payments received. */
+/** Aging, totals per contact and payments, for sales or purchases; and the tax summary. */
 export function SalesReports({ report }: { report: SalesReportId }) {
+  const kind = KIND[report];
+  const out = report === 'payables' || report === 'purchases' || report === 'payments-made';
+  const words = WORDS[out ? 'out' : 'in'];
   const company = useCompany();
   const fmt = useFormat();
   const [preset, setPreset] = useState<RangePreset | 'custom'>('this-quarter');
@@ -76,13 +120,14 @@ export function SalesReports({ report }: { report: SalesReportId }) {
   const range = preset === 'custom' ? custom : presetRange(preset, today());
   const data = useMemo(() => {
     if (!docs || !clients || !payments) return null;
+    const docType = out ? 'bill' : 'invoice';
     return {
-      aging: agingReport(docs, clients, currency, today()),
+      aging: agingReport(docs, clients, currency, today(), docType),
       tax: taxReport(docs, clients, currency, range),
-      sales: salesByClient(docs, clients, currency, range),
-      payments: paymentsReport(payments, currency, range),
+      sales: salesByClient(docs, clients, currency, range, docType),
+      payments: paymentsReport(payments, currency, range, out ? 'out' : 'in'),
     };
-  }, [docs, clients, payments, currency, range]);
+  }, [docs, clients, payments, currency, range, out]);
 
   if (!data) return <Spinner className="py-24" label="Loading…" />;
   const money = (n: number) => fmt.money(n, currency);
@@ -91,16 +136,16 @@ export function SalesReports({ report }: { report: SalesReportId }) {
   const stamp = `${range.from}_${range.to}`.replace(/0000-01-01_9999-12-31/, 'all');
 
   const exportCurrent = () => {
-    if (report === 'aging') {
+    if (kind === 'aging') {
       downloadCsv(
-        `aging-${today()}`,
-        ['Client', ...AGING_BUCKETS, 'Total'],
+        `${words.agingFile}-${today()}`,
+        [words.party, ...AGING_BUCKETS, 'Total'],
         [
           ...data.aging.rows.map((r) => [r.clientName, ...r.buckets, r.total]),
           ['Total', ...data.aging.totals, data.aging.total],
         ],
       );
-    } else if (report === 'tax') {
+    } else if (kind === 'tax') {
       downloadCsv(
         `tax-summary-${stamp}`,
         ['Tax', 'Rate %', 'Taxable amount', 'Tax amount'],
@@ -109,10 +154,10 @@ export function SalesReports({ report }: { report: SalesReportId }) {
           ['Total', '', data.tax.net, data.tax.tax],
         ],
       );
-    } else if (report === 'sales') {
+    } else if (kind === 'sales') {
       downloadCsv(
-        `sales-by-client-${stamp}`,
-        ['Client', 'Invoices', 'Invoiced', 'Paid', 'Outstanding'],
+        `${words.byPartyFile}-${stamp}`,
+        [words.party, words.Docs, words.amount, 'Paid', 'Outstanding'],
         [
           ...data.sales.rows.map((r) => [
             r.clientName,
@@ -132,7 +177,7 @@ export function SalesReports({ report }: { report: SalesReportId }) {
       );
     } else {
       downloadCsv(
-        `payments-${stamp}`,
+        `${words.paymentsFile}-${stamp}`,
         ['Date', 'Number', 'Method', 'Reference', 'Amount'],
         data.payments.list.map((p) => [
           p.date,
@@ -151,7 +196,7 @@ export function SalesReports({ report }: { report: SalesReportId }) {
     <div>
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap items-center gap-2">
-          {report !== 'aging' ? (
+          {kind !== 'aging' ? (
             <>
               <div className="w-40">
                 <Select
@@ -200,10 +245,10 @@ export function SalesReports({ report }: { report: SalesReportId }) {
         </Button>
       </div>
 
-      {report === 'aging' ? (
+      {kind === 'aging' ? (
         <Card className="overflow-hidden">
           <div className="border-b border-slate-100 px-4 py-3 text-sm text-slate-500">
-            Unpaid invoices by how late they are, as of {fmt.date(today())}.
+            Unpaid {words.docs} by how late they are, as of {fmt.date(today())}.
           </div>
           {data.aging.rows.length === 0 ? (
             <p className="px-6 py-12 text-center text-sm text-slate-500">
@@ -214,7 +259,7 @@ export function SalesReports({ report }: { report: SalesReportId }) {
               <table className="w-full text-sm">
                 <thead className="border-b border-slate-100">
                   <tr>
-                    <Th>Client</Th>
+                    <Th>{words.party}</Th>
                     {AGING_BUCKETS.map((b) => (
                       <Th key={b} right>
                         {b}
@@ -228,7 +273,7 @@ export function SalesReports({ report }: { report: SalesReportId }) {
                     <tr key={r.clientId}>
                       <Td>
                         <Link
-                          to={`/clients/${r.clientId}`}
+                          to={`${words.partyBase}/${r.clientId}`}
                           className="hover:text-primary-700 font-medium text-slate-900"
                         >
                           {r.clientName}
@@ -270,7 +315,7 @@ export function SalesReports({ report }: { report: SalesReportId }) {
         </Card>
       ) : null}
 
-      {report === 'tax' ? (
+      {kind === 'tax' ? (
         <div className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-3">
             <Card className="p-5">
@@ -325,23 +370,23 @@ export function SalesReports({ report }: { report: SalesReportId }) {
         </div>
       ) : null}
 
-      {report === 'sales' ? (
+      {kind === 'sales' ? (
         <Card className="overflow-hidden">
           <div className="border-b border-slate-100 px-4 py-3 text-sm text-slate-500">
-            Invoices issued {rangeLabel}.
+            {out ? `Bills received ${rangeLabel}.` : `Invoices issued ${rangeLabel}.`}
           </div>
           {data.sales.rows.length === 0 ? (
             <p className="px-6 py-12 text-center text-sm text-slate-500">
-              No invoices in this period.
+              No {words.docs} in this period.
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="border-b border-slate-100">
                   <tr>
-                    <Th>Client</Th>
-                    <Th right>Invoices</Th>
-                    <Th right>Invoiced</Th>
+                    <Th>{words.party}</Th>
+                    <Th right>{words.Docs}</Th>
+                    <Th right>{words.amount}</Th>
                     <Th right>Paid</Th>
                     <Th right>Outstanding</Th>
                   </tr>
@@ -351,7 +396,7 @@ export function SalesReports({ report }: { report: SalesReportId }) {
                     <tr key={r.clientId}>
                       <Td>
                         <Link
-                          to={`/clients/${r.clientId}`}
+                          to={`${words.partyBase}/${r.clientId}`}
                           className="hover:text-primary-700 font-medium text-slate-900"
                         >
                           {r.clientName}
@@ -389,10 +434,12 @@ export function SalesReports({ report }: { report: SalesReportId }) {
         </Card>
       ) : null}
 
-      {report === 'payments' ? (
+      {kind === 'payments' ? (
         <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
           <Card className="h-fit p-5">
-            <p className="text-sm text-slate-500">Received {rangeLabel}</p>
+            <p className="text-sm text-slate-500">
+              {words.moved} {rangeLabel}
+            </p>
             <p className="mt-1 text-2xl font-semibold text-slate-900">
               {money(data.payments.total)}
             </p>
@@ -417,7 +464,7 @@ export function SalesReports({ report }: { report: SalesReportId }) {
                     <tr>
                       <Th>Date</Th>
                       <Th>Payment</Th>
-                      <Th>Client</Th>
+                      <Th>{words.party}</Th>
                       <Th>Method</Th>
                       <Th right>Amount</Th>
                     </tr>
@@ -428,7 +475,7 @@ export function SalesReports({ report }: { report: SalesReportId }) {
                         <Td>{fmt.date(p.date)}</Td>
                         <Td>
                           <Link
-                            to={`/payments/${p.id}`}
+                            to={`${words.paymentsBase}/${p.id}`}
                             className="hover:text-primary-700 font-medium text-slate-900"
                           >
                             {p.number}

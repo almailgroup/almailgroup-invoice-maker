@@ -1,6 +1,6 @@
 import type { DocumentStatus, DocumentType, InvoiceDocument, ISODate } from '@/db/types';
 
-export type DisplayStatus = DocumentStatus | 'overdue' | 'expired';
+export type DisplayStatus = DocumentStatus | 'overdue' | 'expired' | 'open';
 
 export type StatusTone = 'gray' | 'blue' | 'amber' | 'green' | 'red' | 'violet' | 'slate';
 
@@ -16,12 +16,15 @@ export const STATUS_META: Record<DisplayStatus, { label: string; tone: StatusTon
   invoiced: { label: 'Invoiced', tone: 'violet' },
   expired: { label: 'Expired', tone: 'amber' },
   applied: { label: 'Applied', tone: 'green' },
+  open: { label: 'Open', tone: 'blue' },
 };
 
 export const STATUSES_BY_TYPE: Record<DocumentType, DocumentStatus[]> = {
   invoice: ['draft', 'sent', 'partial', 'paid', 'void'],
   quote: ['draft', 'sent', 'accepted', 'declined', 'invoiced'],
   credit: ['draft', 'sent', 'partial', 'applied', 'void'],
+  bill: ['draft', 'sent', 'partial', 'paid', 'void'],
+  vendor_credit: ['draft', 'sent', 'partial', 'applied', 'void'],
 };
 
 type StatusInput = Pick<InvoiceDocument, 'type' | 'status' | 'dueDate'> & {
@@ -31,7 +34,7 @@ type StatusInput = Pick<InvoiceDocument, 'type' | 'status' | 'dueDate'> & {
 /** Status shown to the user; adds the time-based "overdue" and "expired" states. */
 export function displayStatus(doc: StatusInput, todayIso: ISODate): DisplayStatus {
   if (
-    doc.type === 'invoice' &&
+    (doc.type === 'invoice' || doc.type === 'bill') &&
     (doc.status === 'sent' || doc.status === 'partial') &&
     doc.dueDate &&
     doc.dueDate < todayIso &&
@@ -42,6 +45,8 @@ export function displayStatus(doc: StatusInput, todayIso: ISODate): DisplayStatu
   if (doc.type === 'quote' && doc.status === 'sent' && doc.dueDate && doc.dueDate < todayIso) {
     return 'expired';
   }
+  // Bills and vendor credits are "open" rather than "sent".
+  if ((doc.type === 'bill' || doc.type === 'vendor_credit') && doc.status === 'sent') return 'open';
   return doc.status;
 }
 
@@ -53,7 +58,7 @@ export function settledStatus(
 ): DocumentStatus {
   if (doc.type === 'quote' || doc.status === 'void') return doc.status;
   const balance = total - paid;
-  const done = doc.type === 'credit' ? 'applied' : 'paid';
+  const done = doc.type === 'credit' || doc.type === 'vendor_credit' ? 'applied' : 'paid';
   if (paid !== 0 && balance < 1e-9) return done;
   if (paid !== 0) return 'partial';
   return doc.status === 'draft' ? 'draft' : 'sent';

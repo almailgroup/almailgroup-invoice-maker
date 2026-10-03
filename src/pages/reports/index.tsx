@@ -29,9 +29,25 @@ const GROUPS = [
       { id: 'payments', label: 'Payments received' },
     ],
   },
+  {
+    title: 'Purchases',
+    items: [
+      { id: 'payables', label: 'Payables aging' },
+      { id: 'purchases', label: 'Purchases by vendor' },
+      { id: 'payments-made', label: 'Payments made' },
+    ],
+  },
 ];
 
-const SALES: SalesReportId[] = ['aging', 'tax', 'sales', 'payments'];
+const SALES: SalesReportId[] = [
+  'aging',
+  'tax',
+  'sales',
+  'payments',
+  'payables',
+  'purchases',
+  'payments-made',
+];
 
 export default function ReportsPage() {
   const { report = 'profit-and-loss' } = useParams();
@@ -43,7 +59,7 @@ export default function ReportsPage() {
     <div>
       <PageHeader
         title="Reports"
-        description="Financial statements and sales reports, from your own books."
+        description="Financial statements, sales and purchases, from your own books."
       />
       <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
         <nav aria-label="Reports" className="hidden lg:block">

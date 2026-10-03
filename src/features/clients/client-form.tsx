@@ -7,39 +7,49 @@ import { LANGUAGES } from '@/pdf/labels';
 import { Button } from '@/components/ui/button';
 import { Field, Input, NumberInput, Select, Switch, Textarea } from '@/components/ui/form';
 import { AddressFields, CurrencySelect } from '@/components/fields';
+import { isCustomer, isVendor } from '@/db/purchases';
+import type { ContactKind } from './contact-kind';
 
 export function newContact(primary = false): ClientContact {
   return { id: shortId(), name: '', email: '', phone: '', primary };
 }
 
-/** Client fields. `compact` hides the less common options (quick create). */
+/** Client or vendor fields. `compact` hides the less common options (quick create). */
 export function ClientForm({
   value,
   onChange,
   company,
   compact = false,
   errors = {},
+  kind = 'customer',
 }: {
   value: Client;
   onChange: (client: Client) => void;
   company: Company;
   compact?: boolean;
   errors?: Partial<Record<'name', string>>;
+  kind?: ContactKind;
 }) {
   const [showShipping, setShowShipping] = useState(!isAddressEmpty(value.shippingAddress));
   const set = (patch: Partial<Client>) => onChange({ ...value, ...patch });
   const contacts = value.contacts.length ? value.contacts : [newContact(true)];
   const setContact = (index: number, patch: Partial<ClientContact>) =>
     set({ contacts: contacts.map((c, i) => (i === index ? { ...c, ...patch } : c)) });
+  const customer = isCustomer(value);
+  const vendor = isVendor(value);
 
   return (
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2">
         <Field
-          label="Client name"
+          label={kind === 'vendor' ? 'Vendor name' : 'Client name'}
           className="sm:col-span-2"
           error={errors.name}
-          hint="Company or person you are billing."
+          hint={
+            kind === 'vendor'
+              ? 'Company or person you buy from.'
+              : 'Company or person you are billing.'
+          }
         >
           {(id) => (
             <Input
@@ -123,21 +133,25 @@ export function ClientForm({
       </section>
 
       <section className="space-y-3">
-        <h3 className="text-sm font-semibold text-slate-900">Billing address</h3>
+        <h3 className="text-sm font-semibold text-slate-900">
+          {customer ? 'Billing address' : 'Address'}
+        </h3>
         <AddressFields value={value.address} onChange={(address) => set({ address })} />
-        <Switch
-          checked={showShipping}
-          onChange={(on) => {
-            setShowShipping(on);
-            set({
-              shippingAddress: on
-                ? (value.shippingAddress ?? emptyAddress(value.address.country))
-                : null,
-            });
-          }}
-          label="Different shipping address"
-        />
-        {showShipping && value.shippingAddress ? (
+        {customer ? (
+          <Switch
+            checked={showShipping}
+            onChange={(on) => {
+              setShowShipping(on);
+              set({
+                shippingAddress: on
+                  ? (value.shippingAddress ?? emptyAddress(value.address.country))
+                  : null,
+              });
+            }}
+            label="Different shipping address"
+          />
+        ) : null}
+        {customer && showShipping && value.shippingAddress ? (
           <AddressFields
             value={value.shippingAddress}
             onChange={(shippingAddress) => set({ shippingAddress })}
@@ -219,30 +233,53 @@ export function ClientForm({
                 </div>
               )}
             </Field>
-            <Field label="Document language">
-              {(id) => (
-                <Select
-                  id={id}
-                  value={value.language ?? ''}
-                  onChange={(e) =>
-                    set({ language: (e.target.value || null) as Client['language'] })
-                  }
-                >
-                  <option value="">Company default</option>
-                  {LANGUAGES.map((l) => (
-                    <option key={l.value} value={l.value}>
-                      {l.label}
-                    </option>
-                  ))}
-                </Select>
-              )}
-            </Field>
+            {customer ? (
+              <Field label="Document language">
+                {(id) => (
+                  <Select
+                    id={id}
+                    value={value.language ?? ''}
+                    onChange={(e) =>
+                      set({ language: (e.target.value || null) as Client['language'] })
+                    }
+                  >
+                    <option value="">Company default</option>
+                    {LANGUAGES.map((l) => (
+                      <option key={l.value} value={l.value}>
+                        {l.label}
+                      </option>
+                    ))}
+                  </Select>
+                )}
+              </Field>
+            ) : null}
             <div className="sm:col-span-2">
               <Switch
                 checked={value.taxExempt}
                 onChange={(taxExempt) => set({ taxExempt })}
                 label="Tax exempt"
-                description="Taxes are never applied to this client's documents."
+                description={
+                  vendor && !customer
+                    ? 'Not registered for tax: their bills never include tax.'
+                    : 'Taxes are never applied to their documents.'
+                }
+              />
+            </div>
+            <div className="space-y-3 rounded-lg border border-slate-200 p-3 sm:col-span-2">
+              <Switch
+                checked={customer}
+                // A contact always keeps at least one role.
+                disabled={customer && !vendor}
+                onChange={(on) => set({ isCustomer: on })}
+                label="Client"
+                description="You send them quotes and invoices."
+              />
+              <Switch
+                checked={vendor}
+                disabled={vendor && !customer}
+                onChange={(on) => set({ isVendor: on })}
+                label="Vendor"
+                description="You record their bills and pay them."
               />
             </div>
             <Field label="Internal notes" className="sm:col-span-2" hint="Only visible to you.">

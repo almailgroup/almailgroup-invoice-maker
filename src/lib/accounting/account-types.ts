@@ -1,4 +1,4 @@
-import type { AccountType } from '@/db/types';
+import type { AccountRole, AccountType } from '@/db/types';
 
 export type AccountGroup = 'asset' | 'liability' | 'equity' | 'income' | 'expense';
 
@@ -85,6 +85,28 @@ export function isProfitAndLoss(type: AccountType): boolean {
 /** Accounts money is paid into or out of. */
 export function isMoneyAccount(type: AccountType): boolean {
   return type === 'asset_cash' || type === 'liability_credit_card';
+}
+
+/** Accounts the app manages itself; never a category for a purchase. */
+const NOT_A_CATEGORY = new Set<AccountRole>([
+  'receivable',
+  'payable',
+  'bank',
+  'cash',
+  'credit_card',
+  'output_tax',
+  'input_tax',
+  'tax_settlement',
+  'retained_earnings',
+  'opening_balance',
+]);
+
+/** Accounts a bill line or an expense can be booked to: costs and things bought. */
+export function isPurchaseCategory(account: { type: AccountType; role: AccountRole | null }) {
+  if (account.role && NOT_A_CATEGORY.has(account.role)) return false;
+  const group = accountGroup(account.type);
+  if (group === 'expense') return true;
+  return group === 'asset' && account.type !== 'asset_cash' && account.type !== 'asset_receivable';
 }
 
 /** Natural balance side, used to show balances as positive figures. */

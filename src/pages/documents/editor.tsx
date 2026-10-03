@@ -39,6 +39,7 @@ import { LineItemsEditor } from '@/features/editor/line-items';
 import { TotalsPanel } from '@/features/editor/totals-panel';
 import { ClientDialog } from '@/features/clients/client-dialog';
 import { useUnsavedGuard } from '@/hooks/use-unsaved-guard';
+import { isCustomer } from '@/db/purchases';
 
 const PAYMENT_TERMS = [0, 7, 14, 15, 30, 45, 60, 90];
 const QUOTE_VALIDITY = [7, 14, 30, 45, 60, 90];
@@ -239,8 +240,9 @@ export default function DocumentEditorPage({ type }: { type: DocumentType }) {
     }
   };
 
+  // Vendors only show up once they are also marked as clients.
   const clientOptions = clients
-    .filter((c) => !c.archived || c.id === doc.clientId)
+    .filter((c) => (!c.archived && isCustomer(c)) || c.id === doc.clientId)
     .sort((a, b) => a.name.localeCompare(b.name))
     .map((c) => ({
       value: c.id,

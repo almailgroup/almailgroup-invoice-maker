@@ -109,7 +109,7 @@ export async function saveAccount(input: Account): Promise<Account> {
 export async function accountInUse(account: Account): Promise<boolean> {
   if (account.role) return true;
   const id = account.id;
-  const [journals, payments, products, documents] = await Promise.all([
+  const [journals, payments, products, documents, expenses] = await Promise.all([
     db.journals
       .where('companyId')
       .equals(account.companyId)
@@ -130,8 +130,13 @@ export async function accountInUse(account: Account): Promise<boolean> {
       .equals(account.companyId)
       .filter((d) => d.items.some((i) => i.accountId === id))
       .count(),
+    db.expenses
+      .where('companyId')
+      .equals(account.companyId)
+      .filter((e) => e.accountId === id || e.paidFromAccountId === id)
+      .count(),
   ]);
-  return journals + payments + products + documents > 0;
+  return journals + payments + products + documents + expenses > 0;
 }
 
 export async function deleteAccount(id: ID): Promise<void> {
@@ -280,11 +285,12 @@ export interface CompanyLedger {
 
 /** Builds the general ledger of a company from its documents, payments and journals. */
 export async function loadLedger(company: Company): Promise<CompanyLedger> {
-  const [accounts, documents, payments, journals, products, clients] = await Promise.all([
+  const [accounts, documents, payments, journals, expenses, products, clients] = await Promise.all([
     db.accounts.where('companyId').equals(company.id).toArray(),
     db.documents.where('companyId').equals(company.id).toArray(),
     db.payments.where('companyId').equals(company.id).toArray(),
     db.journals.where('companyId').equals(company.id).toArray(),
+    db.expenses.where('companyId').equals(company.id).toArray(),
     db.products.where('companyId').equals(company.id).toArray(),
     db.clients.where('companyId').equals(company.id).toArray(),
   ]);
@@ -298,6 +304,6 @@ export async function loadLedger(company: Company): Promise<CompanyLedger> {
     taxExempt: (id) => exempt.has(id),
     documents: new Map(documents.map((d) => [d.id, d])),
   };
-  const { lines, problems } = buildLedger({ documents, payments, journals }, ctx);
+  const { lines, problems } = buildLedger({ documents, payments, journals, expenses }, ctx);
   return { accounts, lines, problems };
 }

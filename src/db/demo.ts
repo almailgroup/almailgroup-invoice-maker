@@ -4,7 +4,16 @@ import { draftDocument, markSent, saveDocument, setDocumentStatus } from './docu
 import { createPayment, savePayment } from './payments';
 import { saveClient, saveProduct, setupCompany } from './records';
 import { createJournal, newJournalLine, saveJournal } from './accounting';
-import type { Client, Company, InvoiceDocument, LineItem, Product } from './types';
+import { createExpense, saveExpense } from './purchases';
+import type {
+  Account,
+  Client,
+  Company,
+  InvoiceDocument,
+  LineItem,
+  Product,
+  TaxLine,
+} from './types';
 import { addDaysISO, parseISODate, toISODate, today } from '@/lib/dates';
 import { shortId } from '@/lib/ids';
 import { regionDefaults } from '@/lib/regions';
@@ -140,6 +149,117 @@ const CLIENTS: Partial<Client>[] = [
   },
 ];
 
+/** Suppliers. Orbit Logistics (a client) also becomes a vendor further down. */
+const VENDORS: Partial<Client>[] = [
+  {
+    name: 'PaperMill Supplies Ltd',
+    contacts: [
+      {
+        id: 'v1',
+        name: 'Priya Shah',
+        email: 'orders@papermill.example',
+        phone: '+44 1274 555 0142',
+        primary: true,
+      },
+    ],
+    address: {
+      line1: '5 Mill Lane',
+      line2: '',
+      city: 'Bradford',
+      state: '',
+      postalCode: 'BD1 3AA',
+      country: 'GB',
+    },
+    taxId: 'GB 555 1212 33',
+    paymentTermsDays: 30,
+  },
+  {
+    name: 'Swiftpost Business Services',
+    contacts: [
+      {
+        id: 'v2',
+        name: 'Account team',
+        email: 'billing@swiftpost.example',
+        phone: '+44 345 555 0100',
+        primary: true,
+      },
+    ],
+    address: {
+      line1: '1 Sorting Office Road',
+      line2: '',
+      city: 'Warrington',
+      state: '',
+      postalCode: 'WA1 1AA',
+      country: 'GB',
+    },
+    paymentTermsDays: 30,
+  },
+  {
+    name: 'Northern Power & Gas',
+    contacts: [
+      {
+        id: 'v3',
+        name: 'Business accounts',
+        email: 'business@northernpower.example',
+        phone: '',
+        primary: true,
+      },
+    ],
+    address: {
+      line1: 'PO Box 4410',
+      line2: '',
+      city: 'Newcastle',
+      state: '',
+      postalCode: 'NE1 4ZZ',
+      country: 'GB',
+    },
+    paymentTermsDays: 14,
+  },
+  {
+    name: 'Peak & Partners Accountants',
+    contacts: [
+      {
+        id: 'v4',
+        name: 'Daniel Peak',
+        email: 'daniel@peakpartners.example',
+        phone: '+44 161 555 0190',
+        primary: true,
+      },
+    ],
+    address: {
+      line1: '40 King Street',
+      line2: '',
+      city: 'Manchester',
+      state: '',
+      postalCode: 'M2 4WU',
+      country: 'GB',
+    },
+    taxId: 'GB 777 3344 55',
+    paymentTermsDays: 30,
+  },
+  {
+    name: 'Cloudline Software Ltd',
+    contacts: [
+      {
+        id: 'v5',
+        name: 'Subscriptions',
+        email: 'invoices@cloudline.example',
+        phone: '',
+        primary: true,
+      },
+    ],
+    address: {
+      line1: '2 Harbour Exchange',
+      line2: '',
+      city: 'London',
+      state: '',
+      postalCode: 'E14 9GE',
+      country: 'GB',
+    },
+    paymentTermsDays: 0,
+  },
+];
+
 const PRODUCTS: Partial<Product>[] = [
   {
     sku: 'DM-SETUP',
@@ -252,6 +372,191 @@ async function bookkeeping(company: Company) {
   }
 }
 
+function billLine(
+  accountId: string,
+  name: string,
+  quantity: number,
+  unitPrice: number,
+  taxes: TaxLine[] = [VAT],
+): LineItem {
+  return {
+    id: shortId(),
+    kind: 'item',
+    productId: null,
+    name,
+    description: '',
+    quantity,
+    unit: '',
+    unitPrice,
+    discount: 0,
+    discountType: 'percent',
+    taxes,
+    accountId,
+  };
+}
+
+async function bill(
+  company: Company,
+  vendor: Client,
+  type: 'bill' | 'vendor_credit',
+  daysAgo: number,
+  vendorReference: string,
+  items: LineItem[],
+  status: 'draft' | 'sent' = 'sent',
+): Promise<InvoiceDocument> {
+  const draft = await draftDocument(company, type, vendor);
+  const issueDate = addDaysISO(today(), -daysAgo);
+  return saveDocument({
+    ...draft,
+    issueDate,
+    dueDate:
+      type === 'bill'
+        ? addDaysISO(issueDate, vendor.paymentTermsDays ?? company.defaults.paymentTermsDays)
+        : null,
+    vendorReference,
+    items,
+    status,
+  });
+}
+
+async function payBill(
+  company: Company,
+  doc: InvoiceDocument,
+  amount: number,
+  daysAgo: number,
+  method: 'bank_transfer' | 'card' = 'bank_transfer',
+) {
+  await savePayment(
+    createPayment(company.id, {
+      direction: 'out',
+      clientId: doc.clientId,
+      date: addDaysISO(today(), -daysAgo),
+      amount,
+      currency: doc.currency,
+      method,
+      reference: doc.vendorReference ?? '',
+      allocations: [{ documentId: doc.id, amount }],
+    }),
+  );
+}
+
+/** Supplier bills, what was paid on them, and everyday expenses. */
+async function purchases(company: Company, alsoVendor: Client) {
+  const accounts = await db.accounts.where('companyId').equals(company.id).toArray();
+  const byCode = (code: string) =>
+    (accounts.find((a) => a.code === code) ?? accounts.find((a) => a.role === 'expense')!).id;
+  const role = (name: Account['role']) => accounts.find((a) => a.role === name)!.id;
+  const FIVE = { name: 'VAT', rate: 5 };
+
+  const vendors: Client[] = [];
+  for (const v of VENDORS) {
+    vendors.push(
+      await saveClient(createClient(company.id, { ...v, isCustomer: false, isVendor: true })),
+    );
+  }
+  const [paperMill, swiftpost, power, peak, cloudline] = vendors;
+  const orbit = await saveClient({ ...alsoVendor, isVendor: true });
+
+  const paper1 = await bill(company, paperMill, 'bill', 150, 'PM-20418', [
+    billLine(byCode('5000'), 'Silk 100gsm A4 — 20 boxes', 20, 84),
+  ]);
+  await payBill(company, paper1, paper1.totals.total, 125);
+
+  const post1 = await bill(company, swiftpost, 'bill', 140, 'SP-77812', [
+    billLine(byCode('5200'), 'Pre-sorted postage — Brightside campaign', 8000, 0.41, [ZERO]),
+  ]);
+  await payBill(company, post1, post1.totals.total, 118);
+
+  const energy = await bill(company, power, 'bill', 70, 'NPG-118204', [
+    billLine(byCode('7100'), 'Electricity — quarter to date', 1, 612.4, [FIVE]),
+  ]);
+  await payBill(company, energy, energy.totals.total, 58);
+
+  const paper2 = await bill(company, paperMill, 'bill', 60, 'PM-20977', [
+    billLine(byCode('5000'), 'Silk 100gsm A4 — 40 boxes', 40, 84),
+    billLine(byCode('5000'), 'C5 window envelopes — per 1,000', 25, 38),
+  ]);
+  await payBill(company, paper2, 2000, 30);
+
+  // Damaged stock sent back: a vendor credit, used against the same bill.
+  const returned = await bill(company, paperMill, 'vendor_credit', 40, 'PM-CN-311', [
+    billLine(byCode('5000'), 'Damaged boxes returned', 3, 84),
+  ]);
+  await savePayment(
+    createPayment(company.id, {
+      direction: 'out',
+      clientId: paperMill.id,
+      date: addDaysISO(today(), -39),
+      amount: returned.totals.total,
+      currency: returned.currency,
+      method: 'credit_note',
+      creditId: returned.id,
+      reference: returned.number,
+      allocations: [{ documentId: paper2.id, amount: returned.totals.total }],
+    }),
+  );
+
+  await bill(company, swiftpost, 'bill', 48, 'SP-80144', [
+    billLine(byCode('5200'), 'Pre-sorted postage — Brightside mailing', 12500, 0.41, [ZERO]),
+  ]);
+  await bill(company, peak, 'bill', 35, 'PK-2291', [
+    billLine(byCode('7800'), 'Year-end accounts preparation', 1, 1450),
+  ]);
+  await bill(company, orbit, 'bill', 25, 'OL-5520', [
+    billLine(byCode('5100'), 'Courier subcontracting — overflow deliveries', 1, 380),
+  ]);
+  await bill(
+    company,
+    cloudline,
+    'bill',
+    2,
+    'CL-INV-0093',
+    [billLine(byCode('7600'), 'Design software — annual licence', 1, 576)],
+    'draft',
+  );
+
+  const card = role('credit_card');
+  const cash = role('cash');
+  // A float for the petty cash tin, drawn from the bank.
+  await saveJournal(
+    createJournal(company.id, {
+      date: addDaysISO(today(), -90),
+      reference: 'Petty cash float',
+      lines: [
+        newJournalLine({ accountId: cash, debit: 150, description: 'Cash for the petty cash tin' }),
+        newJournalLine({ accountId: role('bank'), credit: 150 }),
+      ],
+    }),
+  );
+  const spent: [
+    daysAgo: number,
+    code: string,
+    text: string,
+    amount: number,
+    taxes: TaxLine[],
+    from: string,
+  ][] = [
+    [80, '7400', 'Train to Leeds — Brightside meeting', 86.4, [], card],
+    [55, '7500', 'Printer toner', 45.6, [VAT], card],
+    [33, '8150', 'Client lunch — Harbor & Pine', 64.8, [], card],
+    [12, '7450', 'Parking — Manchester city centre', 12, [], cash],
+    [6, '7500', 'Stationery', 18.99, [VAT], cash],
+  ];
+  for (const [daysAgo, code, description, amount, taxes, paidFromAccountId] of spent) {
+    await saveExpense(
+      createExpense(company.id, {
+        date: addDaysISO(today(), -daysAgo),
+        accountId: byCode(code),
+        description,
+        amount,
+        taxes,
+        currency: company.currency,
+        paidFromAccountId,
+      }),
+    );
+  }
+}
+
 async function invoice(
   company: Company,
   client: Client,
@@ -315,6 +620,7 @@ export async function seedDemoCompany(): Promise<Company> {
       db.activities,
       db.accounts,
       db.journals,
+      db.expenses,
       db.meta,
     ],
     seed,
@@ -379,8 +685,9 @@ async function seed(): Promise<Company> {
   }
   const [setup, print, insert, post2, post1, courier, data, pm] = products;
   const [brightside, harbor, maple, orbit, sunrise, kestrel] = clients;
+  await bookkeeping((await db.companies.get(company.id))!);
+  await purchases((await db.companies.get(company.id))!, orbit);
   const co = (await db.companies.get(company.id))!;
-  await bookkeeping(co);
 
   // Invoices across the last six months.
   const paidOld = await invoice(co, brightside, 'invoice', 160, [

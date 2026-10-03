@@ -2,7 +2,9 @@ import Dexie, { type Table } from 'dexie';
 import type {
   Account,
   Activity,
+  Attachment,
   Client,
+  Expense,
   Company,
   InvoiceDocument,
   KeyValue,
@@ -30,6 +32,8 @@ export class InvoiceDatabase extends Dexie {
   activities!: Table<Activity, string>;
   accounts!: Table<Account, string>;
   journals!: Table<ManualJournal, string>;
+  expenses!: Table<Expense, string>;
+  attachments!: Table<Attachment, string>;
   meta!: Table<KeyValue, string>;
 
   constructor(name = APP_NAME) {
@@ -51,6 +55,11 @@ export class InvoiceDatabase extends Dexie {
       accounts: 'id, companyId, [companyId+code], [companyId+role]',
       journals: 'id, companyId, [companyId+date], [companyId+number]',
     });
+    // Purchases: expenses and receipt attachments.
+    this.version(3).stores({
+      expenses: 'id, companyId, [companyId+date], vendorId, accountId',
+      attachments: 'id, companyId, ownerId',
+    });
   }
 }
 
@@ -65,6 +74,8 @@ export const DATA_TABLES = [
   'activities',
   'accounts',
   'journals',
+  'expenses',
+  'attachments',
 ] as const;
 
 export type DataTable = (typeof DATA_TABLES)[number];

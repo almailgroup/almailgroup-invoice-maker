@@ -26,6 +26,9 @@ const Settings = lazy(() => import('@/pages/settings/index'));
 const ChartOfAccounts = lazy(() => import('@/pages/accounting/chart'));
 const Journals = lazy(() => import('@/pages/accounting/journals'));
 const JournalEditor = lazy(() => import('@/pages/accounting/journal-editor'));
+const BillEditor = lazy(() => import('@/pages/purchases/bill-editor'));
+const BillView = lazy(() => import('@/pages/purchases/bill-view'));
+const Expenses = lazy(() => import('@/pages/purchases/expenses'));
 const NotFound = lazy(() => import('@/pages/not-found'));
 
 function Root() {
@@ -71,10 +74,32 @@ function RouteError() {
 }
 
 const documentRoutes = (path: string, type: 'invoice' | 'quote' | 'credit') => [
-  { path, element: <DocumentList type={type} /> },
+  { path, element: <DocumentList key={type} type={type} /> },
   { path: `${path}/new`, element: <DocumentEditor key={`${type}-new`} type={type} /> },
-  { path: `${path}/:id`, element: <DocumentView type={type} /> },
-  { path: `${path}/:id/edit`, element: <DocumentEditor type={type} /> },
+  { path: `${path}/:id`, element: <DocumentView key={type} type={type} /> },
+  { path: `${path}/:id/edit`, element: <DocumentEditor key={type} type={type} /> },
+];
+
+// Bills and vendor credits: the same list as sales documents, their own editor and page.
+const purchaseRoutes = (path: string, type: 'bill' | 'vendor_credit') => [
+  { path, element: <DocumentList key={type} type={type} /> },
+  { path: `${path}/new`, element: <BillEditor key={`${type}-new`} type={type} /> },
+  { path: `${path}/:id`, element: <BillView key={type} type={type} /> },
+  { path: `${path}/:id/edit`, element: <BillEditor key={type} type={type} /> },
+];
+
+const contactRoutes = (path: string, kind: 'customer' | 'vendor') => [
+  { path, element: <ClientList key={kind} kind={kind} /> },
+  { path: `${path}/new`, element: <ClientFormPage key={`${kind}-new`} kind={kind} /> },
+  { path: `${path}/:id`, element: <ClientDetail key={kind} kind={kind} /> },
+  { path: `${path}/:id/edit`, element: <ClientFormPage key={kind} kind={kind} /> },
+];
+
+const paymentRoutes = (path: string, direction: 'in' | 'out') => [
+  { path, element: <PaymentList key={direction} direction={direction} /> },
+  { path: `${path}/new`, element: <PaymentForm key={`${direction}-new`} direction={direction} /> },
+  { path: `${path}/:id`, element: <PaymentDetail key={direction} direction={direction} /> },
+  { path: `${path}/:id/edit`, element: <PaymentForm key={direction} direction={direction} /> },
 ];
 
 export const router = createHashRouter([
@@ -94,14 +119,13 @@ export const router = createHashRouter([
           { path: 'recurring', element: <RecurringList /> },
           { path: 'recurring/new', element: <RecurringEditor /> },
           { path: 'recurring/:id', element: <RecurringEditor /> },
-          { path: 'payments', element: <PaymentList /> },
-          { path: 'payments/new', element: <PaymentForm /> },
-          { path: 'payments/:id', element: <PaymentDetail /> },
-          { path: 'payments/:id/edit', element: <PaymentForm /> },
-          { path: 'clients', element: <ClientList /> },
-          { path: 'clients/new', element: <ClientFormPage /> },
-          { path: 'clients/:id', element: <ClientDetail /> },
-          { path: 'clients/:id/edit', element: <ClientFormPage /> },
+          ...paymentRoutes('payments', 'in'),
+          ...contactRoutes('clients', 'customer'),
+          ...contactRoutes('vendors', 'vendor'),
+          ...purchaseRoutes('bills', 'bill'),
+          ...purchaseRoutes('vendor-credits', 'vendor_credit'),
+          ...paymentRoutes('payments-made', 'out'),
+          { path: 'expenses', element: <Expenses /> },
           { path: 'products', element: <Products /> },
           { path: 'reports', element: <Reports /> },
           { path: 'reports/:report', element: <Reports /> },

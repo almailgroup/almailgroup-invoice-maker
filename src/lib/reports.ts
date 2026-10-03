@@ -67,17 +67,19 @@ export interface AgingRow {
   total: number;
 }
 
+/** Unpaid invoices (receivables) or bills (payables) by how late they are. */
 export function agingReport(
   docs: InvoiceDocument[],
   clients: Client[],
   currency: string,
   asOf: ISODate,
+  type: 'invoice' | 'bill' = 'invoice',
 ): { rows: AgingRow[]; totals: number[]; total: number } {
   const p = currencyPrecision(currency);
   const names = new Map(clients.map((c) => [c.id, c.name]));
   const byClient = new Map<string, number[]>();
   for (const d of docs) {
-    if (d.type !== 'invoice' || d.currency !== currency) continue;
+    if (d.type !== type || d.currency !== currency) continue;
     if (d.status !== 'sent' && d.status !== 'partial') continue;
     if (d.totals.balance <= 0) continue;
     const late = d.dueDate ? daysBetween(d.dueDate, asOf) : 0;
@@ -180,22 +182,19 @@ export interface ClientSalesRow {
   outstanding: number;
 }
 
+/** Invoices per client, or bills per vendor (`type: 'bill'`). */
 export function salesByClient(
   docs: InvoiceDocument[],
   clients: Client[],
   currency: string,
   range: DateRange,
+  type: 'invoice' | 'bill' = 'invoice',
 ): { rows: ClientSalesRow[]; totals: Omit<ClientSalesRow, 'clientId' | 'clientName'> } {
   const p = currencyPrecision(currency);
   const names = new Map(clients.map((c) => [c.id, c.name]));
   const map = new Map<string, ClientSalesRow>();
   for (const d of docs) {
-    if (
-      d.type !== 'invoice' ||
-      d.currency !== currency ||
-      !counts(d) ||
-      !inRange(d.issueDate, range)
-    )
+    if (d.type !== type || d.currency !== currency || !counts(d) || !inRange(d.issueDate, range))
       continue;
     const row = map.get(d.clientId) ?? {
       clientId: d.clientId,
@@ -236,10 +235,22 @@ export function salesByClient(
 /* Payments                                                                   */
 /* -------------------------------------------------------------------------- */
 
-export function paymentsReport(payments: Payment[], currency: string, range: DateRange) {
+/** Payments received (`in`) or made (`out`) in a period, by method. */
+export function paymentsReport(
+  payments: Payment[],
+  currency: string,
+  range: DateRange,
+  direction: 'in' | 'out' = 'in',
+) {
   const p = currencyPrecision(currency);
   const list = payments
-    .filter((x) => x.currency === currency && x.method !== 'credit_note' && inRange(x.date, range))
+    .filter(
+      (x) =>
+        (x.direction === 'out') === (direction === 'out') &&
+        x.currency === currency &&
+        x.method !== 'credit_note' &&
+        inRange(x.date, range),
+    )
     .sort((a, b) => b.date.localeCompare(a.date));
   const byMethod = new Map<string, number>();
   for (const x of list) byMethod.set(x.method, round((byMethod.get(x.method) ?? 0) + x.amount, p));

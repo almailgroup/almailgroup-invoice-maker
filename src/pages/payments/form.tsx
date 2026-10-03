@@ -15,8 +15,16 @@ import { Field, Input, NumberInput, Select, Textarea } from '@/components/ui/for
 import { Combobox } from '@/components/ui/combobox';
 import { CurrencySelect } from '@/components/fields';
 import { useUnsavedGuard } from '@/hooks/use-unsaved-guard';
+import { isCustomer, isVendor } from '@/db/purchases';
+import { MoneyAccountSelect } from '@/features/accounting/account-pickers';
+import {
+  PAYMENT_COPY,
+  paymentDirection,
+  type PaymentDirection,
+} from '@/features/payments/direction';
 
-export default function PaymentFormPage() {
+export default function PaymentFormPage({ direction = 'in' }: { direction?: PaymentDirection }) {
+  const copy = PAYMENT_COPY[direction];
   const { id } = useParams();
   const [params] = useSearchParams();
   const navigate = useNavigate();
@@ -33,7 +41,7 @@ export default function PaymentFormPage() {
       let loaded: Payment | undefined;
       if (id) {
         loaded = await db.payments.get(id);
-        if (!loaded || loaded.companyId !== company.id) {
+        if (!loaded || loaded.companyId !== company.id || paymentDirection(loaded) !== direction) {
           if (!cancelled) setMissing(true);
           return;
         }
@@ -41,6 +49,7 @@ export default function PaymentFormPage() {
         const clientId = params.get('client') ?? '';
         const client = clientId ? await db.clients.get(clientId) : undefined;
         loaded = createPayment(company.id, {
+          direction,
           clientId,
           currency: client?.currency ?? company.currency,
         });
@@ -53,19 +62,14 @@ export default function PaymentFormPage() {
     return () => {
       cancelled = true;
     };
-  }, [id, company.id, company.currency, params]);
+  }, [id, direction, company.id, company.currency, params]);
 
   const clients = useLiveQuery(
     () => db.clients.where('companyId').equals(company.id).toArray(),
     [company.id],
   );
-  const moneyAccounts = useLiveQuery(
-    () =>
-      db.accounts
-        .where('companyId')
-        .equals(company.id)
-        .filter((a) => a.type === 'asset_cash' && !a.archived)
-        .toArray(),
+  const accounts = useLiveQuery(
+    () => db.accounts.where('companyId').equals(company.id).toArray(),
     [company.id],
   );
   const clientId = payment?.clientId ?? '';
@@ -92,7 +96,7 @@ export default function PaymentFormPage() {
     return clientDocs
       .filter(
         (d) =>
-          d.type === 'invoice' &&
+          d.type === copy.docType &&
           d.currency === payment.currency &&
           (d.status === 'sent' ||
             d.status === 'partial' ||
@@ -110,29 +114,29 @@ export default function PaymentFormPage() {
       .sort((a, b) =>
         (a.doc.dueDate ?? a.doc.issueDate).localeCompare(b.doc.dueDate ?? b.doc.issueDate),
       );
-  }, [clientDocs, payment, previous]);
+  }, [clientDocs, payment, previous, copy.docType]);
 
   const credits = useMemo(() => {
     if (!clientDocs || !payment) return [];
     return clientDocs.filter(
       (d) =>
-        d.type === 'credit' &&
+        d.type === copy.creditType &&
         d.currency === payment.currency &&
         (d.status === 'sent' || d.status === 'partial' || before?.creditId === d.id),
     );
-  }, [clientDocs, payment, before]);
+  }, [clientDocs, payment, before, copy.creditType]);
 
   if (missing) {
     return (
       <Card className="p-10 text-center">
         <p className="text-slate-600">This payment could not be found.</p>
-        <Link to="/payments" className="text-primary-700 mt-4 inline-block text-sm font-medium">
-          Back to payments
+        <Link to={copy.base} className="text-primary-700 mt-4 inline-block text-sm font-medium">
+          Back to {copy.title.toLowerCase()}
         </Link>
       </Card>
     );
   }
-  if (!payment || !clients) return <Spinner className="py-24" label="Loading…" />;
+  if (!payment || !clients || !accounts) return <Spinner className="py-24" label="Loading…" />;
 
   const set = (patch: Partial<Payment>) => setPayment((p) => (p ? { ...p, ...patch } : p));
   const precision = currencyPrecision(payment.currency);
@@ -172,10 +176,10 @@ export default function PaymentFormPage() {
   };
 
   const save = async () => {
-    if (!payment.clientId) return toast.error('Choose a client.');
-    if (!(payment.amount > 0)) return toast.error('Enter the amount received.');
+    if (!payment.clientId) return toast.error(`Choose a ${copy.party.toLowerCase()}.`);
+    if (!(payment.amount > 0)) return toast.error(`Enter the ${copy.amount.toLowerCase()}.`);
     if (allocated - payment.amount > 1e-9)
-      return toast.error('More is applied to invoices than the payment amount.');
+      return toast.error(`More is applied to ${copy.docs} than the payment amount.`);
     for (const { doc, available } of invoices) {
       if (allocationFor(doc.id) - available > 1e-9)
         return toast.error(
@@ -183,10 +187,10 @@ export default function PaymentFormPage() {
         );
     }
     if (isCredit) {
-      if (!selectedCredit) return toast.error('Choose the credit note to apply.');
+      if (!selectedCredit) return toast.error(`Choose the ${copy.credit} to apply.`);
       if (payment.amount - creditAvailable > 1e-9)
         return toast.error(
-          `The credit note only has ${fmt.money(creditAvailable, payment.currency)} available.`,
+          `The ${copy.credit} only has ${fmt.money(creditAvailable, payment.currency)} available.`,
         );
     }
     setSaving(true);
@@ -194,7 +198,7 @@ export default function PaymentFormPage() {
       const saved = await savePayment({ ...payment, creditId: isCredit ? payment.creditId : null });
       toast.success(`Payment ${saved.number} saved`);
       allowNavigation();
-      navigate(`/payments/${saved.id}`);
+      navigate(`${copy.base}/${saved.id}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Could not save the payment.');
       setSaving(false);
@@ -202,15 +206,25 @@ export default function PaymentFormPage() {
   };
 
   const clientOptions = clients
-    .filter((c) => !c.archived || c.id === payment.clientId)
+    .filter(
+      (c) =>
+        (!c.archived && (direction === 'out' ? isVendor(c) : isCustomer(c))) ||
+        c.id === payment.clientId,
+    )
     .sort((a, b) => a.name.localeCompare(b.name))
     .map((c) => ({ value: c.id, label: c.name, detail: c.number }));
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <PageHeader
-        breadcrumb={<Link to="/payments">Payments</Link>}
-        title={id ? `Edit payment ${payment.number}` : 'Record a payment'}
+        breadcrumb={<Link to={copy.base}>{copy.title}</Link>}
+        title={
+          id
+            ? `Edit payment ${payment.number}`
+            : direction === 'out'
+              ? 'Record a payment made'
+              : 'Record a payment'
+        }
         actions={
           <>
             <Button variant="ghost" onClick={() => navigate(-1)}>
@@ -225,7 +239,7 @@ export default function PaymentFormPage() {
 
       <Card>
         <CardBody className="grid gap-4 sm:grid-cols-2">
-          <Field label="Client" className="sm:col-span-2">
+          <Field label={copy.party} className="sm:col-span-2">
             {(fid) => (
               <Combobox
                 id={fid}
@@ -240,12 +254,12 @@ export default function PaymentFormPage() {
                   });
                 }}
                 options={clientOptions}
-                placeholder="Who paid?"
-                searchPlaceholder="Search clients…"
+                placeholder={copy.who}
+                searchPlaceholder={`Search ${copy.parties}…`}
               />
             )}
           </Field>
-          <Field label="Amount received">
+          <Field label={copy.amount}>
             {(fid) => (
               <NumberInput
                 id={fid}
@@ -290,28 +304,16 @@ export default function PaymentFormPage() {
             )}
           </Field>
           {!isCredit ? (
-            <Field label="Deposit to" hint="The bank or cash account the money went into.">
+            <Field label={copy.account} hint={copy.accountHint}>
               {(fid) => (
-                <Select
+                <MoneyAccountSelect
                   id={fid}
-                  value={payment.accountId ?? ''}
-                  onChange={(e) => set({ accountId: e.target.value || null })}
-                >
-                  <option value="">
-                    {(() => {
-                      const role = payment.method === 'cash' ? 'cash' : 'bank';
-                      const auto = moneyAccounts?.find((a) => a.role === role);
-                      return auto ? `${auto.name} (default)` : 'Default account';
-                    })()}
-                  </option>
-                  {[...(moneyAccounts ?? [])]
-                    .sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }))
-                    .map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.code} {a.name}
-                      </option>
-                    ))}
-                </Select>
+                  value={payment.accountId}
+                  onChange={(accountId) => set({ accountId })}
+                  accounts={accounts}
+                  use={direction === 'out' ? 'payment' : 'deposit'}
+                  defaultRole={payment.method === 'cash' ? 'cash' : 'bank'}
+                />
               )}
             </Field>
           ) : null}
@@ -332,7 +334,7 @@ export default function PaymentFormPage() {
           ) : null}
           {isCredit ? (
             <Field
-              label="Credit note"
+              label={direction === 'out' ? 'Vendor credit' : 'Credit note'}
               className="sm:col-span-2"
               hint={
                 selectedCredit
@@ -355,8 +357,8 @@ export default function PaymentFormPage() {
                 >
                   <option value="">
                     {credits.length
-                      ? 'Choose a credit note…'
-                      : 'This client has no open credit notes'}
+                      ? `Choose a ${copy.credit}…`
+                      : `This ${copy.party.toLowerCase()} has no open ${copy.credit}s`}
                   </option>
                   {credits.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -392,8 +394,8 @@ export default function PaymentFormPage() {
 
       <Card>
         <CardHeader
-          title="Apply to invoices"
-          description="Split the payment across the client's open invoices."
+          title={`Apply to ${copy.docs}`}
+          description={`Split the payment across the ${copy.party.toLowerCase()}'s open ${copy.docs}.`}
           actions={
             invoices.length > 0 ? (
               <Button
@@ -409,18 +411,18 @@ export default function PaymentFormPage() {
         />
         {!payment.clientId ? (
           <p className="px-5 py-8 text-center text-sm text-slate-500">
-            Choose a client to see their open invoices.
+            Choose a {copy.party.toLowerCase()} to see their open {copy.docs}.
           </p>
         ) : invoices.length === 0 ? (
           <p className="px-5 py-8 text-center text-sm text-slate-500">
-            No open invoices in {payment.currency}. The payment will be kept as client credit.
+            No open {copy.docs} in {payment.currency}. The payment will be kept as {copy.unapplied}.
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 text-left text-xs font-medium tracking-wide text-slate-500 uppercase">
-                  <th className="px-5 py-3">Invoice</th>
+                  <th className="px-5 py-3">{direction === 'out' ? 'Bill' : 'Invoice'}</th>
                   <th className="px-3 py-3">Due</th>
                   <th className="px-3 py-3 text-right">Open balance</th>
                   <th className="w-40 px-5 py-3 text-right">Apply</th>
@@ -431,7 +433,7 @@ export default function PaymentFormPage() {
                   <tr key={doc.id}>
                     <td className="px-5 py-2.5">
                       <Link
-                        to={`/invoices/${doc.id}`}
+                        to={`${direction === 'out' ? '/bills' : '/invoices'}/${doc.id}`}
                         className="hover:text-primary-700 font-medium text-slate-900"
                       >
                         {doc.number}

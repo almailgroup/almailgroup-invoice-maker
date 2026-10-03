@@ -9,9 +9,11 @@ import { useCompany } from '@/app/company';
 import { Button } from '@/components/ui/button';
 import { Card, CardBody, PageHeader, Spinner } from '@/components/ui/misc';
 import { ClientForm, newContact, validateClient } from '@/features/clients/client-form';
+import { CONTACT_COPY, contactRoles, type ContactKind } from '@/features/clients/contact-kind';
 import { useUnsavedGuard } from '@/hooks/use-unsaved-guard';
 
-export default function ClientFormPage() {
+export default function ClientFormPage({ kind = 'customer' }: { kind?: ContactKind }) {
+  const copy = CONTACT_COPY[kind];
   const { id } = useParams();
   const navigate = useNavigate();
   const company = useCompany();
@@ -33,6 +35,7 @@ export default function ClientFormPage() {
         }
       } else {
         loaded = createClient(company.id, {
+          ...contactRoles(kind),
           contacts: [newContact(true)],
           address: {
             line1: '',
@@ -52,7 +55,7 @@ export default function ClientFormPage() {
     return () => {
       cancelled = true;
     };
-  }, [id, company.id, company.address.country]);
+  }, [id, kind, company.id, company.address.country]);
 
   const dirty = client !== null && JSON.stringify(client) !== original;
   const allowNavigation = useUnsavedGuard(dirty && !saving);
@@ -60,9 +63,9 @@ export default function ClientFormPage() {
   if (missing) {
     return (
       <Card className="p-10 text-center">
-        <p className="text-slate-600">This client could not be found.</p>
-        <Link to="/clients" className="text-primary-700 mt-4 inline-block text-sm font-medium">
-          Back to clients
+        <p className="text-slate-600">This {copy.singular} could not be found.</p>
+        <Link to={copy.base} className="text-primary-700 mt-4 inline-block text-sm font-medium">
+          Back to {copy.plural}
         </Link>
       </Card>
     );
@@ -84,9 +87,9 @@ export default function ClientFormPage() {
       });
       toast.success(`${saved.name} saved`);
       allowNavigation();
-      navigate(`/clients/${saved.id}`);
+      navigate(`${copy.base}/${saved.id}`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Could not save the client.');
+      toast.error(error instanceof Error ? error.message : `Could not save the ${copy.singular}.`);
       setSaving(false);
     }
   };
@@ -94,22 +97,28 @@ export default function ClientFormPage() {
   return (
     <div className="mx-auto max-w-4xl">
       <PageHeader
-        breadcrumb={<Link to="/clients">Clients</Link>}
-        title={id ? `Edit ${client.name || 'client'}` : 'New client'}
+        breadcrumb={<Link to={copy.base}>{copy.title}</Link>}
+        title={id ? `Edit ${client.name || copy.singular}` : `New ${copy.singular}`}
         actions={
           <>
             <Button variant="ghost" onClick={() => navigate(-1)}>
               Cancel
             </Button>
             <Button onClick={save} loading={saving}>
-              Save client
+              Save {copy.singular}
             </Button>
           </>
         }
       />
       <Card>
         <CardBody>
-          <ClientForm value={client} onChange={setClient} company={company} errors={errors} />
+          <ClientForm
+            value={client}
+            onChange={setClient}
+            company={company}
+            errors={errors}
+            kind={kind}
+          />
         </CardBody>
       </Card>
       <div className="mt-4 flex justify-end gap-2">
@@ -117,7 +126,7 @@ export default function ClientFormPage() {
           Cancel
         </Button>
         <Button onClick={save} loading={saving}>
-          Save client
+          Save {copy.singular}
         </Button>
       </div>
     </div>

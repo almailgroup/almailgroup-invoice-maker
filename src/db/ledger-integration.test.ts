@@ -54,9 +54,28 @@ describe('books of the demo company', () => {
       lines.filter((l) => l.accountId === fx.id).reduce((s, l) => s + l.amount, 0),
     ).toBeLessThan(0);
 
+    // Payables equal what is still owed on bills, less unused vendor credits.
+    const payable = accounts.find((a) => a.role === 'payable')!;
+    const apBalance = lines
+      .filter((l) => l.accountId === payable.id)
+      .reduce((s, l) => s + l.amount, 0);
+    const openBills = docs
+      .filter((d) => d.type === 'bill' && (d.status === 'sent' || d.status === 'partial'))
+      .reduce((s, d) => s + Math.round(d.totals.balance * 100), 0);
+    const vendorCredits = docs
+      .filter((d) => d.type === 'vendor_credit' && (d.status === 'sent' || d.status === 'partial'))
+      .reduce((s, d) => s + Math.round(d.totals.balance * 100), 0);
+    expect(openBills).toBeGreaterThan(0);
+    expect(apBalance).toBe(-(openBills - vendorCredits));
+
     const year = profitAndLoss(lines, accounts, { from: '0000-01-01', to: today() });
     expect(year.income.total).toBeGreaterThan(0);
-    expect(year.expenses.total).toBe(6 * 125000);
+    // Paper, postage and subcontractors, less the returned paper; the draft bill is left out.
+    expect(year.costOfSales.total).toBe((1680 + 3280 + 4310 - 252 + 5125 + 380) * 100);
+    // Rent, energy, accountants and the expenses without their VAT.
+    expect(year.expenses.total).toBe(
+      (6 * 1250 + 612.4 + 1450) * 100 + 8640 + 3800 + 6480 + 1200 + 1583,
+    );
   });
 });
 

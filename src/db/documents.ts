@@ -1,5 +1,5 @@
 import { db } from './db';
-import { createDocument, emptyTotals, nowStamp } from './defaults';
+import { createDocument, defaultNumbering, emptyTotals, nowStamp } from './defaults';
 import { logActivity } from './activity';
 import type {
   Client,
@@ -8,6 +8,7 @@ import type {
   DocumentType,
   ID,
   InvoiceDocument,
+  SalesDocumentType,
   TaxLine,
 } from './types';
 import { computeDocument } from '@/lib/document-calc';
@@ -16,12 +17,15 @@ import { settledStatus } from '@/lib/status';
 import { addDaysISO, today } from '@/lib/dates';
 import { shortId } from '@/lib/ids';
 import { isPosted } from '@/lib/accounting/ledger';
+import { isPurchaseType } from '@/lib/document-types';
 import { assertUnlocked } from './accounting';
 
 export const DOCUMENT_NOUN: Record<DocumentType, string> = {
   invoice: 'Invoice',
   quote: 'Quote',
   credit: 'Credit note',
+  bill: 'Bill',
+  vendor_credit: 'Vendor credit',
 };
 
 /** Tax rates applied by default to new lines / documents. */
@@ -44,23 +48,30 @@ export async function draftDocument(
   const d = company.defaults;
   const terms = client?.paymentTermsDays ?? d.paymentTermsDays;
   const taxes = await defaultTaxes(company);
-  const notes = { invoice: d.invoiceNotes, quote: d.quoteNotes, credit: d.creditNotes }[type];
-  const docTerms = { invoice: d.invoiceTerms, quote: d.quoteTerms, credit: d.creditTerms }[type];
+  const notes =
+    { invoice: d.invoiceNotes, quote: d.quoteNotes, credit: d.creditNotes }[
+      type as SalesDocumentType
+    ] ?? '';
+  const docTerms =
+    { invoice: d.invoiceTerms, quote: d.quoteTerms, credit: d.creditTerms }[
+      type as SalesDocumentType
+    ] ?? '';
   return createDocument(company.id, type, {
     clientId: client?.id ?? '',
     issueDate,
     dueDate:
-      type === 'invoice'
+      type === 'invoice' || type === 'bill'
         ? addDaysISO(issueDate, terms)
         : type === 'quote'
           ? addDaysISO(issueDate, d.quoteValidDays)
           : null,
     currency: client?.currency || company.currency,
     taxes: d.documentTaxes ? taxes : [],
-    pricesIncludeTax: d.pricesIncludeTax,
     notes,
     terms: docTerms,
-    footer: d.footer,
+    // Bills are the vendor's documents: nothing of ours is printed on them.
+    footer: isPurchaseType(type) ? '' : d.footer,
+    pricesIncludeTax: isPurchaseType(type) ? false : d.pricesIncludeTax,
     items: [
       {
         id: shortId(),
@@ -79,9 +90,9 @@ export async function draftDocument(
   });
 }
 
-/** Amount paid (invoices) or applied (credit notes) so far. */
+/** Amount paid (invoices, bills) or applied (credit notes, vendor credits) so far. */
 export async function paidAmount(doc: Pick<InvoiceDocument, 'id' | 'type'>): Promise<number> {
-  if (doc.type === 'invoice') {
+  if (doc.type === 'invoice' || doc.type === 'bill') {
     const payments = await db.payments.where('documentIds').equals(doc.id).toArray();
     return payments.reduce(
       (sum, p) =>
@@ -90,7 +101,7 @@ export async function paidAmount(doc: Pick<InvoiceDocument, 'id' | 'type'>): Pro
       0,
     );
   }
-  if (doc.type === 'credit') {
+  if (doc.type === 'credit' || doc.type === 'vendor_credit') {
     const uses = await db.payments.where('creditId').equals(doc.id).toArray();
     return uses.reduce((sum, p) => sum + p.amount, 0);
   }
@@ -164,7 +175,7 @@ export async function suggestNumber(
 ) {
   const taken = await takenNumbers(company.id, type);
   return allocateNumber(
-    company.numbering[type],
+    company.numbering[type] ?? defaultNumbering()[type],
     issueDate,
     (n) => taken.has(n.toLowerCase()),
     clientNumber,
@@ -197,7 +208,8 @@ export async function saveDocument(input: InvoiceDocument): Promise<InvoiceDocum
 
       const taken = await takenNumbers(company.id, doc.type, doc.id);
       if (!doc.number) {
-        const rule = company.numbering[doc.type];
+        // Companies created before bills existed have no rule for them yet.
+        const rule = company.numbering[doc.type] ?? defaultNumbering()[doc.type];
         const allocated = allocateNumber(
           rule,
           doc.issueDate,
@@ -277,12 +289,13 @@ export async function markSent(id: ID): Promise<void> {
 export async function deleteDocument(id: ID): Promise<void> {
   await db.transaction(
     'rw',
-    [db.documents, db.payments, db.activities, db.clients, db.companies],
+    [db.documents, db.payments, db.activities, db.clients, db.companies, db.attachments],
     async () => {
       const doc = await db.documents.get(id);
       if (!doc) return;
       const company = await db.companies.get(doc.companyId);
       if (company && isPosted(doc)) assertUnlocked(company, doc.issueDate);
+      await db.attachments.where('ownerId').equals(id).delete();
       const payments = await db.payments.where('documentIds').equals(id).toArray();
       for (const p of payments) {
         const allocations = p.allocations.filter((a) => a.documentId !== id);
@@ -292,7 +305,7 @@ export async function deleteDocument(id: ID): Promise<void> {
           documentIds: allocations.map((a) => a.documentId),
         });
       }
-      if (doc.type === 'credit') {
+      if (doc.type === 'credit' || doc.type === 'vendor_credit') {
         const uses = await db.payments.where('creditId').equals(id).toArray();
         const touched = uses.flatMap((p) => p.documentIds);
         await db.payments.bulkDelete(uses.map((p) => p.id));

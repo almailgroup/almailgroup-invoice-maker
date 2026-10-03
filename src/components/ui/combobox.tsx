@@ -29,6 +29,7 @@ export function Combobox({
   id,
   disabled,
   renderValue,
+  ariaLabel,
 }: {
   value: string | null;
   onChange: (value: string) => void;
@@ -42,6 +43,8 @@ export function Combobox({
   id?: string;
   disabled?: boolean;
   renderValue?: (option: ComboOption) => ReactNode;
+  /** For comboboxes without a visible label (table cells). */
+  ariaLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -85,6 +88,7 @@ export function Combobox({
         <button
           id={id}
           type="button"
+          aria-label={ariaLabel}
           className={cn(
             'focus-visible:border-primary-500 flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-slate-300 bg-white px-3 text-left text-sm shadow-xs transition-colors hover:border-slate-400 disabled:cursor-not-allowed disabled:bg-slate-50',
             className,

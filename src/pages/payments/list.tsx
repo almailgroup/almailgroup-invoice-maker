@@ -11,8 +11,14 @@ import { today } from '@/lib/dates';
 import { Button, ButtonLink } from '@/components/ui/button';
 import { Badge, Card, EmptyState, PageHeader, Spinner } from '@/components/ui/misc';
 import { Input, Select } from '@/components/ui/form';
+import {
+  PAYMENT_COPY,
+  paymentDirection,
+  type PaymentDirection,
+} from '@/features/payments/direction';
 
-export default function PaymentListPage() {
+export default function PaymentListPage({ direction = 'in' }: { direction?: PaymentDirection }) {
+  const copy = PAYMENT_COPY[direction];
   const company = useCompany();
   const fmt = useFormat();
   const navigate = useNavigate();
@@ -37,6 +43,7 @@ export default function PaymentListPage() {
     const byClient = new Map<string, Client>(clients.map((c) => [c.id, c]));
     const numbers = new Map(docs.map((d) => [d.id, d.number]));
     return payments
+      .filter((p) => paymentDirection(p) === direction)
       .map((p) => ({
         payment: p,
         client: byClient.get(p.clientId) ?? null,
@@ -48,7 +55,7 @@ export default function PaymentListPage() {
           b.payment.date.localeCompare(a.payment.date) ||
           b.payment.number.localeCompare(a.payment.number, undefined, { numeric: true }),
       );
-  }, [payments, clients, docs]);
+  }, [payments, clients, docs, direction]);
 
   const filtered = useMemo(() => {
     if (!rows) return [];
@@ -77,8 +84,8 @@ export default function PaymentListPage() {
   return (
     <div>
       <PageHeader
-        title="Payments"
-        description="Money received and credit notes applied."
+        title={copy.title}
+        description={copy.description}
         actions={
           <>
             {rows.length > 0 ? (
@@ -86,11 +93,11 @@ export default function PaymentListPage() {
                 variant="outline"
                 onClick={() =>
                   downloadCsv(
-                    `payments-${today()}`,
+                    `${copy.base.slice(1)}-${today()}`,
                     [
                       'Number',
                       'Date',
-                      'Client',
+                      copy.party,
                       'Method',
                       'Reference',
                       'Currency',
@@ -115,7 +122,7 @@ export default function PaymentListPage() {
                 <Download /> Export CSV
               </Button>
             ) : null}
-            <ButtonLink to="/payments/new">
+            <ButtonLink to={`${copy.base}/new`}>
               <Plus /> Record payment
             </ButtonLink>
           </>
@@ -127,9 +134,9 @@ export default function PaymentListPage() {
           <EmptyState
             icon={<CreditCard />}
             title="No payments yet"
-            description="Record payments as they arrive to keep invoice balances up to date."
+            description={copy.empty}
             action={
-              <ButtonLink to="/payments/new">
+              <ButtonLink to={`${copy.base}/new`}>
                 <Plus /> Record payment
               </ButtonLink>
             }
@@ -171,7 +178,7 @@ export default function PaymentListPage() {
                 <thead>
                   <tr className="border-b border-slate-100 text-left text-xs font-medium tracking-wide text-slate-500 uppercase">
                     <th className="px-5 py-3">Payment</th>
-                    <th className="px-3 py-3">Client</th>
+                    <th className="px-3 py-3">{copy.party}</th>
                     <th className="hidden px-3 py-3 md:table-cell">Method</th>
                     <th className="hidden px-3 py-3 lg:table-cell">Applied to</th>
                     <th className="px-5 py-3 text-right">Amount</th>
@@ -181,12 +188,12 @@ export default function PaymentListPage() {
                   {filtered.map((r) => (
                     <tr
                       key={r.payment.id}
-                      onClick={() => navigate(`/payments/${r.payment.id}`)}
+                      onClick={() => navigate(`${copy.base}/${r.payment.id}`)}
                       className="cursor-pointer hover:bg-slate-50"
                     >
                       <td className="px-5 py-3">
                         <Link
-                          to={`/payments/${r.payment.id}`}
+                          to={`${copy.base}/${r.payment.id}`}
                           onClick={(e) => e.stopPropagation()}
                           className="hover:text-primary-700 font-medium text-slate-900"
                         >
@@ -231,7 +238,8 @@ export default function PaymentListPage() {
             <span className="tabular flex flex-wrap gap-x-4">
               {totals.map(([currency, amount]) => (
                 <span key={currency}>
-                  Received <strong className="text-slate-900">{fmt.money(amount, currency)}</strong>
+                  {copy.total}{' '}
+                  <strong className="text-slate-900">{fmt.money(amount, currency)}</strong>
                 </span>
               ))}
             </span>

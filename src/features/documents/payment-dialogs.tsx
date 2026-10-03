@@ -10,8 +10,9 @@ import { round, currencyPrecision } from '@/lib/money';
 import { Button } from '@/components/ui/button';
 import { Field, Input, NumberInput, Select, Textarea } from '@/components/ui/form';
 import { Dialog, DialogBody, DialogContent, DialogFooter } from '@/components/ui/overlay';
+import { MoneyAccountSelect, useAccounts } from '@/features/accounting/account-pickers';
 
-/** Records a payment against one invoice. */
+/** Records a payment against one invoice (money in) or bill (money out). */
 export function RecordPaymentDialog({
   open,
   onOpenChange,
@@ -28,13 +29,16 @@ export function RecordPaymentDialog({
   const [method, setMethod] = useState<PaymentMethod>('bank_transfer');
   const [reference, setReference] = useState('');
   const [notes, setNotes] = useState('');
+  const [accountId, setAccountId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const accounts = useAccounts();
+  const out = invoice.type === 'bill';
   const money = (n: number) => formatMoney(n, invoice.currency, company.locale);
   const overpaid = amount > invoice.totals.balance + 1e-9;
 
   const save = async () => {
     if (amount <= 0) {
-      toast.error('Enter the amount received.');
+      toast.error(out ? 'Enter the amount paid.' : 'Enter the amount received.');
       return;
     }
     setSaving(true);
@@ -42,7 +46,9 @@ export function RecordPaymentDialog({
       const applied = Math.min(amount, Math.max(0, invoice.totals.balance));
       await savePayment(
         createPayment(company.id, {
+          direction: out ? 'out' : 'in',
           clientId: invoice.clientId,
+          accountId,
           date,
           amount,
           currency: invoice.currency,
@@ -83,7 +89,7 @@ export function RecordPaymentDialog({
               label={`Amount (${invoice.currency})`}
               hint={
                 overpaid
-                  ? `The extra ${money(amount - invoice.totals.balance)} stays as client credit.`
+                  ? `The extra ${money(amount - invoice.totals.balance)} stays as ${out ? 'an advance to the vendor' : 'client credit'}.`
                   : undefined
               }
             >
@@ -122,6 +128,18 @@ export function RecordPaymentDialog({
                 </Select>
               )}
             </Field>
+            <Field label={out ? 'Paid from' : 'Deposit to'}>
+              {(id) => (
+                <MoneyAccountSelect
+                  id={id}
+                  value={accountId}
+                  onChange={setAccountId}
+                  accounts={accounts ?? []}
+                  use={out ? 'payment' : 'deposit'}
+                  defaultRole={method === 'cash' ? 'cash' : 'bank'}
+                />
+              )}
+            </Field>
             <Field label="Reference" optional>
               {(id) => (
                 <Input
@@ -152,7 +170,7 @@ export function RecordPaymentDialog({
   );
 }
 
-/** Applies a credit note to one of the client's open invoices. */
+/** Applies a credit note to an open invoice, or a vendor credit to an open bill. */
 export function ApplyCreditDialog({
   open,
   onOpenChange,
@@ -164,6 +182,8 @@ export function ApplyCreditDialog({
   credit: InvoiceDocument;
   company: Company;
 }) {
+  const out = credit.type === 'vendor_credit';
+  const target = out ? 'bill' : 'invoice';
   const invoices = useLiveQuery(
     () =>
       db.documents
@@ -171,13 +191,13 @@ export function ApplyCreditDialog({
         .equals(credit.clientId)
         .filter(
           (d) =>
-            d.type === 'invoice' &&
+            d.type === target &&
             (d.status === 'sent' || d.status === 'partial') &&
             d.totals.balance > 0 &&
             d.currency === credit.currency,
         )
         .toArray(),
-    [credit.clientId, credit.currency],
+    [credit.clientId, credit.currency, target],
   );
   const [invoiceId, setInvoiceId] = useState('');
   const [amount, setAmount] = useState(0);
@@ -193,7 +213,7 @@ export function ApplyCreditDialog({
 
   const save = async () => {
     if (!selected || amount <= 0) {
-      toast.error('Choose an invoice and an amount.');
+      toast.error(`Choose ${out ? 'a bill' : 'an invoice'} and an amount.`);
       return;
     }
     setSaving(true);
@@ -201,6 +221,7 @@ export function ApplyCreditDialog({
       const value = Math.min(amount, max);
       await savePayment(
         createPayment(company.id, {
+          direction: out ? 'out' : 'in',
           clientId: credit.clientId,
           date: today(),
           amount: value,
@@ -223,17 +244,19 @@ export function ApplyCreditDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        title="Apply credit note"
+        title={out ? 'Apply vendor credit' : 'Apply credit note'}
         description={`${credit.number} · ${money(credit.totals.balance)} available`}
       >
         <DialogBody>
           {invoices && invoices.length === 0 ? (
             <p className="text-sm text-slate-600">
-              This client has no open invoices in {credit.currency}.
+              {out
+                ? `This vendor has no open bills in ${credit.currency}.`
+                : `This client has no open invoices in ${credit.currency}.`}
             </p>
           ) : (
             <>
-              <Field label="Invoice">
+              <Field label={out ? 'Bill' : 'Invoice'}>
                 {(id) => (
                   <Select
                     id={id}
@@ -244,7 +267,7 @@ export function ApplyCreditDialog({
                       if (inv) setAmount(Math.min(credit.totals.balance, inv.totals.balance));
                     }}
                   >
-                    <option value="">Choose an invoice…</option>
+                    <option value="">{out ? 'Choose a bill…' : 'Choose an invoice…'}</option>
                     {invoices?.map((inv) => (
                       <option key={inv.id} value={inv.id}>
                         {inv.number} ·{' '}

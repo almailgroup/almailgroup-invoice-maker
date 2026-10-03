@@ -2,7 +2,7 @@ import type {
   Client,
   Company,
   DocumentLanguage,
-  DocumentType,
+  SalesDocumentType,
   InvoiceDocument,
   PageSize,
 } from '@/db/types';
@@ -18,6 +18,7 @@ import { formatAddressLines, isAddressEmpty } from '@/lib/geo';
 import { normalizeHex } from '@/lib/color';
 import type { FontId } from './fonts';
 import { getLabels, type Labels } from './labels';
+import { salesType } from '@/lib/document-types';
 
 export interface RenderItem {
   kind: 'item' | 'heading';
@@ -72,7 +73,7 @@ export interface RenderClient {
 }
 
 export interface RenderModel {
-  type: DocumentType;
+  type: SalesDocumentType;
   language: DocumentLanguage;
   labels: Labels;
   /** Document title, e.g. "Invoice". */
@@ -156,7 +157,8 @@ export function buildRenderModel(
 
   const result = computeDocument(doc, { paid: doc.totals.paid, taxExempt: client?.taxExempt });
 
-  const title = labels[doc.type];
+  const type = salesType(doc.type);
+  const title = labels[type];
   const numberLabel =
     doc.type === 'invoice'
       ? labels.invoiceNumber
@@ -325,7 +327,7 @@ export function buildRenderModel(
   const primaryContact = client?.contacts.find((c) => c.primary) ?? client?.contacts[0];
 
   return {
-    type: doc.type,
+    type,
     language,
     labels,
     title,
