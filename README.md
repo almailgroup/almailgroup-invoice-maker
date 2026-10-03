@@ -58,6 +58,13 @@ no monthly fee. Your records stay on your own computer.
   refund is recorded against it. AlmailBooks does not submit returns itself:
   you enter the figures with HMRC's Making Tax Digital software or online
   service, or on the FTA EmaraTax portal.
+- **Banking:** import statements from online banking (CSV in any layout, or
+  OFX/QFX), with duplicates skipped when statements overlap. Each line is
+  matched to a payment, expense or journal already in the books, or recorded
+  from the statement as an invoice or bill payment, an expense, a transfer
+  between your own accounts or a posting to any account. The statement
+  balance is compared with the books so you can see when an account is
+  reconciled.
 - **Dashboard and reports:** what clients owe you and what you owe vendors,
   overdue amounts, receivables and payables aging, tax summary, sales by
   client, purchases by vendor, payments received and made, with CSV export.

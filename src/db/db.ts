@@ -14,6 +14,7 @@ import type {
   RecurringProfile,
   TaxRate,
   VatReturnRecord,
+  BankTransaction,
 } from './types';
 import { APP_NAME } from '@/lib/brand';
 import { seedMissingCharts } from './chart-setup';
@@ -36,6 +37,7 @@ export class InvoiceDatabase extends Dexie {
   expenses!: Table<Expense, string>;
   attachments!: Table<Attachment, string>;
   vatReturns!: Table<VatReturnRecord, string>;
+  bankTransactions!: Table<BankTransaction, string>;
   meta!: Table<KeyValue, string>;
 
   constructor(name = APP_NAME) {
@@ -66,6 +68,10 @@ export class InvoiceDatabase extends Dexie {
     this.version(4).stores({
       vatReturns: 'id, companyId, [companyId+periodStart]',
     });
+    // Imported bank statements.
+    this.version(5).stores({
+      bankTransactions: 'id, companyId, accountId, date, fingerprint, importId',
+    });
   }
 }
 
@@ -83,6 +89,7 @@ export const DATA_TABLES = [
   'expenses',
   'attachments',
   'vatReturns',
+  'bankTransactions',
 ] as const;
 
 export type DataTable = (typeof DATA_TABLES)[number];

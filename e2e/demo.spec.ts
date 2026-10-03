@@ -32,6 +32,7 @@ test('every page renders without errors', async ({ page }) => {
     ['#/accounts', 'Trade debtors'],
     ['#/journals', 'Share capital introduced'],
     ['#/vat', 'Next return to file'],
+    ['#/banking', 'Bank current account'],
     ['#/settings/accounting', 'Financial year'],
     ['#/templates', 'Brand colour'],
     ['#/settings/company', 'Company profile'],

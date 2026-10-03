@@ -85,6 +85,11 @@ export default function JournalsPage() {
                           VAT return
                         </Badge>
                       ) : null}
+                      {j.kind === 'transfer' ? (
+                        <Badge tone="violet" className="ml-2">
+                          Transfer
+                        </Badge>
+                      ) : null}
                     </td>
                   </tr>
                 ))}

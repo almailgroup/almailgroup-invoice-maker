@@ -4,6 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import {
   AlertCircle,
   ArrowRight,
+  Banknote,
   CheckCircle2,
   Circle,
   Clock,
@@ -94,6 +95,15 @@ export default function DashboardPage() {
   );
   const vatFiled = useLiveQuery(
     () => db.vatReturns.where('companyId').equals(company.id).toArray(),
+    [company.id],
+  );
+  const bankToMatch = useLiveQuery(
+    () =>
+      db.bankTransactions
+        .where('companyId')
+        .equals(company.id)
+        .filter((t) => !t.match && !t.ignored)
+        .toArray(),
     [company.id],
   );
   const taxRateCount = useLiveQuery(
@@ -408,7 +418,8 @@ export default function DashboardPage() {
             {data.overdue.length === 0 &&
             data.quotesWaiting.length === 0 &&
             data.billsOverdue.length === 0 &&
-            !data.vatDue ? (
+            !data.vatDue &&
+            !bankToMatch?.length ? (
               <div className="flex flex-col items-center py-8 text-center">
                 <CheckCircle2 className="size-8 text-emerald-500" />
                 <p className="mt-2 text-sm font-medium text-slate-700">All caught up</p>
@@ -436,6 +447,29 @@ export default function DashboardPage() {
                     </Link>
                   </li>
                 ))}
+                {bankToMatch?.length ? (
+                  <li>
+                    <Link
+                      to={
+                        new Set(bankToMatch.map((t) => t.accountId)).size === 1
+                          ? `/banking/${bankToMatch[0].accountId}`
+                          : '/banking'
+                      }
+                      className="flex items-center justify-between gap-3 py-2.5"
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-medium text-slate-800">
+                          Bank statement
+                        </span>
+                        <span className="flex items-center gap-1 text-xs text-slate-500">
+                          <Banknote className="size-3" /> {bankToMatch.length}{' '}
+                          {bankToMatch.length === 1 ? 'line' : 'lines'} to match
+                        </span>
+                      </span>
+                      <ArrowRight className="size-4 shrink-0 text-slate-400" />
+                    </Link>
+                  </li>
+                ) : null}
                 {data.vatDue ? (
                   <li>
                     <Link

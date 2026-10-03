@@ -4,6 +4,7 @@ import * as DialogPrimitive from '@radix-ui/react-dialog';
 import {
   ArrowDownLeft,
   ArrowUpRight,
+  Banknote,
   BarChart3,
   Building2,
   ChevronsUpDown,
@@ -82,6 +83,7 @@ const NAV: { title?: string; items: NavItem[] }[] = [
   {
     title: 'Accounting',
     items: [
+      { to: '/banking', label: 'Banking', icon: <Banknote /> },
       { to: '/reports', label: 'Reports', icon: <BarChart3 /> },
       { to: '/vat', label: 'VAT returns', icon: <Landmark /> },
       { to: '/accounts', label: 'Chart of accounts', icon: <ListTree /> },

@@ -6,6 +6,10 @@ import { saveClient, saveProduct, setupCompany } from './records';
 import { createJournal, loadLedger, newJournalLine, saveJournal } from './accounting';
 import { createExpense, saveExpense } from './purchases';
 import { fileVatReturn, recordVatPayment } from './vat';
+import { importStatement, matchTransaction } from './banking';
+import { bookEntries } from '@/lib/banking/match';
+import type { StatementLine } from '@/lib/banking/statement';
+import { fromMinor } from '@/lib/money';
 import { vatDueDate, vatPeriodOf, vatPeriods } from '@/lib/accounting/vat';
 import type {
   Account,
@@ -629,6 +633,7 @@ export async function seedDemoCompany(): Promise<Company> {
       db.journals,
       db.expenses,
       db.vatReturns,
+      db.bankTransactions,
       db.meta,
     ],
     seed,
@@ -837,7 +842,91 @@ async function seed(): Promise<Company> {
   );
 
   await vatHistory((await db.companies.get(company.id))!);
+  await bankStatement((await db.companies.get(company.id))!);
   return (await db.companies.get(company.id))!;
+}
+
+/**
+ * The last six weeks of the bank statement: what the books already hold
+ * (matched), plus a few lines still to deal with.
+ */
+async function bankStatement(company: Company) {
+  const { accounts, lines } = await loadLedger(company);
+  const bank = accounts.find((a) => a.role === 'bank')!;
+  const clients = await db.clients.where('companyId').equals(company.id).toArray();
+  const names = new Map(clients.map((c) => [c.id, c.name]));
+  const from = addDaysISO(today(), -42);
+  const entries = bookEntries(lines, bank.id)
+    .filter((e) => e.date >= from)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const statement: (StatementLine & { entry?: (typeof entries)[number] })[] = entries.map(
+    (entry) => ({
+      date: entry.date,
+      description: `${(entry.contactId ? names.get(entry.contactId) : '') || entry.description} ${
+        entry.source === 'payment' ? entry.number : ''
+      }`
+        .trim()
+        .toUpperCase(),
+      reference: '',
+      amount: fromMinor(entry.amount, 2),
+      balance: null,
+      entry,
+    }),
+  );
+  // Still to match: a client paying an open invoice, the card bill and a bank fee.
+  const open = (await db.documents.where('companyId').equals(company.id).toArray())
+    .filter((d) => d.type === 'invoice' && d.status === 'sent' && d.currency === company.currency)
+    .sort((a, b) => b.issueDate.localeCompare(a.issueDate))[0];
+  if (open) {
+    statement.push({
+      date: addDaysISO(today(), -2),
+      description: `${(names.get(open.clientId) ?? '').toUpperCase()} ${open.number}`,
+      reference: 'FPS',
+      amount: open.totals.balance,
+      balance: null,
+    });
+  }
+  statement.push(
+    {
+      date: addDaysISO(today(), -5),
+      description: 'COMPANY CREDIT CARD REPAYMENT',
+      reference: 'DD',
+      amount: -150,
+      balance: null,
+    },
+    {
+      date: addDaysISO(today(), -3),
+      description: 'MONTHLY ACCOUNT FEE',
+      reference: '',
+      amount: -12.5,
+      balance: null,
+    },
+  );
+  statement.sort((a, b) => a.date.localeCompare(b.date));
+  // Running balance, starting from the books on the day before.
+  let balance = lines
+    .filter((l) => l.accountId === bank.id && l.date < from)
+    .reduce((s, l) => s + l.amount, 0);
+  for (const line of statement) {
+    balance += Math.round(line.amount * 100);
+    line.balance = fromMinor(balance, 2);
+  }
+  const { transactions } = await importStatement(
+    company.id,
+    bank.id,
+    statement.map(({ date, description, reference, amount, balance: b }) => ({
+      date,
+      description,
+      reference,
+      amount,
+      balance: b,
+    })),
+    'Demo statement',
+  );
+  for (const tx of transactions) {
+    const entry = statement[tx.position].entry;
+    if (entry) await matchTransaction(tx.id, { source: entry.source, id: entry.id });
+  }
 }
 
 /** Files and pays the VAT returns before the latest one, which is left to file. */

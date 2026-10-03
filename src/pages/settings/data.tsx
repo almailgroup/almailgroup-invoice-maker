@@ -56,6 +56,7 @@ const TABLE_LABELS: Record<string, string> = {
   expenses: 'Expenses',
   attachments: 'Receipts and files',
   vatReturns: 'VAT returns',
+  bankTransactions: 'Bank statement lines',
 };
 
 export default function DataSettings() {

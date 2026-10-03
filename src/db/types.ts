@@ -212,6 +212,8 @@ export interface ManualJournal {
   lines: JournalLine[];
   /** Set on the entry that closes a VAT return (see VatReturn). */
   vatReturnId?: ID | null;
+  /** Money moved between two of the company's own accounts. */
+  kind?: 'transfer';
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -240,6 +242,37 @@ export interface VatSettings {
   startMonth: number;
   /** UAE: emirate code (AZ, DU, SH, AJ, UQ, RK, FU) the business is established in. */
   emirate: string | null;
+}
+
+/** Where a bank statement line was found in the books. */
+export interface BankMatch {
+  source: 'payment' | 'expense' | 'journal';
+  id: ID;
+}
+
+/** A line of an imported bank statement. */
+export interface BankTransaction {
+  id: ID;
+  companyId: ID;
+  /** The bank, cash or card account the statement belongs to. */
+  accountId: ID;
+  date: ISODate;
+  description: string;
+  reference: string;
+  /** Company currency; positive is money in, negative money out. */
+  amount: number;
+  /** Running balance after the line, when the statement gives it. */
+  balance: number | null;
+  /** Identifies the line so a statement imported twice adds nothing. */
+  fingerprint: string;
+  importId: ID;
+  /** Order within the import, to keep same-day lines in statement order. */
+  position: number;
+  match: BankMatch | null;
+  /** Left out of the reconciliation on purpose. */
+  ignored: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 }
 
 /** A filed VAT return: the boxes as filed and the entry that closed it. */
@@ -550,7 +583,8 @@ export type ActivityEntity =
   | 'company'
   | 'account'
   | 'journal'
-  | 'vat_return';
+  | 'vat_return'
+  | 'bank';
 
 export interface Activity {
   id: ID;
